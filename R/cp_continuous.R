@@ -34,7 +34,7 @@ pinterval_cp_cont <- function(pred,
 		stop('Either calib or ncs must be provided')
 	}
 	if(is.null(ncs)){
-		if(is.numeric(calib) & is.null(calib_truth)){
+		if(is.numeric(calib) && is.null(calib_truth)){
 			stop('If calib is numeric, calib_truth must be provided')
 		}
 		if(!is.numeric(calib) && ncol(calib)!=2){
