@@ -112,7 +112,7 @@ pinterval_cp_bins = function(pred,
 				warning('Both breaks and nbins provided, using breaks')
 			}
 		}else{
-			if(!is.integer(nbins) || length(nbins)!=1){
+			if(!(nbins == round(nbins)) || length(nbins)!=1){
 				stop('nbins must be a single integer value')
 			}
 			calib_bins <- bin_chopper(calib_truth,nbins = nbins)
