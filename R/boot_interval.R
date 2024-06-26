@@ -39,7 +39,7 @@ pinterval_bootstrap <- function(pred,
 			stop('Either calib or error must be provided')
 		}
 
-	if(!is.numeric(calib) & ncol(calib)!=2){
+	if(!is.numeric(calib) && ncol(calib)!=2){
 		stop('calib must be a numeric vector or a 2 column tibble or matrix with the first column being the predicted values and the second column being the truth values, unless error is provided')
 	}
 	}
