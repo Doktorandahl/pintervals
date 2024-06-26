@@ -1,0 +1,20 @@
+Package: pintervals
+Type: Package
+Title: Model agnostic prediction intervals
+Version: 0.1.0
+Description: More about what it does (maybe more than one line)
+    Use four spaces when indenting paragraphs within the Description.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Authors@R: c(
+    person("David", "Randahl", , "david.randahl@pcr.uu.se", role = c("aut", "cre")),
+    person("Jonathan", "Williams", role = "aut"),
+    person("Håvard", "Hegre", role = "ctb")
+  )
+Imports: 
+    dplyr,
+    foreach,
+    rlang,
+    tibble
+RoxygenNote: 7.3.1
