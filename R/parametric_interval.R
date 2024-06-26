@@ -43,7 +43,7 @@ pinterval_parametric <- function(pred,
 		stop('dist must be a single distribution')
 	}
 
-	if(!is.character(dist) | !is.function(dist)){
+	if(!is.character(dist) & !is.function(dist)){
 		stop('dist must be a character string matching a distribution or a function representing a distribution')
 	}
 
