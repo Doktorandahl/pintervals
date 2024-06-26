@@ -68,7 +68,7 @@ pinterval_cp_bins = function(pred,
 	}
 
 
-	if(!is.numeric(alpha) | alpha<=0 | alpha>=1 | length(alpha)!=1){
+	if(!is.numeric(alpha) || alpha<=0 || alpha>=1 || length(alpha)!=1){
 		stop('alpha must be a single numeric value between 0 and 1')
 	}
 

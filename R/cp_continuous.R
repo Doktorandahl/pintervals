@@ -37,7 +37,7 @@ pinterval_cp_cont <- function(pred,
 		if(is.numeric(calib) & is.null(calib_truth)){
 			stop('If calib is numeric, calib_truth must be provided')
 		}
-		if(!is.numeric(calib) & ncol(calib)!=2){
+		if(!is.numeric(calib) && ncol(calib)!=2){
 			stop('calib must be a numeric vector or a 2 column tibble or matrix with the first column being the predicted values and the second column being the truth values')
 		}
 	}else{
@@ -48,7 +48,7 @@ pinterval_cp_cont <- function(pred,
 			warning('ncs provided, calib will be ignored')
 		}
 	}
-	if(!is.numeric(alpha) | alpha<=0 | alpha>=1 | length(alpha)!=1){
+	if(!is.numeric(alpha) || alpha<=0 || alpha>=1 || length(alpha)!=1){
 		stop('alpha must be a single numeric value between 0 and 1')
 	}
 
@@ -64,7 +64,7 @@ pinterval_cp_cont <- function(pred,
 		stop('pred must be a numeric vector')
 	}
 
-	if(!is.numeric(min_step) | min_step<=0 | length(min_step)!=1){
+	if(!is.numeric(min_step) || min_step<=0 || length(min_step)!=1){
 		stop('min_step must be a single numeric value greater than 0')
 	}
 
