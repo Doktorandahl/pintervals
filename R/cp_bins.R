@@ -51,7 +51,7 @@ pinterval_cp_bins = function(pred,
 			stop('calib must be a numeric vector or a 2 or 3 column tibble or matrix with the first column being the predicted values, the second column being the truth values, and (optionally) the third column being the bin values if bin structure is not provided in argument bins')
 		}
 
-		if((is.null(breaks)) && is.null(nbins) && (is.null(calib_bins) || ncol(calib_bins)!=3)){
+		if((is.null(breaks)) && is.null(nbins) && (is.null(calib_bins) || (!is.numeric(calib) && ncol(calib)!=3))){
 			stop('If breaks for bins or nbins are not provided, bins for the calibration set must be provided as a vector or a as the last column of the calib if calib is a tibble or matrix')
 		}
 	}else{
