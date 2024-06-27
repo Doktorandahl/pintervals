@@ -10,6 +10,7 @@
 #' @param breaks A vector of break points for the bins to manually define the bins. If NULL, lower and upper bounds of the bins are calculated as the minimum and maximum values of each bin in the calibration set. Must be provided if calib_bins or nbins are not provided, either as a vector or as the last column of a calib tibble.
 #' @param nbins Automatically chop the calibration set into nbins based on the true values with approximately equal number of observations in each bin. Must be provided if calib_bins or breaks are not provided.
 #' @param calib_bin_type A string specicying whether the bins are based on the predicted values ('prediction') or the true values ('truth'). Default is 'prediction'. Ignored if calib_bins is provided.
+#' @param error_type The type of error to use for the prediction intervals. Can be 'raw' or 'absolute'. If 'raw', bootstrapping will be done on the raw prediction errors. If 'absolute', bootstrapping will be done on the absolute prediction errors with random signs. Default is 'raw'
 #' @param alpha The confidence level for the prediction intervals. Must be a single numeric value between 0 and 1
 #' @param n_bootstraps The number of bootstraps to perform. Default is 1000
 #' @param lower_bound Optional minimum value for the prediction intervals. If not provided, the minimum (true) value of the calibration partition will be used
@@ -28,6 +29,7 @@ pinterval_boot_bin <- function(pred,
 															 breaks = NULL,
 															 nbins = NULL,
 															 calib_bin_type = c('prediction', 'truth'),
+															 error_type = c('raw','absolute'),
 															 alpha = 0.1,
 															 n_bootstraps=1000,
 															 lower_bound = NULL,
@@ -127,15 +129,13 @@ pinterval_boot_bin <- function(pred,
 		stop('Calibration set must have at least two bins. For continuous bootstrap prediction intervals without bins, use pinterval_bootstrap() instead of pinterval_boot_bin()')
 	}
 
-	error <- abs(calib - calib_truth)
-
-
 
 	boot_intervals <- foreach::foreach(i = 1:length(bin_labels)) %do%
 		suppressWarnings(pinterval_bootstrap(pred = pred,
 																	 lower_bound = lower_bound,
 																	 upper_bound = upper_bound,
-																	 error = error[calib_bins==bin_labels[i]],
+																	 calib = calib[calib_bins==bin_labels[i]],
+																	 calib_truth = calib_truth[calib_bins==bin_labels[i]],
 																	 alpha = alpha))
 
 	boot_intervals <- foreach::foreach(i = 1:length(pred)) %do%
