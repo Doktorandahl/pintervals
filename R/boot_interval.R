@@ -7,6 +7,7 @@
 #' @param calib A numeric vector of predicted values in the calibration partition or a 2 column tibble or matrix with the first column being the predicted values and the second column being the truth values
 #' @param calib_truth A numeric vector of true values in the calibration partition. Only required if calib is a numeric vector
 #' @param error An optional numeric vector of pre-computed prediction errors from a calibration partition or other test data. If provided, calib will be ignored
+#' @param error_type The type of error to use for the prediction intervals. Can be 'raw' or 'absolute'. If 'raw', bootstrapping will be done on the raw prediction errors. If 'absolute', bootstrapping will be done on the absolute prediction errors with random signs. Default is 'raw'
 #' @param alpha The confidence level for the prediction intervals. Must be a single numeric value between 0 and 1
 #' @param n_bootstraps The number of bootstraps to perform. Default is 1000
 #' @param lower_bound Optional minimum value for the prediction intervals. If not provided, the minimum (true) value of the calibration partition will be used
@@ -20,6 +21,7 @@ pinterval_bootstrap <- function(pred,
 															 calib = NULL,
 															 calib_truth = NULL,
 															 error = NULL,
+															 error_type = c('raw','absolute'),
 															 alpha = 0.1,
 															 n_bootstraps=1000,
 															 lower_bound = NULL,
@@ -67,7 +69,12 @@ if(is.null(lower_bound)){
 	}
 
 	if(is.null(error)){
-		error <- abs(calib_truth-calib)
+		if(error_type == 'raw'){
+			error <- calib - calib_truth
+		else if(error_type == 'absolute'){
+			error <- abs(calib - calib_truth)
+			error <- c(error, -error)
+		}
 	}
 
 	boot_set <- foreach::foreach(i = 1:length(pred)) %do%

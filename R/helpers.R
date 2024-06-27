@@ -70,7 +70,7 @@ grid_inner <- function(hyp_ncs,y_hat,ncs,pos_vals,alpha){
 
 bootstrap_inner <- function(pred, error, nboot, alpha, lower_bound, upper_bound){
 	i <- NA
-	boot_error <- sample(c(error,-error), size = nboot, replace = TRUE)
+	boot_error <- sample(error, size = nboot, replace = TRUE)
 	boot_pred <- pred + boot_error
 	lb <- as.numeric(stats::quantile(boot_pred, alpha/2))
 	ub <- as.numeric(stats::quantile(boot_pred, 1-alpha/2))
