@@ -71,6 +71,7 @@ if(is.null(lower_bound)){
 	if(is.null(error)){
 		if(error_type == 'raw'){
 			error <- calib - calib_truth
+		}
 		else if(error_type == 'absolute'){
 			error <- abs(calib - calib_truth)
 			error <- c(error, -error)
