@@ -27,7 +27,7 @@ pinterval_cp_bins = function(pred,
 									 breaks = NULL,
 									 nbins = NULL,
 									 alpha = 0.1,
-									 ncs_function = 'absolute_error',
+									 ncs_function = c('absolute_error','squared_error'),
 									 ncs = NULL,
 									 min_step = 0.01,
 									 grid_size = NULL,
@@ -51,7 +51,7 @@ pinterval_cp_bins = function(pred,
 			stop('calib must be a numeric vector or a 2 or 3 column tibble or matrix with the first column being the predicted values, the second column being the truth values, and (optionally) the third column being the bin values if bin structure is not provided in argument bins')
 		}
 
-		if((is.null(breaks)) && is.null(nbins) && (is.null(calib_bins) | ncol(calib_bins)!=3)){
+		if((is.null(breaks)) && is.null(nbins) && (is.null(calib_bins) || ncol(calib_bins)!=3)){
 			stop('If breaks for bins or nbins are not provided, bins for the calibration set must be provided as a vector or a as the last column of the calib if calib is a tibble or matrix')
 		}
 	}else{
@@ -74,6 +74,8 @@ pinterval_cp_bins = function(pred,
 
 	if(ncs_function == 'absolute_error'){
 		ncs_function <- abs_error
+	}else if(ncs_function == 'squared_error'){
+		ncs_function <- squared_error
 	}else if(is.character(ncs_function)){
 		ncs_function <- match.fun(ncs_function)
 	}else if(!is.function(ncs_function) & is.null(ncs)){

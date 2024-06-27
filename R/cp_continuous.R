@@ -23,7 +23,7 @@ pinterval_cp_cont <- function(pred,
 													calib = NULL,
 													calib_truth = NULL,
 													alpha = 0.1,
-													ncs_function = 'absolute_error',
+													ncs_function = c('absolute_error','squared_error'),
 													ncs = NULL,
 													lower_bound = NULL,
 													upper_bound = NULL,
@@ -54,6 +54,8 @@ pinterval_cp_cont <- function(pred,
 
 	if(ncs_function == 'absolute_error'){
 		ncs_function <- abs_error
+	}else if(ncs_function == 'squared_error'){
+		ncs_function <- squared_error
 	}else if(is.character(ncs_function)){
 		ncs_function <- match.fun(ncs_function)
 	}else if(!is.function(ncs_function)){

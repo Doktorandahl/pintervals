@@ -15,6 +15,9 @@ abs_error <- function(pred, truth){
 	return(abs(pred-truth))
 }
 
+squared_error <- function(pred, truth){
+	return((pred-truth)^2)
+}
 
 
 #' Grid search for lower and upper bounds of continuous conformal prediction intervals
