@@ -68,6 +68,8 @@ if(is.null(lower_bound)){
 		upper_bound <- Inf
 	}
 
+	error_type <- match.arg(error_type, c('raw','absolute'))
+
 	if(is.null(error)){
 		if(error_type == 'raw'){
 			error <- calib - calib_truth
