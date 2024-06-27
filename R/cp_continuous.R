@@ -51,7 +51,9 @@ pinterval_cp_cont <- function(pred,
 	if(!is.numeric(alpha) || alpha<=0 || alpha>=1 || length(alpha)!=1){
 		stop('alpha must be a single numeric value between 0 and 1')
 	}
-
+	if(is.character(ncs_function)){
+		ncs_function <- match.arg(ncs_function, c('absolute_error','squared_error'))
+	}
 	if(ncs_function == 'absolute_error'){
 		ncs_function <- abs_error
 	}else if(ncs_function == 'squared_error'){
