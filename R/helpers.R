@@ -84,7 +84,7 @@ bootstrap_inner <- function(pred, error, nboot, alpha, lower_bound, upper_bound)
 		ub <- upper_bound
 	}
 
-	return(c(pred = pred, lower_bound = lb, upper_bound = ub))
+	return(c(pred = as.numeric(pred), lower_bound = lb, upper_bound = ub))
 }
 
 
