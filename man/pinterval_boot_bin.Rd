@@ -12,6 +12,7 @@ pinterval_boot_bin(
   breaks = NULL,
   nbins = NULL,
   calib_bin_type = c("prediction", "truth"),
+  error_type = c("raw", "absolute"),
   alpha = 0.1,
   n_bootstraps = 1000,
   lower_bound = NULL,
@@ -33,6 +34,8 @@ pinterval_boot_bin(
 \item{nbins}{Automatically chop the calibration set into nbins based on the true values with approximately equal number of observations in each bin. Must be provided if calib_bins or breaks are not provided.}
 
 \item{calib_bin_type}{A string specicying whether the bins are based on the predicted values ('prediction') or the true values ('truth'). Default is 'prediction'. Ignored if calib_bins is provided.}
+
+\item{error_type}{The type of error to use for the prediction intervals. Can be 'raw' or 'absolute'. If 'raw', bootstrapping will be done on the raw prediction errors. If 'absolute', bootstrapping will be done on the absolute prediction errors with random signs. Default is 'raw'}
 
 \item{alpha}{The confidence level for the prediction intervals. Must be a single numeric value between 0 and 1}
 

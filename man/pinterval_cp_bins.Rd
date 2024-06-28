@@ -12,7 +12,7 @@ pinterval_cp_bins(
   breaks = NULL,
   nbins = NULL,
   alpha = 0.1,
-  ncs_function = "absolute_error",
+  ncs_function = c("absolute_error", "squared_error"),
   ncs = NULL,
   min_step = 0.01,
   grid_size = NULL,

@@ -9,7 +9,7 @@ pinterval_cp_cont(
   calib = NULL,
   calib_truth = NULL,
   alpha = 0.1,
-  ncs_function = "absolute_error",
+  ncs_function = c("absolute_error", "squared_error"),
   ncs = NULL,
   lower_bound = NULL,
   upper_bound = NULL,
