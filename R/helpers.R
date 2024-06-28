@@ -103,13 +103,21 @@ bin_chopper <- function(x, nbins, return_breaks = FALSE){
 	}
 
 	target_num <- ceiling(length(x)/nbins)
+
+	qtiles <- seq(from = 0, to = 1, length.out = nbins+1)
+	qtiles <- qtiles[-c(1,length(qtiles))]
+	cutpoints_qtiles <- as.numeric(stats::quantile(x,qtiles))
+	init_cut <- cut(x, breaks = c(-Inf,cutpoints_qtiles,Inf), labels = F)
+	if(max(table(init_cut)) <= target_num + 2 & min(table(init_cut)) >= target_num - 2){
+		cutpoints <- cutpoints_qtiles
+	}else{
 	nobs_per_value <- table(x)
 	binsizes <- rep(target_num, nbins)
 	binsizes2 <- rep(0, nbins)
 	cutpoints <- rep(0, nbins-1)
 	k <- 0
 	while(!identical(binsizes,binsizes2) & k<10){
-	for(i in 1:nbins){
+	for(i in 1:(nbins-1)){
 		ccs <- 0
 		j <- 0
 		while(ccs < sum(binsizes[1:i])){
@@ -126,8 +134,10 @@ bin_chopper <- function(x, nbins, return_breaks = FALSE){
 			target_num <- (length(x) - sum(binsizes[1:i]))/(nbins-i)
 		}
 	}
+	binsizes[length(binsizes)] <- length(x) - sum(binsizes[1:(nbins-1)])
 	binsizes2 <- binsizes
 	k <- k + 1
+	}
 	}
 
 if(!return_breaks){
