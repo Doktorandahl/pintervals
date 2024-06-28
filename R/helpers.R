@@ -67,7 +67,7 @@ grid_inner <- function(hyp_ncs,y_hat,ncs,pos_vals,alpha){
 		lb <- min(pos_vals[hyp_ncs<stats::quantile(ncs,1-alpha)])
 		ub <- max(pos_vals[hyp_ncs<stats::quantile(ncs,1-alpha)])
 
-		return(c(pred = y_hat, lower_bound = lb, upper_bound = ub))
+		return(c(pred = as.numeric(y_hat), lower_bound = lb, upper_bound = ub))
 	}
 }
 
