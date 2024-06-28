@@ -152,9 +152,9 @@ pinterval_cp_bins = function(pred,
 																	 ncs = ncs[calib_bins==bin_labels[i]],
 																	 alpha = alpha, min_step = min_step))
 
-	cp_intervals <- dplyr::bind_cols(cp_intervals,.name_repair = 'unique_quiet')
+	cp_intervals2 <- dplyr::bind_cols(cp_intervals,.name_repair = 'unique_quiet')
 
-	cp_intervals <- cp_intervals %>% dplyr::rowwise() %>%
+	cp_intervals2 <- cp_intervals2 %>% dplyr::rowwise() %>%
 		dplyr::mutate(pred = unique(dplyr::c_across(dplyr::starts_with('pred'))),
 					 lower_bound = min(dplyr::c_across(dplyr::starts_with('lower_bound')),na.rm = TRUE),
 					 upper_bound = max(dplyr::c_across(dplyr::starts_with('upper_bound')),na.rm=TRUE)) %>%
@@ -164,5 +164,5 @@ pinterval_cp_bins = function(pred,
 													TRUE ~ .data$lower_bound))
 
 
-	return(cp_intervals)
+	return(cp_intervals2)
 }

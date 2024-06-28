@@ -62,7 +62,7 @@ grid_finder <- function(y_min,y_max,ncs,ncs_function,y_hat, alpha, min_step = NU
 #' @return a numeric vector with the predicted value and the lower and upper bounds of the prediction interval
 grid_inner <- function(hyp_ncs,y_hat,ncs,pos_vals,alpha){
 	if(sum(hyp_ncs<stats::quantile(ncs,1-alpha))==0){
-		return(c(pred = y_hat, lower_bound = NA_real_, upper_bound = NA_real_))
+		return(c(pred = as.numeric(y_hat), lower_bound = NA_real_, upper_bound = NA_real_))
 	}else{
 		lb <- min(pos_vals[hyp_ncs<stats::quantile(ncs,1-alpha)])
 		ub <- max(pos_vals[hyp_ncs<stats::quantile(ncs,1-alpha)])
