@@ -22,7 +22,7 @@
 #' @export
 #'
 #' @examples
-pinterval_boot_bin <- function(pred,
+pinterval_boot_bins <- function(pred,
 															 calib,
 															 calib_truth = NULL,
 															 calib_bins = NULL,
