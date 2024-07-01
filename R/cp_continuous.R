@@ -52,15 +52,17 @@ pinterval_cp_cont <- function(pred,
 		stop('alpha must be a single numeric value between 0 and 1')
 	}
 	if(is.character(ncs_function)){
-		ncs_function <- match.arg(ncs_function, c('absolute_error','squared_error'))
-	}
+		if(length(ncs_function)>1){
+			ncs_function <- match.arg(ncs_function,c('absolute_error','squared_error'))
+		}
 	if(ncs_function == 'absolute_error'){
 		ncs_function <- abs_error
 	}else if(ncs_function == 'squared_error'){
 		ncs_function <- squared_error
-	}else if(is.character(ncs_function)){
+	}else{
 		ncs_function <- match.fun(ncs_function)
-	}else if(!is.function(ncs_function)){
+	}
+		}else if(!is.function(ncs_function)){
 		stop('ncs_function must be a function or a character string matching a function. Note, the ncs_function must take two arguments, a vector of predicted values and a vector of true values, in that order')
 	}
 
