@@ -28,7 +28,8 @@ pinterval_cp_cont <- function(pred,
 													lower_bound = NULL,
 													upper_bound = NULL,
 													min_step = 0.01,
-													grid_size = NULL){
+													grid_size = NULL,
+													return_min_q = FALSE){
 
 	if(is.null(calib) & is.null(ncs)){
 		stop('Either calib or ncs must be provided')
@@ -108,7 +109,8 @@ pinterval_cp_cont <- function(pred,
 												min_step=min_step,
 												alpha=alpha,
 												grid_size=grid_size,
-												ncs_function = ncs_function)
+												ncs_function = ncs_function,
+												return_min_q = return_min_q)
 
 	return(cp_set)
 }

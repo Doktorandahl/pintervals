@@ -32,7 +32,7 @@ squared_error <- function(pred, truth){
 #'
 #' @return a tibble with the predicted values and the lower and upper bounds of the prediction intervals
 #'
-grid_finder <- function(y_min,y_max,ncs,ncs_function,y_hat, alpha, min_step = NULL, grid_size = NULL){
+grid_finder <- function(y_min,y_max,ncs,ncs_function,y_hat, alpha, min_step = NULL, grid_size = NULL,return_min_q=FALSE){
 	i <- NA
 	if(is.null(grid_size)){
 		pos_vals <- seq(from=y_min,to=y_max,by=min_step)
@@ -44,7 +44,7 @@ grid_finder <- function(y_min,y_max,ncs,ncs_function,y_hat, alpha, min_step = NU
 	}
 
 	out <- foreach::foreach(i = 1:length(y_hat)) %do%
-								 	grid_inner(ncs_function(y_hat[i],pos_vals),y_hat[i],ncs,pos_vals,alpha)
+								 	grid_inner(ncs_function(y_hat[i],pos_vals),y_hat[i],ncs,pos_vals,alpha,return_min_q)
 
 	return(dplyr::bind_rows(out))
 }
@@ -60,14 +60,26 @@ grid_finder <- function(y_min,y_max,ncs,ncs_function,y_hat, alpha, min_step = NU
 #' @param alpha confidence level
 #'
 #' @return a numeric vector with the predicted value and the lower and upper bounds of the prediction interval
-grid_inner <- function(hyp_ncs,y_hat,ncs,pos_vals,alpha){
+grid_inner <- function(hyp_ncs,y_hat,ncs,pos_vals,alpha,return_min_q=FALSE){
 	if(sum(hyp_ncs<stats::quantile(ncs,1-alpha))==0){
+		if(return_min_q){
+			min_q <- stats::ecdf(ncs)(min(hyp_ncs))
+			return(c(pred = as.numeric(y_hat), lower_bound = NA_real_, upper_bound = NA_real_, min_q = min_q))
+		}else{
 		return(c(pred = as.numeric(y_hat), lower_bound = NA_real_, upper_bound = NA_real_))
+		}
 	}else{
 		lb <- min(pos_vals[hyp_ncs<stats::quantile(ncs,1-alpha)])
 		ub <- max(pos_vals[hyp_ncs<stats::quantile(ncs,1-alpha)])
 
-		return(c(pred = as.numeric(y_hat), lower_bound = lb, upper_bound = ub))
+		if(return_min_q){
+
+			min_q <- stats::ecdf(ncs)(min(hyp_ncs))
+
+			return(c(pred = as.numeric(y_hat), lower_bound = lb, upper_bound = ub, min_q = min_q))
+		}else{
+			return(c(pred = as.numeric(y_hat), lower_bound = lb, upper_bound = ub))
+		}
 	}
 }
 
@@ -148,8 +160,57 @@ if(!return_breaks){
 	}
 
 
+bindividual_alpha <- function(minqs, alpha){
+	a <- alpha
+	rem_bins <- sum(minqs >= a, na.rm=T)
+	minqs[which(minqs < a)] <- NA
+
+	if(all(is.na(minqs))){
+		return(list(power = 0, bins = !is.na(minqs)))
+	}
+
+	a_tot <- prod(minq_to_alpha(minqs, a),na.rm=T)
+	rem_bins_old <- rem_bins + 1
+
+	while(rem_bins != rem_bins_old){
+
+		if(prod(minq_to_alpha(minqs[-which.min(minqs)],a),na.rm=T)<=alpha){
+			minqs[which.min(minqs)] <- NA
+			rem_bins <- rem_bins - 1
+		}
+
+	if(min(minqs,na.rm=T) > a^(1/rem_bins)){
+		minqs[which(minqs < a^(1/rem_bins))] <- a^(1/rem_bins)
+		return(list(power = rem_bins, bins = !is.na(minqs)))
+	}
 
 
 
+		rem_bins_old <- rem_bins
+	}
 
+return(list(power = rem_bins, bins = !is.na(minqs)))
 
+}
+
+minq_to_alpha <- function(minq, alpha){
+	minq[which(minq > alpha)] <- alpha
+	return(minq)
+}
+
+flatten_cp_intervals <- function(list){
+	pred <- list[[1]]$pred
+
+	lower_bound <- foreach::foreach(i = 1:length(list), .final = unlist) %do% list[[i]]$lower_bound
+	lower_bound <- matrix(lower_bound, nrow = length(pred), ncol = length(list), byrow = FALSE)
+	lower_bound <- apply(lower_bound, 1, min, na.rm = TRUE)
+	lower_bound[which(is.infinite(lower_bound))] <- NA
+
+	upper_bound <- foreach::foreach(i = 1:length(list), .final = unlist) %do% list[[i]]$upper_bound
+	upper_bound <- matrix(upper_bound, nrow = length(pred), ncol = length(list), byrow = FALSE)
+	upper_bound <- apply(upper_bound, 1, max, na.rm = TRUE)
+	upper_bound[which(is.infinite(upper_bound))] <- NA
+
+	return(tibble(pred = pred, lower_bound = lower_bound, upper_bound = upper_bound))
+
+}

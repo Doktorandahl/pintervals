@@ -131,7 +131,7 @@ pinterval_cp_bins = function(pred,
 		warning('Some bins have too few observations to calculate prediction intervals at the specified alpha level. Consider using a larger calibration set or a smaller alpha level')
 	}
 
-		bin_labels <- unique(calib_bins)
+		bin_labels <- sort(unique(calib_bins))
 		if(length(bin_labels)<2){
 			stop('Calibration set must have at least two bins. For continuous prediction intervals without bins, use pinterval_cp_cont() instead of pinterval_cp_bins()')
 		}
@@ -145,24 +145,45 @@ pinterval_cp_bins = function(pred,
 	}
 
 
-	cp_intervals <- foreach::foreach(i = 1:length(bin_labels)) %do%
-		suppressWarnings(pinterval_cp_cont(pred = pred,
+	cp_intervals <- foreach::foreach(j = 1:length(bin_labels)) %:%
+		foreach::foreach(i = 1:length(bin_labels)) %do%
+			suppressWarnings(pinterval_cp_cont(pred = pred,
 																	 lower_bound = lower_bounds[i],
 																	 upper_bound = upper_bounds[i],
 																	 ncs = ncs[calib_bins==bin_labels[i]],
-																	 alpha = alpha, min_step = min_step))
+																	 alpha = alpha^j, min_step = min_step,
+																	 grid_size = grid_size,
+																	 return_min_q = TRUE))
+	minqs <- foreach::foreach(j = 1:length(bin_labels),.final = unlist) %do%
+		(1-cp_intervals[[1]][[j]]$min_q)
 
-	cp_intervals2 <- dplyr::bind_cols(cp_intervals,.name_repair = 'unique_quiet')
+	minqs <- matrix(minqs,nrow = length(pred),ncol = length(bin_labels),byrow = FALSE)
 
-	cp_intervals2 <- cp_intervals2 %>% dplyr::rowwise() %>%
-		dplyr::mutate(pred = unique(dplyr::c_across(dplyr::starts_with('pred'))),
-					 lower_bound = min(dplyr::c_across(dplyr::starts_with('lower_bound')),na.rm = TRUE),
-					 upper_bound = max(dplyr::c_across(dplyr::starts_with('upper_bound')),na.rm=TRUE)) %>%
-					 	dplyr::ungroup() %>%
-					 	dplyr::select(pred,lower_bound,upper_bound) %>%
-		dplyr::mutate(lower_bound = dplyr::case_when(is.infinite(.data$lower_bound) ~ -Inf,
-													TRUE ~ .data$lower_bound))
+	minqs_power <- foreach::foreach(i = 1:length(pred)) %do%
+		bindividual_alpha(minqs[i,],alpha = alpha)
 
+	cp_intervals2 <- foreach::foreach(i = 1:length(pred), .final = bind_rows) %do%{
+		if(minqs_power[[i]]$power == 0){
+			tibble::tibble(pred = pred[i], lower_bound = NA_real_, upper_bound = NA_real_)
+		}else if(minqs_power[[i]]$power == 1){
+			cp_intervals[[1]][[which(minqs_power[[i]]$bins)]][i,]
+		}else{
+			flatten_cp_intervals(cp_intervals[[minqs_power[[i]]$power]][minqs_power[[i]]$bins])[i,]
+		}
+	}
+
+
+	# cp_intervals2 <- dplyr::bind_cols(cp_intervals,.name_repair = 'unique_quiet')
+	#
+	# cp_intervals2 <- cp_intervals2 %>% dplyr::rowwise() %>%
+	# 	dplyr::mutate(pred = unique(dplyr::c_across(dplyr::starts_with('pred'))),
+	# 				 lower_bound = min(dplyr::c_across(dplyr::starts_with('lower_bound')),na.rm = TRUE),
+	# 				 upper_bound = max(dplyr::c_across(dplyr::starts_with('upper_bound')),na.rm=TRUE)) %>%
+	# 				 	dplyr::ungroup() %>%
+	# 				 	dplyr::select(pred,lower_bound,upper_bound) %>%
+	# 	dplyr::mutate(lower_bound = dplyr::case_when(is.infinite(.data$lower_bound) ~ -Inf,
+	# 												TRUE ~ .data$lower_bound))
+	#
 
 	return(cp_intervals2)
 }
