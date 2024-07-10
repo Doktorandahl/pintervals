@@ -23,7 +23,8 @@ pinterval_cp_cont <- function(pred,
 													calib = NULL,
 													calib_truth = NULL,
 													alpha = 0.1,
-													ncs_function = c('absolute_error','squared_error'),
+													ncs_function = 'absolute_error',
+													weighted_cp = FALSE,
 													ncs = NULL,
 													lower_bound = NULL,
 													upper_bound = NULL,
@@ -42,6 +43,9 @@ pinterval_cp_cont <- function(pred,
 			stop('calib must be a numeric vector or a 2 column tibble or matrix with the first column being the predicted values and the second column being the truth values')
 		}
 	}else{
+		if(weighted_cp){
+			stop('weighted_cp is not supported with pre-computed nonconformity scores')
+		}
 		if(!is.numeric(ncs)){
 			stop('ncs must be a numeric vector')
 		}
@@ -54,12 +58,10 @@ pinterval_cp_cont <- function(pred,
 	}
 	if(is.character(ncs_function)){
 		if(length(ncs_function)>1){
-			ncs_function <- match.arg(ncs_function,c('absolute_error','squared_error'))
+			ncs_function <- match.arg(ncs_function,c('absolute_error'))
 		}
 	if(ncs_function == 'absolute_error'){
 		ncs_function <- abs_error
-	}else if(ncs_function == 'squared_error'){
-		ncs_function <- squared_error
 	}else{
 		ncs_function <- match.fun(ncs_function)
 	}
@@ -75,11 +77,6 @@ pinterval_cp_cont <- function(pred,
 		stop('min_step must be a single numeric value greater than 0')
 	}
 
-	# if(is.null(trans)){
-	# 	trans <- dummy_fun
-	# }else{
-	# 	trans <- match.fun(trans)
-	# }
 
 	if(is.null(ncs)){
 		if(!is.numeric(calib)){
@@ -110,7 +107,9 @@ pinterval_cp_cont <- function(pred,
 												alpha=alpha,
 												grid_size=grid_size,
 												ncs_function = ncs_function,
-												return_min_q = return_min_q)
+												return_min_q = return_min_q,
+												weighted_cp = weighted_cp,
+												calib = calib)
 
 	return(cp_set)
 }

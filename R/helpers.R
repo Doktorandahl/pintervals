@@ -32,7 +32,7 @@ squared_error <- function(pred, truth){
 #'
 #' @return a tibble with the predicted values and the lower and upper bounds of the prediction intervals
 #'
-grid_finder <- function(y_min,y_max,ncs,ncs_function,y_hat, alpha, min_step = NULL, grid_size = NULL,return_min_q=FALSE){
+grid_finder <- function(y_min,y_max,ncs,ncs_function,y_hat, alpha, min_step = NULL, grid_size = NULL,return_min_q=FALSE,weighted_cp = FALSE, calib = NULL){
 	i <- NA
 	if(is.null(grid_size)){
 		pos_vals <- seq(from=y_min,to=y_max,by=min_step)
@@ -60,7 +60,10 @@ grid_finder <- function(y_min,y_max,ncs,ncs_function,y_hat, alpha, min_step = NU
 #' @param alpha confidence level
 #'
 #' @return a numeric vector with the predicted value and the lower and upper bounds of the prediction interval
-grid_inner <- function(hyp_ncs,y_hat,ncs,pos_vals,alpha,return_min_q=FALSE){
+grid_inner <- function(hyp_ncs,y_hat,ncs,pos_vals,alpha,return_min_q=FALSE, weights = NULL){
+	if(!is.null(weights)){
+	ncs <- ncs/weights
+	}
 	if(sum(hyp_ncs<stats::quantile(ncs,1-alpha))==0){
 		if(return_min_q){
 			min_q <- stats::ecdf(ncs)(min(hyp_ncs))
