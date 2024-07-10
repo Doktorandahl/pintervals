@@ -86,6 +86,13 @@ grid_inner <- function(hyp_ncs,y_hat,ncs,pos_vals,alpha,return_min_q=FALSE, weig
 	}
 }
 
+weights_calculator <- function(y_hat, calib){
+	similarity <- abs(y_hat-calib)
+	weights <- similarity/mean(similarity)
+	return(weights)
+
+}
+
 bootstrap_inner <- function(pred, error, nboot, alpha, lower_bound, upper_bound){
 	i <- NA
 	boot_error <- sample(error, size = nboot, replace = TRUE)
