@@ -44,7 +44,7 @@ grid_finder <- function(y_min,y_max,ncs,ncs_function,y_hat, alpha, min_step = NU
 	}
 
 	out <- foreach::foreach(i = 1:length(y_hat)) %do%
-								 	grid_inner(ncs_function(y_hat[i],pos_vals),y_hat[i],ncs,pos_vals,alpha,return_min_q)
+								 	grid_inner(ncs_function(y_hat[i],pos_vals),y_hat[i],ncs,pos_vals,alpha,return_min_q, weights = weights_calculator(y_hat[i], calib))
 
 	return(dplyr::bind_rows(out))
 }
