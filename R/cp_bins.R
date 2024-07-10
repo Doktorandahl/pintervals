@@ -145,32 +145,18 @@ pinterval_cp_bins = function(pred,
 	}
 
 
-	cp_intervals <- foreach::foreach(j = 1:length(bin_labels)) %:%
-		foreach::foreach(i = 1:length(bin_labels)) %do%
+	cp_intervals <- foreach::foreach(i = 1:length(bin_labels)) %do%
 			suppressWarnings(pinterval_cp_cont(pred = pred,
 																	 lower_bound = lower_bounds[i],
 																	 upper_bound = upper_bounds[i],
 																	 ncs = ncs[calib_bins==bin_labels[i]],
-																	 alpha = alpha^j, min_step = min_step,
-																	 grid_size = grid_size,
-																	 return_min_q = TRUE))
-	minqs <- foreach::foreach(j = 1:length(bin_labels),.final = unlist) %do%
-		(1-cp_intervals[[1]][[j]]$min_q)
+																	 alpha = alpha, min_step = min_step,
+																	 grid_size = grid_size))
 
-	minqs <- matrix(minqs,nrow = length(pred),ncol = length(bin_labels),byrow = FALSE)
 
-	minqs_power <- foreach::foreach(i = 1:length(pred)) %do%
-		bindividual_alpha(minqs[i,],alpha = alpha)
+	cp_intervals2 <- flatten_cp_intervals(cp_intervals)
 
-	cp_intervals2 <- foreach::foreach(i = 1:length(pred), .final = bind_rows) %do%{
-		if(minqs_power[[i]]$power == 0){
-			tibble::tibble(pred = pred[i], lower_bound = NA_real_, upper_bound = NA_real_)
-		}else if(minqs_power[[i]]$power == 1){
-			cp_intervals[[1]][[which(minqs_power[[i]]$bins)]][i,]
-		}else{
-			flatten_cp_intervals(cp_intervals[[minqs_power[[i]]$power]][minqs_power[[i]]$bins])[i,]
-		}
-	}
+
 
 
 	# cp_intervals2 <- dplyr::bind_cols(cp_intervals,.name_repair = 'unique_quiet')
