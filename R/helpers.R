@@ -43,9 +43,13 @@ grid_finder <- function(y_min,y_max,ncs,ncs_function,y_hat, alpha, min_step = NU
 		pos_vals <- seq(from=y_min,to=y_max,length.out=grid_size)
 	}
 
+	if(weighted_cp){
 	out <- foreach::foreach(i = 1:length(y_hat)) %do%
 								 	grid_inner(ncs_function(y_hat[i],pos_vals),y_hat[i],ncs,pos_vals,alpha,return_min_q, weights = weights_calculator(y_hat[i], calib))
-
+	}else{
+		out <- foreach::foreach(i = 1:length(y_hat)) %do%
+			grid_inner(ncs_function(y_hat[i],pos_vals),y_hat[i],ncs,pos_vals,alpha,return_min_q)
+	}
 	return(dplyr::bind_rows(out))
 }
 
@@ -62,7 +66,7 @@ grid_finder <- function(y_min,y_max,ncs,ncs_function,y_hat, alpha, min_step = NU
 #' @return a numeric vector with the predicted value and the lower and upper bounds of the prediction interval
 grid_inner <- function(hyp_ncs,y_hat,ncs,pos_vals,alpha,return_min_q=FALSE, weights = NULL){
 	if(!is.null(weights)){
-	ncs <- ncs/weights
+	ncs <- ncs*weights * sum(ncs)/sum(ncs*weights)
 	}
 	if(sum(hyp_ncs<stats::quantile(ncs,1-alpha))==0){
 		if(return_min_q){
