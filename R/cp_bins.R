@@ -27,13 +27,15 @@ pinterval_cp_bins = function(pred,
 									 breaks = NULL,
 									 nbins = NULL,
 									 alpha = 0.1,
-									 ncs_function = c('absolute_error','squared_error'),
+									 ncs_function = 'absolute_error',
 									 ncs = NULL,
 									 min_step = 0.01,
 									 grid_size = NULL,
-									 right = TRUE){
+									 right = TRUE,
+									 treat_noncontiguous = c('narrowest', 'most_conformal','full')){
 
 	i <- NA
+treat_noncontiguous <- match.arg(treat_noncontiguous, c('narrowest', 'most_conformal','full'))
 
 	if(!is.numeric(pred)){
 		stop('pred must be a numeric vector')
@@ -144,17 +146,26 @@ pinterval_cp_bins = function(pred,
 		ncs <- ncs_function(calib,calib_truth)
 	}
 
-
+if(treat_noncontiguous == 'most_conformal'){
 	cp_intervals <- foreach::foreach(i = 1:length(bin_labels)) %do%
 			suppressWarnings(pinterval_cp_cont(pred = pred,
 																	 lower_bound = lower_bounds[i],
 																	 upper_bound = upper_bounds[i],
 																	 ncs = ncs[calib_bins==bin_labels[i]],
 																	 alpha = alpha, min_step = min_step,
-																	 grid_size = grid_size))
+																	 grid_size = grid_size,
+																	 return_min_q = TRUE))
+}else{
+	cp_intervals <- foreach::foreach(i = 1:length(bin_labels)) %do%
+		suppressWarnings(pinterval_cp_cont(pred = pred,
+																			 lower_bound = lower_bounds[i],
+																			 upper_bound = upper_bounds[i],
+																			 ncs = ncs[calib_bins==bin_labels[i]],
+																			 alpha = alpha, min_step = min_step,
+																			 grid_size = grid_size))
+}
 
-
-	cp_intervals2 <- flatten_cp_intervals(cp_intervals)
+	cp_intervals2 <- flatten_cp_bin_intervals(cp_intervals, treat_noncontiguous = treat_noncontiguous)
 
 
 

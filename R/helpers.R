@@ -66,7 +66,7 @@ grid_finder <- function(y_min,y_max,ncs,ncs_function,y_hat, alpha, min_step = NU
 #' @return a numeric vector with the predicted value and the lower and upper bounds of the prediction interval
 grid_inner <- function(hyp_ncs,y_hat,ncs,pos_vals,alpha,return_min_q=FALSE, weights = NULL){
 	if(!is.null(weights)){
-	ncs <- ncs*weights * sum(ncs)/sum(ncs*weights)
+	ncs <- sample(ncs, size = length(ncs), replace = TRUE, prob = weights)
 	}
 	if(sum(hyp_ncs<stats::quantile(ncs,1-alpha))==0){
 		if(return_min_q){
@@ -92,7 +92,8 @@ grid_inner <- function(hyp_ncs,y_hat,ncs,pos_vals,alpha,return_min_q=FALSE, weig
 
 weights_calculator <- function(y_hat, calib){
 	similarity <- abs(y_hat-calib)
-	weights <- similarity/mean(similarity)
+	weights <- 1-((similarity-min(similarity))/(max(similarity)-min(similarity)))
+	weights <- length(calib)*weights/sum(weights)
 	return(weights)
 
 }
@@ -212,19 +213,73 @@ minq_to_alpha <- function(minq, alpha){
 	return(minq)
 }
 
-flatten_cp_intervals <- function(list){
-	pred <- list[[1]]$pred
+flatten_cp_bin_intervals <- function(lst,
+																		 treat_noncontiguous = c('narrowest', 'most_conformal','full')){
 
-	lower_bound <- foreach::foreach(i = 1:length(list), .final = unlist) %do% list[[i]]$lower_bound
-	lower_bound <- matrix(lower_bound, nrow = length(pred), ncol = length(list), byrow = FALSE)
+
+	pred <- lst[[1]]$pred
+	lower_bound <- foreach::foreach(i = 1:length(lst), .final = unlist) %do% lst[[i]]$lower_bound
+	lower_bound <- matrix(lower_bound, nrow = length(pred), ncol = length(lst), byrow = FALSE)
+	upper_bound <- foreach::foreach(i = 1:length(lst), .final = unlist) %do% lst[[i]]$upper_bound
+	upper_bound <- matrix(upper_bound, nrow = length(pred), ncol = length(lst), byrow = FALSE)
+
+	if(treat_noncontiguous == 'full'){
 	lower_bound <- apply(lower_bound, 1, min, na.rm = TRUE)
 	lower_bound[which(is.infinite(lower_bound))] <- NA
 
-	upper_bound <- foreach::foreach(i = 1:length(list), .final = unlist) %do% list[[i]]$upper_bound
-	upper_bound <- matrix(upper_bound, nrow = length(pred), ncol = length(list), byrow = FALSE)
 	upper_bound <- apply(upper_bound, 1, max, na.rm = TRUE)
 	upper_bound[which(is.infinite(upper_bound))] <- NA
+	return(tibble::tibble(pred = pred, lower_bound = lower_bound, upper_bound = upper_bound))
+	}else if(treat_noncontiguous == 'narrowest'){
+		empirical_lower_bounds <- apply(lower_bound, 2, min, na.rm = TRUE)
+		empirical_upper_bounds <- apply(upper_bound, 2, max, na.rm = TRUE)
 
-	return(tibble(pred = pred, lower_bound = lower_bound, upper_bound = upper_bound))
+		contiguous_intervals <- foreach::foreach(i = 1:length(pred),.final = bind_rows) %do%{
+			contiguize_intervals(lower_bound[i,], upper_bound[i,], empirical_lower_bounds, empirical_upper_bounds)
+		}
+		return(dplyr::bind_cols(tibble::tibble(pred = pred), contiguous_intervals))
+	}else if(treat_noncontiguous == 'most_conformal'){
+		min_qs <- foreach::foreach(i = 1:length(lst), .final = unlist) %do% lst[[i]]$min_q
+		min_qs <- matrix(min_qs, nrow = length(pred), ncol = length(lst), byrow = FALSE)
+		bin_minq <- apply(min_qs, 1, which.min, na.rm = TRUE)
+		lower_bound <- apply(lower_bound, 1, function(x) x[bin_minq])
+		upper_bound <- apply(upper_bound, 1, function(x) x[bin_minq])
 
+		return(tibble::tibble(pred = pred, lower_bound = lower_bound, upper_bound = upper_bound))
+
+
+
+	}
+
+
+
+
+	}
+
+contiguize_intervals <- function(pot_lower_bounds,
+																 pot_upper_bounds,
+																 empirical_lower_bounds,
+																 empirical_upper_bounds){
+
+	intervals <- matrix(c(pot_lower_bounds,pot_upper_bounds, empirical_lower_bounds, empirical_upper_bounds), nrow = length(pot_lower_bounds))
+
+	i <- 1
+	while(i < nrow(intervals)){
+		if(intervals[i,2] == intervals[i, 4] & intervals[i+1, 3] == intervals[i+1, 1]){
+			intervals[i,2] <- intervals[i+1,2]
+			intervals[i,4] <- intervals[i+1,4]
+			intervals <- intervals[-(i+1),]
+		}else{
+			i <- i + 1
+		}
+	}
+
+	intervals[,5] <- intervals[,2] - intervals[,1]
+	colnames(intervals) <- c('lower_bound', 'upper_bound', 'empirical_lower_bound', 'empirical_upper_bound', 'width')
+	return(intervals[which.min(intervals[,5])[1],1:2])
 }
+
+
+
+
+
