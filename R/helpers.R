@@ -234,14 +234,14 @@ flatten_cp_bin_intervals <- function(lst,
 		empirical_lower_bounds <- apply(lower_bound, 2, min, na.rm = TRUE)
 		empirical_upper_bounds <- apply(upper_bound, 2, max, na.rm = TRUE)
 
-		contiguous_intervals <- foreach::foreach(i = 1:length(pred),.final = bind_rows) %do%{
+		contiguous_intervals <- foreach::foreach(i = 1:length(pred),.final = dplyr::bind_rows) %do%{
 			contiguize_intervals(lower_bound[i,], upper_bound[i,], empirical_lower_bounds, empirical_upper_bounds)
 		}
 		return(dplyr::bind_cols(tibble::tibble(pred = pred), contiguous_intervals))
 	}else if(treat_noncontiguous == 'most_conformal'){
 		min_qs <- foreach::foreach(i = 1:length(lst), .final = unlist) %do% lst[[i]]$min_q
 		min_qs <- matrix(min_qs, nrow = length(pred), ncol = length(lst), byrow = FALSE)
-		bin_minq <- apply(min_qs, 1, which.min, na.rm = TRUE)
+		bin_minq <- apply(min_qs, 1, which.min)
 		lower_bound <- apply(lower_bound, 1, function(x) x[bin_minq])
 		upper_bound <- apply(upper_bound, 1, function(x) x[bin_minq])
 
@@ -249,34 +249,52 @@ flatten_cp_bin_intervals <- function(lst,
 
 
 
-	}
+	}else if(treat_noncontiguous == 'non_contiguous'){
+		empirical_lower_bounds <- apply(lower_bound, 2, min, na.rm = TRUE)
+		empirical_upper_bounds <- apply(upper_bound, 2, max, na.rm = TRUE)
+
+		contiguous_intervals <- foreach::foreach(i = 1:length(pred)) %do%
+			contiguize_intervals(lower_bound[i,], upper_bound[i,], empirical_lower_bounds, empirical_upper_bounds,return_all = T)
+
+		return(tibble::tibble(pred = pred, intervals = contiguous_intervals))
 
 
-
+}
 
 	}
 
 contiguize_intervals <- function(pot_lower_bounds,
 																 pot_upper_bounds,
 																 empirical_lower_bounds,
-																 empirical_upper_bounds){
+																 empirical_upper_bounds,
+																 return_all = FALSE){
+
+	if(all(is.na(pot_lower_bounds))){
+		return(tibble::tibble(lower_bound = NA, upper_bound = NA))
+	}
 
 	intervals <- matrix(c(pot_lower_bounds,pot_upper_bounds, empirical_lower_bounds, empirical_upper_bounds), nrow = length(pot_lower_bounds))
+	intervals <- na.omit(intervals)
 
 	i <- 1
-	while(i < nrow(intervals)){
+	while(i < nrow(intervals) & nrow(intervals) > 1){
 		if(intervals[i,2] == intervals[i, 4] & intervals[i+1, 3] == intervals[i+1, 1]){
 			intervals[i,2] <- intervals[i+1,2]
 			intervals[i,4] <- intervals[i+1,4]
-			intervals <- intervals[-(i+1),]
+			intervals <- matrix(intervals[-(i+1),], ncol = 4)
 		}else{
 			i <- i + 1
 		}
 	}
 
-	intervals[,5] <- intervals[,2] - intervals[,1]
-	colnames(intervals) <- c('lower_bound', 'upper_bound', 'empirical_lower_bound', 'empirical_upper_bound', 'width')
-	return(intervals[which.min(intervals[,5])[1],1:2])
+	widths <- intervals[,2] - intervals[,1]
+	if(return_all){
+		return(tibble::tibble(lower_bound = as.numeric(intervals[,1]), upper_bound = as.numeric(intervals[,2])))
+	}else{
+		colnames(intervals) <- c('lower_bound', 'upper_bound', 'empirical_lower_bound', 'empirical_upper_bound')
+
+	return(intervals[which.min(widths)[1],1:2])
+	}
 }
 
 

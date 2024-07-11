@@ -32,10 +32,11 @@ pinterval_cp_bins = function(pred,
 									 min_step = 0.01,
 									 grid_size = NULL,
 									 right = TRUE,
-									 treat_noncontiguous = c('narrowest', 'most_conformal','full')){
+									 weighted_cp = FALSE,
+									 treat_noncontiguous = c('narrowest', 'most_conformal','full',"non_contiguous")){
 
 	i <- NA
-treat_noncontiguous <- match.arg(treat_noncontiguous, c('narrowest', 'most_conformal','full'))
+treat_noncontiguous <- match.arg(treat_noncontiguous, c('narrowest', 'most_conformal','full',"non_contiguous"))
 
 	if(!is.numeric(pred)){
 		stop('pred must be a numeric vector')
@@ -154,6 +155,7 @@ if(treat_noncontiguous == 'most_conformal'){
 																	 ncs = ncs[calib_bins==bin_labels[i]],
 																	 alpha = alpha, min_step = min_step,
 																	 grid_size = grid_size,
+																	 weighted_cp = weighted_cp,
 																	 return_min_q = TRUE))
 }else{
 	cp_intervals <- foreach::foreach(i = 1:length(bin_labels)) %do%
@@ -162,6 +164,7 @@ if(treat_noncontiguous == 'most_conformal'){
 																			 upper_bound = upper_bounds[i],
 																			 ncs = ncs[calib_bins==bin_labels[i]],
 																			 alpha = alpha, min_step = min_step,
+																			 weighted_cp = weighted_cp,
 																			 grid_size = grid_size))
 }
 
