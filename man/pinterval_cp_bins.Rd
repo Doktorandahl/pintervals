@@ -12,11 +12,13 @@ pinterval_cp_bins(
   breaks = NULL,
   nbins = NULL,
   alpha = 0.1,
-  ncs_function = c("absolute_error", "squared_error"),
+  ncs_function = "absolute_error",
   ncs = NULL,
   min_step = 0.01,
   grid_size = NULL,
-  right = TRUE
+  right = TRUE,
+  weighted_cp = FALSE,
+  treat_noncontiguous = c("full", "non_contiguous")
 )
 }
 \arguments{
@@ -36,16 +38,47 @@ pinterval_cp_bins(
 
 \item{ncs_function}{A function or a character string matching a function that takes two arguments, a vector of predicted values and a vector of true values, in that order. The function should return a numeric vector of nonconformity scores. Default is 'absolute_error' which returns the absolute difference between the predicted and true values.}
 
-\item{ncs}{An optional numeric vector of pre-computed nonconformity scores from a calibration partition. If provided, calib will be ignored. If provided, bins must be provided in calib_bins as well.}
+\item{ncs}{An optional numeric vector of pre-computed nonconformity scores from a calibration partition. If provided, calib will be ignored. If provided, bins must be provided in calib_bins and breaks as well.}
 
 \item{min_step}{The minimum step size for the grid search. Default is 0.01. Useful to change if predictions are made on a discrete grid or if the resolution of the interval is too coarse or too fine.}
 
-\item{grid_size}{Alternative to min_step, the number of points to use in the grid search between the lower and upper bound. If provided, min_step will be ignored.
-#' @param right Logical, if TRUE the bins are right-closed (a,b] and if FALSE the bins are left-closed `[ a,b)`. Only used if breaks or nbins are provided.}
+\item{grid_size}{Alternative to min_step, the number of points to use in the grid search between the lower and upper bound. If provided, min_step will be ignored.}
+
+\item{right}{Logical, if TRUE the bins are right-closed (a,b] and if FALSE the bins are left-closed `[ a,b)`. Only used if breaks or nbins are provided.}
+
+\item{weighted_cp}{Logical, if TRUE the prediction intervals are created by bootstrapping the ncs scores giving a higher weight to the ncs scores that are closer to the predicted value. Default is FALSE. Experimental.}
+
+\item{treat_noncontiguous}{A character string indicating how to treat non-contiguous bins. Options are 'full' (default), and 'non_contiguous'. 'full' will consider all bins for each prediction using the lower and upper endpoints as interval limits to avoid non-contiguous intervals. 'non_contiguous' will allows for non-contiguous intervals. 'full' guarantees at least appropriate coverage in each bin, but may suffer from over-coverage in certain bins. Non-contiguous will have appropriate coverage in each bin.}
 }
 \value{
-A tibble with the predicted values, the lower and upper bounds of the prediction intervals
+A tibble with the predicted values, the lower and upper bounds of the prediction intervals. If treat_noncontiguous is 'non_contiguous', the lower and upper bounds are set in a list variable called 'intervals' where all non-contiguous intervals are stored.
 }
 \description{
 This function calculates bin-conditional conformal prediction intervals with a confidence level of 1-alpha for a vector of (continuous) predicted values using inductive conformal prediction on a bin-by-bin basis. The intervals are computed using either a calibration set with predicted and true values or a set of pre-computed non-conformity scores from the calibration set. In addition the function requires either a set of breaks or a vector of bin identifiers for the calibrations set, either as a standalone vector or as the third column of the calibration dataset if the calibration data is provided as a tibble. The function returns a tibble containing the predicted values along with the lower and upper bounds of the prediction intervals. Bin-conditional conformal prediction intervals are useful when the prediction error is not constant across the range of predicted values and ensures that the coverage is (approximately) correct for each bin under the assumption that the non-conformity scores are exchangeable within each bin.
+}
+\examples{
+library(dplyr)
+library(tibble)
+x1 <- runif(1000)
+x2 <- runif(1000)
+y <- rlnorm(1000, meanlog = x1 + x2, sdlog = 0.5)
+	bin <- cut(y, breaks = quantile(y, probs = seq(0, 1, 1/4)),
+	include.lowest = TRUE, labels =FALSE)
+df <- tibble(x1, x2, y, bin)
+df_train <- df \%>\% slice(1:500)
+df_cal <- df \%>\% slice(501:750)
+df_test <- df \%>\% slice(751:1000)
+mod <- lm(log(y) ~ x1 + x2, data=df_train)
+calib <- exp(predict(mod, newdata=df_cal))
+calib_truth <- df_cal$y
+calib_bins <- df_cal$bin
+pred_test <- exp(predict(mod, newdata=df_test))
+
+pinterval_cp_bins(pred = pred_test,
+calib = calib,
+calib_truth = calib_truth,
+calib_bins = calib_bins,
+alpha = 0.1,
+grid_size = 10000)
+
 }

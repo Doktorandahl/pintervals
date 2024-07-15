@@ -1,9 +1,3 @@
-
-
-
-
-
-
 #' Absolute Error
 #'
 #' @param pred a numeric vector of predicted values
@@ -15,11 +9,6 @@ abs_error <- function(pred, truth){
 	return(abs(pred-truth))
 }
 
-squared_error <- function(pred, truth){
-	return((pred-truth)^2)
-}
-
-
 #' Grid search for lower and upper bounds of continuous conformal prediction intervals
 #'
 #' @param y_min minimum value to search
@@ -29,6 +18,10 @@ squared_error <- function(pred, truth){
 #' @param alpha confidence level
 #' @param min_step The minimum step size for the grid search
 #' @param grid_size  Alternative to min_step, the number of points to use in the grid search between the lower and upper bound
+#' @param ncs_function a function that takes a vector of predicted values and a vector of true values and returns a vector of non-conformity scores
+#' @param return_min_q logical. If TRUE, the function will return the minimum quantile of the nonconformity scores for each predicted value
+#' @param weighted_cp logical. If TRUE, the function will use the weighted conformal prediction method. Default is FALSE
+#' @param calib a tibble with the predicted values and the true values of the calibration partition. Used when weighted_cp is TRUE. Default is NULL
 #'
 #' @return a tibble with the predicted values and the lower and upper bounds of the prediction intervals
 #'
@@ -41,6 +34,9 @@ grid_finder <- function(y_min,y_max,ncs,ncs_function,y_hat, alpha, min_step = NU
 		}
 	}else{
 		pos_vals <- seq(from=y_min,to=y_max,length.out=grid_size)
+	}
+	if(is.null(calib) && weighted_cp){
+		stop('calib must be provided when weighted_cp is TRUE')
 	}
 
 	if(weighted_cp){
@@ -62,6 +58,8 @@ grid_finder <- function(y_min,y_max,ncs,ncs_function,y_hat, alpha, min_step = NU
 #' @param ncs vector of non-conformity scores
 #' @param pos_vals vector of possible values for the lower and upper bounds of the prediction interval
 #' @param alpha confidence level
+#' @param return_min_q logical. If TRUE, the function will return the minimum quantile of the nonconformity scores for each predicted value
+#' @param weights vector of weights for the weighted conformal prediction method
 #'
 #' @return a numeric vector with the predicted value and the lower and upper bounds of the prediction interval
 grid_inner <- function(hyp_ncs,y_hat,ncs,pos_vals,alpha,return_min_q=FALSE, weights = NULL){
@@ -90,6 +88,11 @@ grid_inner <- function(hyp_ncs,y_hat,ncs,pos_vals,alpha,return_min_q=FALSE, weig
 	}
 }
 
+#' Weights calculator for weighted conformal prediction
+#'
+#' @param y_hat Predicted value
+#' @param calib a vector of true values of the calibration partition
+#'
 weights_calculator <- function(y_hat, calib){
 	similarity <- abs(y_hat-calib)
 	weights <- 1-((similarity-min(similarity))/(max(similarity)-min(similarity)))
@@ -98,6 +101,16 @@ weights_calculator <- function(y_hat, calib){
 
 }
 
+#' Bootstrap function for bootstrapping the prediction intervals
+#'
+#' @param pred predicted value
+#' @param error vector of errors
+#' @param nboot number of bootstrap samples
+#' @param alpha confidence level
+#' @param lower_bound lower bound of the prediction interval
+#' @param upper_bound upper bound of the prediction interval
+#'
+#' @return a numeric vector with the predicted value and the lower and upper bounds of the prediction interval
 bootstrap_inner <- function(pred, error, nboot, alpha, lower_bound, upper_bound){
 	i <- NA
 	boot_error <- sample(error, size = nboot, replace = TRUE)
@@ -115,6 +128,11 @@ bootstrap_inner <- function(pred, error, nboot, alpha, lower_bound, upper_bound)
 }
 
 
+#' Bin chopper function for binned bootstrapping
+#'
+#' @param x vector of values to be binned
+#' @param nbins number of bins
+#' @param return_breaks logical indicating whether to return the bin breaks
 bin_chopper <- function(x, nbins, return_breaks = FALSE){
 	if(nbins < 2){
 		stop('nbins must be greater than 1')
@@ -175,6 +193,10 @@ if(!return_breaks){
 	}
 
 
+#' Bin-individual alpha function for conformal prediction
+#'
+#' @param minqs Minimum quantiles
+#' @param alpha alpha level
 bindividual_alpha <- function(minqs, alpha){
 	a <- alpha
 	rem_bins <- sum(minqs >= a, na.rm=T)
@@ -208,14 +230,23 @@ return(list(power = rem_bins, bins = !is.na(minqs)))
 
 }
 
+#' Helper for minimum quantile to alpha function
+#'
+#' @param minq minimum quantile
+#' @param alpha alpha level
 minq_to_alpha <- function(minq, alpha){
 	minq[which(minq > alpha)] <- alpha
 	return(minq)
 }
 
+#' Flatten binned conformal prediction intervals to contiguous intervals
+#'
+#' @param lst list of binned conformal prediction intervals
+#' @param treat_noncontiguous method for treating noncontiguous intervals
 flatten_cp_bin_intervals <- function(lst,
 																		 treat_noncontiguous = c('narrowest', 'most_conformal','full')){
 
+	i <- 'tmp'
 
 	pred <- lst[[1]]$pred
 	lower_bound <- foreach::foreach(i = 1:length(lst), .final = unlist) %do% lst[[i]]$lower_bound
@@ -263,6 +294,13 @@ flatten_cp_bin_intervals <- function(lst,
 
 	}
 
+#' Contiguize non-contiguous intervals
+#'
+#' @param pot_lower_bounds Potential non-contiguous lower bounds
+#' @param pot_upper_bounds Potential non-contiguous upper bounds
+#' @param empirical_lower_bounds Observed lower bounds
+#' @param empirical_upper_bounds Observed upper bounds
+#' @param return_all Return all intervals or just contiguous intervals
 contiguize_intervals <- function(pot_lower_bounds,
 																 pot_upper_bounds,
 																 empirical_lower_bounds,
@@ -274,7 +312,7 @@ contiguize_intervals <- function(pot_lower_bounds,
 	}
 
 	intervals <- matrix(c(pot_lower_bounds,pot_upper_bounds, empirical_lower_bounds, empirical_upper_bounds), nrow = length(pot_lower_bounds))
-	intervals <- na.omit(intervals)
+	intervals <- stats::na.omit(intervals)
 
 	i <- 1
 	while(i < nrow(intervals) & nrow(intervals) > 1){

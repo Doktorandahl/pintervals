@@ -41,3 +41,26 @@ A tibble with the predicted values, lower bounds, and upper bounds of the predic
 \description{
 This function computes bootstrapped prediction intervals with a confidence level of 1-alpha for a vector of (continuous) predicted values using bootstrapped prediction errors. The prediction errors to bootstrap from are computed using either a calibration set with predicted and true values or a set of pre-computed prediction errors from a calibration dataset or other data which the model was not trained on (e.g. OOB errors from a model using bagging). The function returns a tibble containing the predicted values along with the lower and upper bounds of the prediction intervals.
 }
+\examples{
+
+library(dplyr)
+library(tibble)
+x1 <- runif(1000)
+x2 <- runif(1000)
+y <- rlnorm(1000, meanlog = x1 + x2, sdlog = 0.5)
+df <- tibble(x1, x2, y)
+df_train <- df \%>\% slice(1:500)
+df_cal <- df \%>\% slice(501:750)
+df_test <- df \%>\% slice(751:1000)
+mod <- lm(log(y) ~ x1 + x2, data=df_train)
+calib <- exp(predict(mod, newdata=df_cal))
+calib_truth <- df_cal$y
+pred_test <- exp(predict(mod, newdata=df_test))
+
+pinterval_bootstrap(pred = pred_test,
+calib = calib,
+calib_truth = calib_truth,
+error_type = 'raw',
+alpha = 0.1,
+lower_bound = 0)
+}

@@ -12,7 +12,10 @@ grid_finder(
   y_hat,
   alpha,
   min_step = NULL,
-  grid_size = NULL
+  grid_size = NULL,
+  return_min_q = FALSE,
+  weighted_cp = FALSE,
+  calib = NULL
 )
 }
 \arguments{
@@ -22,6 +25,8 @@ grid_finder(
 
 \item{ncs}{vector of non-conformity scores}
 
+\item{ncs_function}{a function that takes a vector of predicted values and a vector of true values and returns a vector of non-conformity scores}
+
 \item{y_hat}{vector of predicted values}
 
 \item{alpha}{confidence level}
@@ -29,6 +34,12 @@ grid_finder(
 \item{min_step}{The minimum step size for the grid search}
 
 \item{grid_size}{Alternative to min_step, the number of points to use in the grid search between the lower and upper bound}
+
+\item{return_min_q}{logical. If TRUE, the function will return the minimum quantile of the nonconformity scores for each predicted value}
+
+\item{weighted_cp}{logical. If TRUE, the function will use the weighted conformal prediction method. Default is FALSE}
+
+\item{calib}{a tibble with the predicted values and the true values of the calibration partition. Used when weighted_cp is TRUE. Default is NULL}
 }
 \value{
 a tibble with the predicted values and the lower and upper bounds of the prediction intervals

@@ -4,7 +4,15 @@
 \alias{grid_inner}
 \title{Inner function for grid search}
 \usage{
-grid_inner(hyp_ncs, y_hat, ncs, pos_vals, alpha)
+grid_inner(
+  hyp_ncs,
+  y_hat,
+  ncs,
+  pos_vals,
+  alpha,
+  return_min_q = FALSE,
+  weights = NULL
+)
 }
 \arguments{
 \item{hyp_ncs}{vector of hypothetical non-conformity scores}
@@ -16,6 +24,10 @@ grid_inner(hyp_ncs, y_hat, ncs, pos_vals, alpha)
 \item{pos_vals}{vector of possible values for the lower and upper bounds of the prediction interval}
 
 \item{alpha}{confidence level}
+
+\item{return_min_q}{logical. If TRUE, the function will return the minimum quantile of the nonconformity scores for each predicted value}
+
+\item{weights}{vector of weights for the weighted conformal prediction method}
 }
 \value{
 a numeric vector with the predicted value and the lower and upper bounds of the prediction interval

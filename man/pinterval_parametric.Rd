@@ -37,3 +37,31 @@ The distributions are not limited to the standard distributions available in R. 
 
 The list of parameters should be constructed such that when the distribution function is called with the parameters, it returns a vector of the same length as the predictions. In most cases the parameters should ensure that the predicted value corresponds to the mean, median, or mode of the resulting distribution. Parameters relating to the prediction error should be estimated on calibration data. For example, if normal prediction intervals are desired, the mean parameter should be the predicted value and the standard deviation parameter should be the estimated standard deviation of the prediction errors in the calibration set. If the distribution is a negative binomial distribution with a fixed size parameter, the size parameter should be estimated on the calibration data and the mu parameter should be the predicted value.
 }
+\examples{
+library(dplyr)
+library(tibble)
+x1 <- runif(1000)
+x2 <- runif(1000)
+y <- rlnorm(1000, meanlog = x1 + x2, sdlog = 0.5)
+df <- tibble(x1, x2, y)
+df_train <- df \%>\% slice(1:500)
+df_cal <- df \%>\% slice(501:750)
+df_test <- df \%>\% slice(751:1000)
+mod <- lm(log(y) ~ x1 + x2, data=df_train)
+calib <- exp(predict(mod, newdata=df_cal))
+calib_truth <- df_cal$y
+pred_test <- exp(predict(mod, newdata=df_test))
+
+# Normal prediction intervals
+pinterval_parametric(pred = pred_test,
+dist = 'norm',
+pars = list(mean = pred_test,
+						sd = sqrt(mean((calib - calib_truth)^2))))
+
+# Log-normal prediction intervals
+pinterval_parametric(pred = pred_test,
+dist = 'lnorm',
+pars = list(meanlog = pred_test,
+					sdlog = sqrt(mean((log(calib) - log(calib_truth))^2))))
+
+}

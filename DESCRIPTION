@@ -8,13 +8,10 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Authors@R: c(
-    person("David", "Randahl", , "david.randahl@pcr.uu.se", role = c("aut", "cre")),
-    person("Jonathan", "Williams", role = "aut"),
-    person("Håvard", "Hegre", role = "ctb")
-  )
+    person("David", "Randahl", , "david.randahl@pcr.uu.se", role = c("aut", "cre"))
+    )
 Imports: 
     dplyr,
     foreach,
-    rlang,
     tibble
 RoxygenNote: 7.3.2

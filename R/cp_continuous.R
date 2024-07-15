@@ -8,16 +8,38 @@
 #' @param calib_truth A numeric vector of true values in the calibration partition. Only required if calib is a numeric vector
 #' @param alpha The confidence level for the prediction intervals. Must be a single numeric value between 0 and 1
 #' @param ncs_function A function or a character string matching a function that takes two arguments, a vector of predicted values and a vector of true values, in that order. The function should return a numeric vector of nonconformity scores. Default is 'absolute_error' which returns the absolute difference between the predicted and true values.
+#' @param weighted_cp Logical. If TRUE, the function will use weighted conformal prediction. Default is FALSE. Experimental.
 #' @param ncs A numeric vector of pre-computed nonconformity scores from a calibration partition. If provided, calib will be ignored
 #' @param lower_bound Optional minimum value for the prediction intervals. If not provided, the minimum (true) value of the calibration partition will be used
 #' @param upper_bound Optional maximum value for the prediction intervals. If not provided, the maximum (true) value of the calibration partition will be used
 #' @param min_step The minimum step size for the grid search. Default is 0.01. Useful to change if predictions are made on a discrete grid or if the resolution of the interval is too coarse or too fine.
 #' @param grid_size Alternative to min_step, the number of points to use in the grid search between the lower and upper bound. If provided, min_step will be ignored.
+#' @param return_min_q Logical. If TRUE, the function will return the minimum quantile of the nonconformity scores for each predicted value. Default is FALSE. Primarily used for debugging purposes.
 #'
 #' @return A tibble with the predicted values and the lower and upper bounds of the prediction intervals.
 #' @export
 #'
 #' @examples
+#' library(dplyr)
+#' library(tibble)
+#' x1 <- runif(1000)
+#' x2 <- runif(1000)
+#' y <- rlnorm(1000, meanlog = x1 + x2, sdlog = 0.5)
+#' df <- tibble(x1, x2, y)
+#' df_train <- df %>% slice(1:500)
+#' df_cal <- df %>% slice(501:750)
+#' df_test <- df %>% slice(751:1000)
+#' mod <- lm(log(y) ~ x1 + x2, data=df_train)
+#' calib <- exp(predict(mod, newdata=df_cal))
+#' calib_truth <- df_cal$y
+#' pred_test <- exp(predict(mod, newdata=df_test))
+#'
+#' pinterval_cp_cont(pred_test,
+#' calib = calib,
+#' calib_truth = calib_truth,
+#' alpha = 0.1,
+#' lower_bound = 0,
+#' grid_size = 10000)
 #'
 pinterval_cp_cont <- function(pred,
 													calib = NULL,

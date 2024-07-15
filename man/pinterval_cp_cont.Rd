@@ -9,12 +9,14 @@ pinterval_cp_cont(
   calib = NULL,
   calib_truth = NULL,
   alpha = 0.1,
-  ncs_function = c("absolute_error", "squared_error"),
+  ncs_function = "absolute_error",
+  weighted_cp = FALSE,
   ncs = NULL,
   lower_bound = NULL,
   upper_bound = NULL,
   min_step = 0.01,
-  grid_size = NULL
+  grid_size = NULL,
+  return_min_q = FALSE
 )
 }
 \arguments{
@@ -28,6 +30,8 @@ pinterval_cp_cont(
 
 \item{ncs_function}{A function or a character string matching a function that takes two arguments, a vector of predicted values and a vector of true values, in that order. The function should return a numeric vector of nonconformity scores. Default is 'absolute_error' which returns the absolute difference between the predicted and true values.}
 
+\item{weighted_cp}{Logical. If TRUE, the function will use weighted conformal prediction. Default is FALSE. Experimental.}
+
 \item{ncs}{A numeric vector of pre-computed nonconformity scores from a calibration partition. If provided, calib will be ignored}
 
 \item{lower_bound}{Optional minimum value for the prediction intervals. If not provided, the minimum (true) value of the calibration partition will be used}
@@ -37,10 +41,35 @@ pinterval_cp_cont(
 \item{min_step}{The minimum step size for the grid search. Default is 0.01. Useful to change if predictions are made on a discrete grid or if the resolution of the interval is too coarse or too fine.}
 
 \item{grid_size}{Alternative to min_step, the number of points to use in the grid search between the lower and upper bound. If provided, min_step will be ignored.}
+
+\item{return_min_q}{Logical. If TRUE, the function will return the minimum quantile of the nonconformity scores for each predicted value. Default is FALSE. Primarily used for debugging purposes.}
 }
 \value{
 A tibble with the predicted values and the lower and upper bounds of the prediction intervals.
 }
 \description{
 This function calculates conformal prediction intervals with a confidence level of 1-alpha for a vector of (continuous) predicted values using inductive conformal prediction. The intervals are computed using either a calibration set with predicted and true values or a set of pre-computed non-conformity scores from the calibration set. The function returns a tibble containing the predicted values along with the lower and upper bounds of the prediction intervals.
+}
+\examples{
+library(dplyr)
+library(tibble)
+x1 <- runif(1000)
+x2 <- runif(1000)
+y <- rlnorm(1000, meanlog = x1 + x2, sdlog = 0.5)
+df <- tibble(x1, x2, y)
+df_train <- df \%>\% slice(1:500)
+df_cal <- df \%>\% slice(501:750)
+df_test <- df \%>\% slice(751:1000)
+mod <- lm(log(y) ~ x1 + x2, data=df_train)
+calib <- exp(predict(mod, newdata=df_cal))
+calib_truth <- df_cal$y
+pred_test <- exp(predict(mod, newdata=df_test))
+
+pinterval_cp_cont(pred_test,
+calib = calib,
+calib_truth = calib_truth,
+alpha = 0.1,
+lower_bound = 0,
+grid_size = 10000)
+
 }

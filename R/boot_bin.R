@@ -3,6 +3,8 @@
 #' @description
 #' This function computes bootstrapped prediction intervals with a confidence level of 1-alpha for a vector of (continuous) predicted values using bin-conditional bootstrapped prediction errors. The prediction errors to bootstrap from are computed using either a calibration set with predicted and true values or a set of pre-computed prediction errors from a calibration dataset or other data which the model was not trained on (e.g. OOB errors from a model using bagging). The function returns a tibble containing the predicted values along with the lower and upper bounds of the prediction intervals.
 #'
+#' Currently not working as intended. May be removed in future versions.
+#'
 #' @param pred Vector of predicted values
 #' @param calib A numeric vector of predicted values in the calibration partition or a 2 column tibble or matrix with the first column being the predicted values and the second column being the truth values
 #' @param calib_truth A numeric vector of true values in the calibration partition. Only required if calib is a numeric vector
@@ -16,12 +18,6 @@
 #' @param lower_bound Optional minimum value for the prediction intervals. If not provided, the minimum (true) value of the calibration partition will be used
 #' @param upper_bound Optional maximum value for the prediction intervals. If not provided, the maximum (true) value of the calibration partition will be used
 #' @param right Parameter passed to cut function to determine which side of the bin interval is closed. Default is TRUE
-#'
-#'
-#' @return
-#' @export
-#'
-#' @examples
 pinterval_boot_bins <- function(pred,
 															 calib,
 															 calib_truth = NULL,
