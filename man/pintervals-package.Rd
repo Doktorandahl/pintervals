@@ -4,9 +4,9 @@
 \name{pintervals-package}
 \alias{pintervals}
 \alias{pintervals-package}
-\title{pintervals: Model agnostic prediction intervals}
+\title{pintervals: Model Agnostic Prediction Intervals}
 \description{
-More about what it does (maybe more than one line) Use four spaces when indenting paragraphs within the Description.
+Provides tools for estimating model-agnostic prediction intervals using conformal prediction, bootstrapping, and parametric prediction intervals. The package is designed for ease of use, offering intuitive functions for both binned and full conformal prediction methods, as well as parametric interval estimation with diagnostic checks. Currently only working for continuous predictions.
 }
 \author{
 \strong{Maintainer}: David Randahl \email{david.randahl@pcr.uu.se}
