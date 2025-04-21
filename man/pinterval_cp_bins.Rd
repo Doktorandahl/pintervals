@@ -18,7 +18,7 @@ pinterval_cp_bins(
   grid_size = NULL,
   right = TRUE,
   weighted_cp = FALSE,
-  treat_noncontiguous = c("full", "non_contiguous")
+  contiguize = FALSE
 )
 }
 \arguments{
@@ -46,9 +46,9 @@ pinterval_cp_bins(
 
 \item{right}{Logical, if TRUE the bins are right-closed (a,b] and if FALSE the bins are left-closed `[ a,b)`. Only used if breaks or nbins are provided.}
 
-\item{weighted_cp}{Logical, if TRUE the prediction intervals are created by bootstrapping the ncs scores giving a higher weight to the ncs scores that are closer to the predicted value. Default is FALSE. Experimental.}
+\item{weighted_cp}{Logical, if TRUE the prediction intervals are created by bootstrapping the ncs scores giving a higher weight to the ncs scores that are closer to the predicted value. Default is FALSE. Experimental, so use with caution.}
 
-\item{treat_noncontiguous}{A character string indicating how to treat non-contiguous bins. Options are 'full' (default), and 'non_contiguous'. 'full' will consider all bins for each prediction using the lower and upper endpoints as interval limits to avoid non-contiguous intervals. 'non_contiguous' will allows for non-contiguous intervals. 'full' guarantees at least appropriate coverage in each bin, but may suffer from over-coverage in certain bins. Non-contiguous will have appropriate coverage in each bin.}
+\item{contiguize}{logical indicating whether to contiguize the intervals. TRUE will consider all bins for each prediction using the lower and upper endpoints as interval limits to avoid non-contiguous intervals. FALSE will allows for non-contiguous intervals. TRUE guarantees at least appropriate coverage in each bin, but may suffer from over-coverage in certain bins. FALSE will have appropriate coverage in each bin.}
 }
 \value{
 A tibble with the predicted values, the lower and upper bounds of the prediction intervals. If treat_noncontiguous is 'non_contiguous', the lower and upper bounds are set in a list variable called 'intervals' where all non-contiguous intervals are stored.

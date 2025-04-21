@@ -242,9 +242,9 @@ minq_to_alpha <- function(minq, alpha){
 #' Flatten binned conformal prediction intervals to contiguous intervals
 #'
 #' @param lst list of binned conformal prediction intervals
-#' @param treat_noncontiguous method for treating noncontiguous intervals
+#' @param contiguize logical indicating whether to contiguize the intervals
 flatten_cp_bin_intervals <- function(lst,
-																		 treat_noncontiguous = c('narrowest', 'most_conformal','full')){
+																		 contiguize = FALSE){
 
 	i <- 'tmp'
 
@@ -254,33 +254,14 @@ flatten_cp_bin_intervals <- function(lst,
 	upper_bound <- foreach::foreach(i = 1:length(lst), .final = unlist) %do% lst[[i]]$upper_bound
 	upper_bound <- matrix(upper_bound, nrow = length(pred), ncol = length(lst), byrow = FALSE)
 
-	if(treat_noncontiguous == 'full'){
+	if(contiguize){
 	lower_bound <- apply(lower_bound, 1, min, na.rm = TRUE)
 	lower_bound[which(is.infinite(lower_bound))] <- NA
 
 	upper_bound <- apply(upper_bound, 1, max, na.rm = TRUE)
 	upper_bound[which(is.infinite(upper_bound))] <- NA
 	return(tibble::tibble(pred = pred, lower_bound = lower_bound, upper_bound = upper_bound))
-	}else if(treat_noncontiguous == 'narrowest'){
-		empirical_lower_bounds <- apply(lower_bound, 2, min, na.rm = TRUE)
-		empirical_upper_bounds <- apply(upper_bound, 2, max, na.rm = TRUE)
-
-		contiguous_intervals <- foreach::foreach(i = 1:length(pred),.final = dplyr::bind_rows) %do%{
-			contiguize_intervals(lower_bound[i,], upper_bound[i,], empirical_lower_bounds, empirical_upper_bounds)
-		}
-		return(dplyr::bind_cols(tibble::tibble(pred = pred), contiguous_intervals))
-	}else if(treat_noncontiguous == 'most_conformal'){
-		min_qs <- foreach::foreach(i = 1:length(lst), .final = unlist) %do% lst[[i]]$min_q
-		min_qs <- matrix(min_qs, nrow = length(pred), ncol = length(lst), byrow = FALSE)
-		bin_minq <- apply(min_qs, 1, which.min)
-		lower_bound <- apply(lower_bound, 1, function(x) x[bin_minq])
-		upper_bound <- apply(upper_bound, 1, function(x) x[bin_minq])
-
-		return(tibble::tibble(pred = pred, lower_bound = lower_bound, upper_bound = upper_bound))
-
-
-
-	}else if(treat_noncontiguous == 'non_contiguous'){
+	}else{
 		empirical_lower_bounds <- apply(lower_bound, 2, min, na.rm = TRUE)
 		empirical_upper_bounds <- apply(upper_bound, 2, max, na.rm = TRUE)
 

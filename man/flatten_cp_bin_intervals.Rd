@@ -4,15 +4,12 @@
 \alias{flatten_cp_bin_intervals}
 \title{Flatten binned conformal prediction intervals to contiguous intervals}
 \usage{
-flatten_cp_bin_intervals(
-  lst,
-  treat_noncontiguous = c("narrowest", "most_conformal", "full")
-)
+flatten_cp_bin_intervals(lst, contiguize = FALSE)
 }
 \arguments{
 \item{lst}{list of binned conformal prediction intervals}
 
-\item{treat_noncontiguous}{method for treating noncontiguous intervals}
+\item{contiguize}{logical indicating whether to contiguize the intervals}
 }
 \description{
 Flatten binned conformal prediction intervals to contiguous intervals

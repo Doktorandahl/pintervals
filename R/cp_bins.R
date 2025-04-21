@@ -15,8 +15,8 @@
 #' @param min_step The minimum step size for the grid search. Default is 0.01. Useful to change if predictions are made on a discrete grid or if the resolution of the interval is too coarse or too fine.
 #' @param grid_size Alternative to min_step, the number of points to use in the grid search between the lower and upper bound. If provided, min_step will be ignored.
 #' @param right Logical, if TRUE the bins are right-closed (a,b] and if FALSE the bins are left-closed `[ a,b)`. Only used if breaks or nbins are provided.
-#' @param weighted_cp Logical, if TRUE the prediction intervals are created by bootstrapping the ncs scores giving a higher weight to the ncs scores that are closer to the predicted value. Default is FALSE. Experimental.
-#' @param treat_noncontiguous A character string indicating how to treat non-contiguous bins. Options are 'full' (default), and 'non_contiguous'. 'full' will consider all bins for each prediction using the lower and upper endpoints as interval limits to avoid non-contiguous intervals. 'non_contiguous' will allows for non-contiguous intervals. 'full' guarantees at least appropriate coverage in each bin, but may suffer from over-coverage in certain bins. Non-contiguous will have appropriate coverage in each bin.
+#' @param weighted_cp Logical, if TRUE the prediction intervals are created by bootstrapping the ncs scores giving a higher weight to the ncs scores that are closer to the predicted value. Default is FALSE. Experimental, so use with caution.
+#' @param contiguize logical indicating whether to contiguize the intervals. TRUE will consider all bins for each prediction using the lower and upper endpoints as interval limits to avoid non-contiguous intervals. FALSE will allows for non-contiguous intervals. TRUE guarantees at least appropriate coverage in each bin, but may suffer from over-coverage in certain bins. FALSE will have appropriate coverage in each bin.
 #'
 #' @return A tibble with the predicted values, the lower and upper bounds of the prediction intervals. If treat_noncontiguous is 'non_contiguous', the lower and upper bounds are set in a list variable called 'intervals' where all non-contiguous intervals are stored.
 #' @export
@@ -59,10 +59,10 @@ pinterval_cp_bins = function(pred,
 									 grid_size = NULL,
 									 right = TRUE,
 									 weighted_cp = FALSE,
-									 treat_noncontiguous = c('full',"non_contiguous")){
+									 contiguize = FALSE){
 
 	i <- NA
-treat_noncontiguous <- match.arg(treat_noncontiguous, c('full',"non_contiguous"))
+
 
 	if(!is.numeric(pred)){
 		stop('pred must be a numeric vector')
@@ -186,7 +186,7 @@ treat_noncontiguous <- match.arg(treat_noncontiguous, c('full',"non_contiguous")
 																			 grid_size = grid_size))
 
 
-	cp_intervals2 <- flatten_cp_bin_intervals(cp_intervals, treat_noncontiguous = treat_noncontiguous)
+	cp_intervals2 <- flatten_cp_bin_intervals(cp_intervals, contiguize = contiguize)
 
 
 	return(cp_intervals2)
