@@ -6,5 +6,4 @@
 
 ## Comments
 
-- Updated description field to include doi
-- Added ctb to authors field
+- Minor changes in function names and arguments to improve consistency and clarity.

@@ -16,7 +16,7 @@
 #' @param grid_size Alternative to min_step, the number of points to use in the grid search between the lower and upper bound. If provided, min_step will be ignored.
 #' @param right Logical, if TRUE the bins are right-closed (a,b] and if FALSE the bins are left-closed `[ a,b)`. Only used if breaks or nbins are provided.
 #' @param weighted_cp Logical, if TRUE the prediction intervals are created by bootstrapping the ncs scores giving a higher weight to the ncs scores that are closer to the predicted value. Default is FALSE. Experimental, so use with caution.
-#' @param contiguize logical indicating whether to contiguize the intervals. TRUE will consider all bins for each prediction using the lower and upper endpoints as interval limits to avoid non-contiguous intervals. FALSE will allows for non-contiguous intervals. TRUE guarantees at least appropriate coverage in each bin, but may suffer from over-coverage in certain bins. FALSE will have appropriate coverage in each bin.
+#' @param contiguize logical indicating whether to contiguize the intervals. TRUE will consider all bins for each prediction using the lower and upper endpoints as interval limits to avoid non-contiguous intervals. FALSE will allows for non-contiguous intervals. TRUE guarantees at least appropriate coverage in each bin, but may suffer from over-coverage in certain bins. FALSE will have appropriate coverage in each bin but may have non-contiguous intervals. Default is FALSE.
 #'
 #' @return A tibble with the predicted values, the lower and upper bounds of the prediction intervals. If treat_noncontiguous is 'non_contiguous', the lower and upper bounds are set in a list variable called 'intervals' where all non-contiguous intervals are stored.
 #' @export
@@ -39,14 +39,14 @@
 #' calib_bins <- df_cal$bin
 #' pred_test <- exp(predict(mod, newdata=df_test))
 #'
-#' pinterval_cp_bins(pred = pred_test,
+#' pinterval_bccp(pred = pred_test,
 #' calib = calib,
 #' calib_truth = calib_truth,
 #' calib_bins = calib_bins,
 #' alpha = 0.1,
 #' grid_size = 10000)
 #'
-pinterval_cp_bins = function(pred,
+pinterval_bccp = function(pred,
 									 calib = NULL,
 									 calib_truth = NULL,
 									 calib_bins = NULL,
@@ -175,7 +175,7 @@ pinterval_cp_bins = function(pred,
 	}
 
 	cp_intervals <- foreach::foreach(i = 1:length(bin_labels)) %do%
-		suppressWarnings(pinterval_cp_cont(pred = pred,
+		suppressWarnings(pinterval_conformal(pred = pred,
 																			 lower_bound = lower_bounds[i],
 																			 upper_bound = upper_bounds[i],
 																			 #ncs = ncs[calib_bins==bin_labels[i]],

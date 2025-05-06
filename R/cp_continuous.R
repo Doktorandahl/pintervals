@@ -1,4 +1,4 @@
-#' Continuous Conformal Prediction Intervals
+#' Conformal Prediction Intervals of Continuous Values
 #'
 #' @description
 #' This function calculates conformal prediction intervals with a confidence level of 1-alpha for a vector of (continuous) predicted values using inductive conformal prediction. The intervals are computed using either a calibration set with predicted and true values or a set of pre-computed non-conformity scores from the calibration set. The function returns a tibble containing the predicted values along with the lower and upper bounds of the prediction intervals.
@@ -8,7 +8,7 @@
 #' @param calib_truth A numeric vector of true values in the calibration partition. Only required if calib is a numeric vector
 #' @param alpha The confidence level for the prediction intervals. Must be a single numeric value between 0 and 1
 #' @param ncs_function A function or a character string matching a function that takes two arguments, a vector of predicted values and a vector of true values, in that order. The function should return a numeric vector of nonconformity scores. Default is 'absolute_error' which returns the absolute difference between the predicted and true values.
-#' @param weighted_cp Logical. If TRUE, the function will use weighted conformal prediction. Default is FALSE. Experimental.
+#' @param weighted_cp Logical. If TRUE, the function will use weighted conformal prediction. Default is FALSE. Experimental, use with caution.
 #' @param ncs A numeric vector of pre-computed nonconformity scores from a calibration partition. If provided, calib will be ignored
 #' @param lower_bound Optional minimum value for the prediction intervals. If not provided, the minimum (true) value of the calibration partition will be used
 #' @param upper_bound Optional maximum value for the prediction intervals. If not provided, the maximum (true) value of the calibration partition will be used
@@ -34,14 +34,14 @@
 #' calib_truth <- df_cal$y
 #' pred_test <- exp(predict(mod, newdata=df_test))
 #'
-#' pinterval_cp_cont(pred_test,
+#' pinterval_conformal(pred_test,
 #' calib = calib,
 #' calib_truth = calib_truth,
 #' alpha = 0.1,
 #' lower_bound = 0,
 #' grid_size = 10000)
 #'
-pinterval_cp_cont <- function(pred,
+pinterval_conformal <- function(pred,
 													calib = NULL,
 													calib_truth = NULL,
 													alpha = 0.1,

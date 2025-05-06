@@ -18,7 +18,7 @@
 #' @param lower_bound Optional minimum value for the prediction intervals. If not provided, the minimum (true) value of the calibration partition will be used
 #' @param upper_bound Optional maximum value for the prediction intervals. If not provided, the maximum (true) value of the calibration partition will be used
 #' @param right Parameter passed to cut function to determine which side of the bin interval is closed. Default is TRUE
-pinterval_boot_bins <- function(pred,
+pinterval_bcbootstrap <- function(pred,
 															 calib,
 															 calib_truth = NULL,
 															 calib_bins = NULL,
