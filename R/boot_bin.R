@@ -19,18 +19,18 @@
 #' @param upper_bound Optional maximum value for the prediction intervals. If not provided, the maximum (true) value of the calibration partition will be used
 #' @param right Parameter passed to cut function to determine which side of the bin interval is closed. Default is TRUE
 pinterval_bcbootstrap <- function(pred,
-															 calib,
-															 calib_truth = NULL,
-															 calib_bins = NULL,
-															 breaks = NULL,
-															 nbins = NULL,
-															 calib_bin_type = c('prediction', 'truth'),
-															 error_type = c('raw','absolute'),
-															 alpha = 0.1,
-															 n_bootstraps=1000,
-															 lower_bound = NULL,
-															 upper_bound = NULL,
-															 right = TRUE){
+																	calib,
+																	calib_truth = NULL,
+																	calib_bins = NULL,
+																	breaks = NULL,
+																	nbins = NULL,
+																	calib_bin_type = c('prediction', 'truth'),
+																	error_type = c('raw','absolute'),
+																	alpha = 0.1,
+																	n_bootstraps=1000,
+																	lower_bound = NULL,
+																	upper_bound = NULL,
+																	right = TRUE){
 
 	i <- NA
 
@@ -82,11 +82,11 @@ pinterval_bcbootstrap <- function(pred,
 					breaks <- c(breaks,Inf)
 				}
 			}else if(calib_bin_type == 'truth'){
-			calib_bins <- cut(calib_truth,breaks = breaks,labels = FALSE,right = right)
-			breaks <- foreach::foreach(i = 1:length(unique(calib_bins)),.final = unlist) %do%
-				max(calib[calib_bins==i])
+				calib_bins <- cut(calib_truth,breaks = breaks,labels = FALSE,right = right)
+				breaks <- foreach::foreach(i = 1:length(unique(calib_bins)),.final = unlist) %do%
+					max(calib[calib_bins==i])
 
-			breaks <- c(-Inf,breaks[1:(length(breaks)-1)],Inf)
+				breaks <- c(-Inf,breaks[1:(length(breaks)-1)],Inf)
 			}
 			if(!is.null(nbins)){
 				warning('Both breaks and nbins provided, using breaks')
@@ -101,10 +101,10 @@ pinterval_bcbootstrap <- function(pred,
 					max(calib[calib_bins==i])
 				breaks <- c(-Inf,breaks[1:(length(breaks)-1)],Inf)
 			}else if(calib_bin_type == 'truth'){
-			calib_bins <- bin_chopper(calib_truth,nbins = nbins)
-			breaks <- foreach::foreach(i = 1:length(unique(calib_bins)),.final = unlist) %do%
-				max(calib[calib_bins==i])
-			breaks <- c(-Inf,breaks[1:(length(breaks)-1)],Inf)
+				calib_bins <- bin_chopper(calib_truth,nbins = nbins)
+				breaks <- foreach::foreach(i = 1:length(unique(calib_bins)),.final = unlist) %do%
+					max(calib[calib_bins==i])
+				breaks <- c(-Inf,breaks[1:(length(breaks)-1)],Inf)
 			}
 		}
 	}
@@ -128,11 +128,11 @@ pinterval_bcbootstrap <- function(pred,
 
 	boot_intervals <- foreach::foreach(i = 1:length(bin_labels)) %do%
 		suppressWarnings(pinterval_bootstrap(pred = pred,
-																	 lower_bound = lower_bound,
-																	 upper_bound = upper_bound,
-																	 calib = calib[calib_bins==bin_labels[i]],
-																	 calib_truth = calib_truth[calib_bins==bin_labels[i]],
-																	 alpha = alpha))
+																				 lower_bound = lower_bound,
+																				 upper_bound = upper_bound,
+																				 calib = calib[calib_bins==bin_labels[i]],
+																				 calib_truth = calib_truth[calib_bins==bin_labels[i]],
+																				 alpha = alpha))
 
 	boot_intervals <- foreach::foreach(i = 1:length(pred)) %do%
 		boot_intervals[[pred_bins[i]]][i,]
@@ -152,9 +152,9 @@ pinterval_bcbootstrap <- function(pred,
 	boot_intervals <- dplyr::bind_rows(boot_intervals)
 	boot_intervals <- boot_intervals %>%
 		dplyr::mutate(lower_bound = dplyr::case_when(.data$lower_bound<lb ~ lb,
-																					TRUE ~ .data$lower_bound),
-								 upper_bound = dplyr::case_when(.data$upper_bound>ub ~ ub,
-																					TRUE ~ .data$upper_bound))
+																								 TRUE ~ .data$lower_bound),
+									upper_bound = dplyr::case_when(.data$upper_bound>ub ~ ub,
+																								 TRUE ~ .data$upper_bound))
 
 	return(boot_intervals)
 
