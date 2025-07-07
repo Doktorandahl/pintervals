@@ -6,6 +6,8 @@
 \alias{pintervals-package}
 \title{pintervals: Model Agnostic Prediction Intervals}
 \description{
+\if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
+
 Provides tools for estimating model-agnostic prediction intervals using conformal prediction, bootstrapping, and parametric prediction intervals. The package is designed for ease of use, offering intuitive functions for both binned and full conformal prediction methods, as well as parametric interval estimation with diagnostic checks. Currently only working for continuous predictions. For details on the conformal and bin-conditional conformal prediction methods, see Randahl, Williams, and Hegre (2024) \doi{10.48550/arXiv.2410.14507}.
 }
 \author{

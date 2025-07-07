@@ -1,7 +1,7 @@
 #' Mondrian conformal prediction intervals for continuous predictions
 #'
 #'@description
-#'This function calculates Mondrian conformal prediction intervals with a confidence level of 1-alpha for a vector of (continuous) predicted values using inductive conformal prediction on a Mondrian class-by-class basis. The intervals are computed using a calibration set with predicted and true values and their associated classes. The function returns a tibble containing the predicted values along with the lower and upper bounds of the prediction intervals. Mondrian conformal prediction intervals are useful when the prediction error is not constant across groups or classes, as they allow for locally valid coverage by ensuring that the coverage level \(1 - \alpha\) holds within each class—assuming exchangeability of non-conformity scores within classes.
+#'This function calculates Mondrian conformal prediction intervals with a confidence level of 1-alpha for a vector of (continuous) predicted values using inductive conformal prediction on a Mondrian class-by-class basis. The intervals are computed using a calibration set with predicted and true values and their associated classes. The function returns a tibble containing the predicted values along with the lower and upper bounds of the prediction intervals. Mondrian conformal prediction intervals are useful when the prediction error is not constant across groups or classes, as they allow for locally valid coverage by ensuring that the coverage level \(1 - \eqn{\alpha}\) holds within each class—assuming exchangeability of non-conformity scores within classes.
 #'
 #' @param pred Vector of predicted values or a 2 column tibble or matrix with the first column being the predicted values and the second column being the Mondrian class labels. If pred is a numeric vector, pred_class must be provided.
 #' @param pred_class A vector of class identifiers for the predicted values. This is used to group the predictions by class for Mondrian conformal prediction.
@@ -12,27 +12,27 @@
 #' @param ncs_function The function to compute nonconformity scores. Default is 'absolute_error'. The user can also provide a custom function, or a string that matches a function, which computes the nonconformity scores. This function should take two arguments, a vector of predicted values and a vector of true values, in that order, and should return a numeric vector of nonconformity scores.
 #' @param lower_bound Optional minimum value for the prediction intervals. If not provided, the minimum (true) value of the calibration partition will be used
 #' @param upper_bound Optional maximum value for the prediction intervals. If not provided, the maximum (true) value of the calibration partition will be used
-#' @param calibrate = FALSE Logical. If TRUE, the function will calibrate the predictions and intervals using the calibration set. Default is FALSE.
+#' @param calibrate = FALSE Logical. If TRUE, the function will calibrate the predictions and intervals using the calibration set. Default is FALSE. See details for more information on calibration.
 #' @param calibration_method The method to use for calibration. Can be "glm" or "isotonic". Default is "glm". Only used if calibrate = TRUE.
-#' @param calibration_family The family used for the calibration model. Default is "gaussian". Only used if calibrate = TRUE and calibration_method = "glm". See `calibrate_predictions()` for more information.
-#' @param calibration_transform Optional transformation to apply to the predictions before calibration. Default is NULL. Only used if calibrate = TRUE and calibration_method = "glm". See `calibrate_predictions()` for more information.
+#' @param calibration_family The family used for the calibration model. Default is "gaussian". Only used if calibrate = TRUE and calibration_method = "glm".
+#' @param calibration_transform Optional transformation to apply to the predictions before calibration. Default is NULL. Only used if calibrate = TRUE and calibration_method = "glm".
 #' @param resolution The minimum step size for the grid search. Default is 0.01. See details for more information.
 #' @param grid_size Alternative to `resolution`, the number of points to use in the grid search between the lower and upper bound. If provided, resolution will be ignored.
 #'
 #' @return A tibble with the predicted values, the lower and upper bounds of the prediction intervals. If treat_noncontiguous is 'non_contiguous', the lower and upper bounds are set in a list variable called 'intervals' where all non-contiguous intervals are stored.
 #'
 #' @details
-#' This function computes Mondrian conformal prediction intervals using inductive conformal prediction applied separately within each class (also called strata or groups) of the calibration data. It is especially useful when prediction error varies systematically across known categories, allowing for class-conditional validity by ensuring that the prediction intervals attain the desired coverage level \(1 - \alpha\) within each class—under the assumption of exchangeability within classes.
+#' This function computes Mondrian conformal prediction intervals using inductive conformal prediction applied separately within each class (also called strata or groups) of the calibration data. It is especially useful when prediction error varies systematically across known categories, allowing for class-conditional validity by ensuring that the prediction intervals attain the desired coverage level \(1 - \eqn{\alpha}\) within each class—under the assumption of exchangeability within classes.
 #'
 #' The calibration set must include predicted values, true values, and corresponding class labels. These can be supplied as separate vectors (`calib`, `calib_truth`, and `calib_class`) or as a single three-column matrix or tibble.
 #'
 #' Non-conformity scores are calculated using the specified `ncs_function`, which can be `"absolute_error"` or a user-defined custom function which computes the non-conformity scores. A custom function should take two arguments, a vector of predicted values and a vector of true values, in that order, and return a numeric vector of non-conformity scores.
 #'
-#' To determine the prediction intervals, the function performs a grid search over a specified range of possible outcome values, identifying intervals that satisfy the desired confidence level of \(1 - \alpha\). The user can define the range via the `lower_bound` and `upper_bound` parameters. If these are not supplied, the function defaults to using the minimum and maximum of the true values in the calibration data.
+#' To determine the prediction intervals, the function performs a grid search over a specified range of possible outcome values, identifying intervals that satisfy the desired confidence level of \(1 - \eqn{\alpha}\). The user can define the range via the `lower_bound` and `upper_bound` parameters. If these are not supplied, the function defaults to using the minimum and maximum of the true values in the calibration data.
 #'
 #' The resolution of the grid search can be controlled by either the `resolution` argument, which sets the minimum step size, or the `grid_size` argument, which sets the number of grid points. For wide prediction spaces, the grid search may be computationally intensive. In such cases, increasing the `resolution` or reducing the `grid_size` may improve performance.
 #'
-#' Optionally, the predicted values can be calibrated before interval construction by setting `calibrate = TRUE`. In this case, the predictions are passed through `calibrate_predictions()` to adjust the predictions based on the calibration set. The calibration method can be specified using `calibration_method` and `calibration_family`, with "glm" being the default method.
+#' Optionally, the predicted values can be calibrated before interval construction by setting `calibrate = TRUE`. In this case, the predictions are passed through `calibrate_predictions()` to adjust the predictions based on the calibration set. The calibration method can be specified using `calibration_method` and `calibration_family`, with "glm" being the default method. See \link[pintervals]{calibrate_predictions} for more information on calibration.
 #'
 #' The function returns a tibble with the original predictions and their corresponding lower and upper prediction interval bounds.
 #'
@@ -66,14 +66,17 @@
 #' calib_class <- df_cal$group
 #'
 #' pred_test <- exp(predict(mod, newdata = df_test))
+#' pred_test_class <- df_test$group
 #'
 #' # Apply Mondrian conformal prediction
 #' pinterval_mondrian(pred = pred_test,
-#'                    calib = calib,
-#'                    calib_truth = calib_truth,
-#'                    calib_class = calib_class,
-#'                    alpha = 0.1)
-pinterval_bccp = function(pred,
+#' pred_class = pred_test_class,
+#' calib = calib,
+#' calib_truth = calib_truth,
+#' calib_class = calib_class,
+#' alpha = 0.1)
+#'
+pinterval_mondrian = function(pred,
 													pred_class = NULL,
 													calib = NULL,
 													calib_truth = NULL,
@@ -85,6 +88,7 @@ pinterval_bccp = function(pred,
 													calibrate = FALSE,
 													calibration_method = 'glm',
 													calibration_family = NULL,
+													calibration_transform = NULL,
 													resolution = 0.01,
 													grid_size = NULL){
 
@@ -127,8 +131,8 @@ pinterval_bccp = function(pred,
 		ncs_function <- abs_error
 	}else if(is.character(ncs_function)){
 		ncs_function <- match.fun(ncs_function)
-	}else if(!is.function(ncs_function) & is.null(ncs)){
-		stop('ncs_function must be a function or a character string matching a function if ncs is not provided. The ncs_function must take two arguments, a vector of predicted values and a vector of true values, in that order')
+	}else if(!is.function(ncs_function)){
+		stop('ncs_function must be a function or a character string matching a function. The ncs_function must take two arguments, a vector of predicted values and a vector of true values, in that order')
 	}
 
 	if(!is.numeric(calib)){
@@ -136,13 +140,13 @@ pinterval_bccp = function(pred,
 		if(is.matrix(calib)){
 			calib <- as.numeric(calib_org[,1])
 			calib_truth <- as.numeric(calib_org[,2])
-			if(is.null(calib_class) && ncol(calib_org) == 3 && !is.null(breaks)){
+			if(is.null(calib_class) && ncol(calib_org) == 3){
 				calib_class <- as.numeric(calib_org[,3])
 			}
 		}else{
 			calib_truth <- as.numeric(calib_org[[2]])
 			calib <- as.numeric(calib_org[[1]])
-			if(is.null(calib_class) && ncol(calib_org) == 3 && !is.null(breaks)){
+			if(is.null(calib_class) && ncol(calib_org) == 3){
 				calib_class <- as.numeric(calib_org[[3]])
 			}
 		}
@@ -160,8 +164,8 @@ pinterval_bccp = function(pred,
 		stop('Calibration set must have at least two classes For continuous prediction intervals without classes, use pinterval_conformal() instead of pinterval_mondrian()')
 	}
 
-	cp_intervals <- foreach::foreach(i = 1:length(class_labels),.final=bind_rows) %do%{
-		indices <- which(calib_class == class_labels[i])
+	cp_intervals <- foreach::foreach(i = 1:length(class_labels),.final=dplyr::bind_rows) %do%{
+		indices <- which(pred_class == class_labels[i])
 		res <- suppressWarnings(pinterval_conformal(pred = pred[pred_class==class_labels[i]],
 																				 lower_bound = lower_bound,
 																				 upper_bound = upper_bound,
@@ -179,9 +183,20 @@ pinterval_bccp = function(pred,
 	}
 
 cp_intervals2 <- cp_intervals %>%
-	arrange(indices) %>%
-	select(-indices) %>%
-	mutate(class = class_labels)
+	dplyr::arrange(indices) %>%
+	dplyr::select(-indices) %>%
+	dplyr::mutate(class = pred_class)
+
+if(calibrate){
+	calibrated_preds <- calibrate_predictions(pred = pred,
+																			 calib = calib,
+																			 calib_truth = calib_truth,
+																			 method = calibration_method,
+																			 family = calibration_family,
+																			 transform = calibration_transform)
+	cp_intervals2 <- cp_intervals2 %>%
+		dplyr::mutate(pred = calibrated_preds)
+}
 
 	return(cp_intervals2)
 }

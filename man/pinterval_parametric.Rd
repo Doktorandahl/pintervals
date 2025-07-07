@@ -2,66 +2,116 @@
 % Please edit documentation in R/pinterval_parametric.R
 \name{pinterval_parametric}
 \alias{pinterval_parametric}
-\title{Parametric prediction intervals for continuous predictions}
+\title{#' Parametric prediction intervals for continuous predictions}
 \usage{
 pinterval_parametric(
   pred,
-  dist = c("norm", "lnorm", "pois", "nbinom", "gamma", "logis", "beta"),
+  calib = NULL,
+  calib_truth = NULL,
+  dist = c("norm", "lnorm", "exp", "pois", "nbinom", "gamma", "chisq", "logis", "beta"),
   pars = list(),
   alpha = 0.1,
-  lower_bound = NULL,
-  upper_bound = NULL
+  calibrate = FALSE,
+  calibration_method = c("glm", "isotonic"),
+  calibration_family = "gaussian",
+  calibration_transform = NULL
 )
 }
 \arguments{
 \item{pred}{Vector of predicted values}
 
-\item{dist}{Distribution to use for the prediction intervals. Can be a character string matching any available distribution in R or a function representing a distribution. If a function is provided, it must be a quantile function (e.g. qnorm, qgamma, etc.)}
+\item{calib}{A numeric vector of predicted values in the calibration partition or a 2 column tibble or matrix with the first column being the predicted values and the second column being the truth values}
 
-\item{pars}{List of named parameters for the distribution for each prediction. See details for more information.}
+\item{calib_truth}{A numeric vector of true values in the calibration partition. Only required if calib is a numeric vector}
+
+\item{dist}{Distribution to use for the prediction intervals. Can be a character string matching any available distribution in R or a function representing a distribution, e.g. `qnorm`, `qgamma`, or a user defined quantile function. Default options are 'norm', 'lnorm','exp, 'pois', 'nbinom', 'chisq', 'gamma', 'logis', and 'beta' for which parameters can be computed from the calibration set. If a custom function is provided, parameters need to be provided in `pars`.}
+
+\item{pars}{List of named parameters for the distribution for each prediction. Not needed if calib is provided and the distribution is one of the default options. If a custom distribution function is provided, this list should contain the parameters needed for the quantile function, with names matching the corresponding arguments for the parameter names of the distribution function. See details for more information.}
 
 \item{alpha}{The confidence level for the prediction intervals. Must be a single numeric value between 0 and 1}
 
-\item{lower_bound}{Optional minimum value for the prediction intervals. If not provided, the minimum (true) value of the calibration partition will be used}
+\item{calibrate}{= FALSE Logical. If TRUE, the function will calibrate the predictions and intervals using the calibration set. Default is FALSE. See details for more information.}
 
-\item{upper_bound}{Optional maximum value for the prediction intervals. If not provided, the maximum (true) value of the calibration partition will be used}
+\item{calibration_method}{The method to use for calibration. Can be "glm" or "isotonic". Default is "glm". Only used if calibrate = TRUE.}
+
+\item{calibration_family}{The family used for the calibration model. Default is "gaussian". Only used if calibrate = TRUE and calibration_method = "glm".}
+
+\item{calibration_transform}{Optional transformation to apply to the predictions before calibration. Default is NULL. Only used if calibrate = TRUE and calibration_method = "glm".}
 }
 \value{
 A tibble with the predicted values and the lower and upper bounds of the prediction intervals
 }
 \description{
-This function computes parametric prediction intervals with a confidence level of 1-alpha for a vector of (continuous) predicted values using a user specified parametric distribution and parameters. The distribution can be any distribution available in R or a user defined distribution as long as a quantile function is available. The parameters should be estimated on calibration data. The prediction intervals are calculated as the quantiles of the distribution at the specified confidence level.
+This function computes parametric prediction intervals at a confidence level of \(1 - \eqn{\alpha}\) for a vector of continuous predictions. The intervals are based on a user-specified probability distribution and associated parameters, either estimated from calibration data or supplied directly. Supported distributions include common options like the normal, log-normal, gamma, beta, and negative binomial, as well as any user-defined distribution with a quantile function. Prediction intervals are calculated by evaluating the appropriate quantiles for each predicted value.
 }
 \details{
-The distributions are not limited to the standard distributions available in R. Any distribution can be used as long as a quantile function is available. Users may create their own distribution functions and plug in the resulting quantile function or create compositie or mixture distributions using for instance the package `mistr` and plug in the resulting quantile function.
+This function supports a wide range of distributions for constructing prediction intervals. Built-in support is provided for the following distributions: `"norm"`, `"lnorm"`, `"exp"`, `"pois"`, `"nbinom"`, `"chisq"`, `"gamma"`, `"logis"`, and `"beta"`. For each of these, parameters can be automatically estimated from a calibration set if not supplied directly via the `pars` argument.
 
-The list of parameters should be constructed such that when the distribution function is called with the parameters, it returns a vector of the same length as the predictions. In most cases the parameters should ensure that the predicted value corresponds to the mean, median, or mode of the resulting distribution. Parameters relating to the prediction error should be estimated on calibration data. For example, if normal prediction intervals are desired, the mean parameter should be the predicted value and the standard deviation parameter should be the estimated standard deviation of the prediction errors in the calibration set. If the distribution is a negative binomial distribution with a fixed size parameter, the size parameter should be estimated on the calibration data and the mu parameter should be the predicted value.
+The calibration set (`calib` and `calib_truth`) is used to estimate error dispersion or shape parameters. For example:
+- **Normal**: standard deviation of errors
+- **Log-normal**: standard deviation of log-errors
+- **Gamma**: dispersion via `glm`
+- **Negative binomial**: dispersion via `glm.nb()`
+- **Beta**: precision estimated from error variance
+
+If `pars` is supplied, it should be a list of named arguments corresponding to the distribution’s quantile function. Parameters may be scalars or vectors (one per prediction). When both `pars` and `calib` are provided, the values in `pars` are used, while `calib` is only used for optional prediction calibration (`calibrate = TRUE`).
+
+Users may also specify a custom distribution by passing a quantile function directly (e.g., a function with the signature `function(p, ...)`) as the `dist` argument, in which case `pars` must be provided explicitly.
+
+Optionally, the predicted values can be calibrated in conjuncture with interval construction by setting `calibrate = TRUE`. In this case, the predictions are passed through `calibrate_predictions()` to adjust the predictions based on the calibration set. The calibration method can be specified using `calibration_method` and `calibration_family`, with "glm" being the default method. See \link[pintervals]{calibrate_predictions} for more information on calibration.
 }
 \examples{
 library(dplyr)
 library(tibble)
+
+# Simulate example data
+set.seed(123)
 x1 <- runif(1000)
 x2 <- runif(1000)
 y <- rlnorm(1000, meanlog = x1 + x2, sdlog = 0.5)
 df <- tibble(x1, x2, y)
+
+# Split into training, calibration, and test sets
 df_train <- df \%>\% slice(1:500)
 df_cal <- df \%>\% slice(501:750)
 df_test <- df \%>\% slice(751:1000)
-mod <- lm(log(y) ~ x1 + x2, data=df_train)
-calib <- exp(predict(mod, newdata=df_cal))
-calib_truth <- df_cal$y
-pred_test <- exp(predict(mod, newdata=df_test))
 
-# Normal prediction intervals
-pinterval_parametric(pred = pred_test,
-dist = 'norm',
-pars = list(mean = pred_test,
-						sd = sqrt(mean((calib - calib_truth)^2))))
+# Fit a model on the log-scale
+mod <- lm(log(y) ~ x1 + x2, data = df_train)
 
-# Log-normal prediction intervals
-pinterval_parametric(pred = pred_test,
-dist = 'lnorm',
-pars = list(meanlog = pred_test,
-					sdlog = sqrt(mean((log(calib) - log(calib_truth))^2))))
+# Generate predictions
+pred_cal <- exp(predict(mod, newdata = df_cal))
+pred_test <- exp(predict(mod, newdata = df_test))
 
+# Estimate log-normal prediction intervals from calibration data
+log_resid_sd <- sqrt(mean((log(pred_cal) - log(df_cal$y))^2))
+pinterval_parametric(
+  pred = pred_test,
+  dist = "lnorm",
+  pars = list(meanlog = log(pred_test), sdlog = log_resid_sd)
+)
+
+# Alternatively, use calibration data directly to estimate parameters
+pinterval_parametric(
+  pred = pred_test,
+  calib = pred_cal,
+  calib_truth = df_cal$y,
+  dist = "lnorm"
+)
+
+# Use the normal distribution with direct parameter input
+norm_sd <- sqrt(mean((pred_cal - df_cal$y)^2))
+pinterval_parametric(
+  pred = pred_test,
+  dist = "norm",
+  pars = list(mean = pred_test, sd = norm_sd)
+)
+
+# Use the gamma distribution with parameters estimated from calibration data
+pinterval_parametric(
+  pred = pred_test,
+  calib = pred_cal,
+  calib_truth = df_cal$y,
+  dist = "gamma"
+)
 }

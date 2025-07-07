@@ -13,6 +13,8 @@ Authors@R: c(
 Imports: 
     dplyr,
     foreach,
+    MASS,
+    rlang,
     tibble
 RoxygenNote: 7.3.2
 Depends: 

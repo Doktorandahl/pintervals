@@ -4,7 +4,7 @@
 #'This function calculates bin-conditional conformal prediction intervals with a confidence level of 1-alpha for a vector of (continuous) predicted values using inductive conformal prediction on a bin-by-bin basis. The intervals are computed using a calibration set with predicted and true values and their associated bins. The function returns a tibble containing the predicted values along with the lower and upper bounds of the prediction intervals. Bin-conditional conformal prediction intervals are useful when the prediction error is not constant across the range of predicted values and ensures that the coverage is (approximately) correct for each bin under the assumption that the non-conformity scores are exchangeable within each bin.
 #'
 #' @param pred Vector of predicted values
-#' @param calib A numeric vector of predicted values in the calibration partition or a 2 or 3 column tibble or matrix with the first column being the predicted values and the second column being the truth values and the third, optional, column being the bin labels. If calib is a numeric vector, calib_truth and either calib_bins or bin_breaks must be provided.
+#' @param calib A numeric vector of predicted values in the calibration partition or a 2 or 3 column tibble or matrix with the first column being the predicted values and the second column being the truth values and the third, optional, column being the bin labels. If calib is a numeric vector, calib_truth and either calib_bins or breaks must be provided.
 #' @param calib_truth A numeric vector of true values in the calibration partition
 #' @param calib_bins A vector of bin identifiers for the calibration set. Not used if breaks are provided.
 #' @param alpha The confidence level for the prediction intervals. Must be a single numeric value between 0 and 1
@@ -12,17 +12,17 @@
 #' @param breaks A vector of break points for the bins to manually define the bins. If NULL, lower and upper bounds of the bins are calculated as the minimum and maximum values of each bin in the calibration set. Must be provided if calib_bins is not provided, either as a vector or as the last column of a calib tibble.
 #' @param right Logical, if TRUE the bins are right-closed (a,b] and if FALSE the bins are left-closed `[ a,b)`. Only used if breaks are provided.
 #' @param contiguize logical indicating whether to contiguize the intervals. TRUE will consider all bins for each prediction using the lower and upper endpoints as interval limits to avoid non-contiguous intervals. FALSE will allows for non-contiguous intervals. TRUE guarantees at least appropriate coverage in each bin, but may suffer from over-coverage in certain bins. FALSE will have appropriate coverage in each bin but may have non-contiguous intervals. Default is FALSE.
-#' @param calibrate = FALSE Logical. If TRUE, the function will calibrate the predictions and intervals using the calibration set. Default is FALSE.
+#' @param calibrate = FALSE Logical. If TRUE, the function will calibrate the predictions and intervals using the calibration set. Default is FALSE. See details for more information.
 #' @param calibration_method The method to use for calibration. Can be "glm" or "isotonic". Default is "glm". Only used if calibrate = TRUE.
-#' @param calibration_family The family used for the calibration model. Default is "gaussian". Only used if calibrate = TRUE and calibration_method = "glm". See `calibrate_predictions()` for more information.
-#' @param calibration_transform Optional transformation to apply to the predictions before calibration. Default is NULL. Only used if calibrate = TRUE and calibration_method = "glm". See `calibrate_predictions()` for more information.
+#' @param calibration_family The family used for the calibration model. Default is "gaussian". Only used if calibrate = TRUE and calibration_method = "glm".
+#' @param calibration_transform Optional transformation to apply to the predictions before calibration. Default is NULL. Only used if calibrate = TRUE and calibration_method = "glm".
 #' @param resolution The minimum step size for the grid search. Default is 0.01. See details for more information.
 #' @param grid_size Alternative to `resolution`, the number of points to use in the grid search between the lower and upper bound. If provided, resolution will be ignored.
 #'
 #' @return A tibble with the predicted values, the lower and upper bounds of the prediction intervals. If treat_noncontiguous is 'non_contiguous', the lower and upper bounds are set in a list variable called 'intervals' where all non-contiguous intervals are stored.
 #'
 #' @details
-#' This function computes bin-conditional conformal prediction intervals using inductive conformal prediction applied separately within each bin of the calibration data. It is particularly useful when prediction error varies across the range of predicted values, as it enables locally valid coverage by ensuring that the coverage level \(1 - \alpha\) holds within each bin—assuming exchangeability of non-conformity scores within bins.
+#' This function computes bin-conditional conformal prediction intervals using inductive conformal prediction applied separately within each bin of the calibration data. It is particularly useful when prediction error varies across the range of predicted values, as it enables locally valid coverage by ensuring that the coverage level \(1 - \eqn{\alpha}\) holds within each bin—assuming exchangeability of non-conformity scores within bins.
 #'
 #' The calibration set must include predicted values, true values, and corresponding bin identifiers or breaks for the bins. These can be provided either as separate vectors (`calib`, `calib_truth`, and `calib_bins` or `breaks`).
 #'
@@ -32,7 +32,7 @@
 #'
 #' The prediction intervals are constructed using a grid search over a user-defined range of outcome values. The resolution of the grid search can be controlled by either the `resolution` argument, which sets the minimum step size, or the `grid_size` argument, which sets the number of grid points. For wide prediction spaces, the grid search may be computationally intensive. In such cases, increasing the `resolution` or reducing the `grid_size` may improve performance.
 #'
-#' Optionally, the predicted values can be calibrated before interval construction by setting `calibrate = TRUE`. In this case, the predictions are passed through `calibrate_predictions()` to adjust the predictions based on the calibration set. The calibration method can be specified using `calibration_method` and `calibration_family`, with "glm" being the default method.
+#' Optionally, the predicted values can be calibrated before interval construction by setting `calibrate = TRUE`. In this case, the predictions are passed through `calibrate_predictions()` to adjust the predictions based on the calibration set. The calibration method can be specified using `calibration_method` and `calibration_family`, with "glm" being the default method. See \link[pintervals]{calibrate_predictions} for more information on calibration.
 #'
 #' The function returns a tibble containing the predicted values and their corresponding lower and upper bounds. If `contiguize = FALSE` and the resulting intervals are non-contiguous, the lower and upper bounds are in list-columns.
 #'
@@ -84,6 +84,7 @@ pinterval_bccp = function(pred,
 									 calibrate = FALSE,
 									 calibration_method = 'glm',
 									 calibration_family = NULL,
+									 calibration_transform = NULL,
 									 resolution = 0.01,
 									 grid_size = NULL,
 									 right = TRUE,
@@ -119,8 +120,8 @@ pinterval_bccp = function(pred,
 		ncs_function <- abs_error
 	}else if(is.character(ncs_function)){
 		ncs_function <- match.fun(ncs_function)
-	}else if(!is.function(ncs_function) & is.null(ncs)){
-		stop('ncs_function must be a function or a character string matching a function if ncs is not provided. The ncs_function must take two arguments, a vector of predicted values and a vector of true values, in that order')
+	}else if(!is.function(ncs_function)){
+		stop('ncs_function must be a function or a character string matching a function. The ncs_function must take two arguments, a vector of predicted values and a vector of true values, in that order')
 	}
 
 	if((is.null(breaks))){
@@ -181,8 +182,20 @@ pinterval_bccp = function(pred,
 																			 grid_size = grid_size))
 
 
+
+
 	cp_intervals2 <- flatten_cp_bin_intervals(cp_intervals, contiguize = contiguize)
 
+	if(calibrate){
+		calibrated_preds <- calibrate_predictions(pred = pred,
+																							calib = calib,
+																							calib_truth = calib_truth,
+																							method = calibration_method,
+																							family = calibration_family,
+																							transform = calibration_transform)
+		cp_intervals2 <- cp_intervals2 %>%
+			dplyr::mutate(pred = calibrated_preds)
+	}
 
 	return(cp_intervals2)
 }

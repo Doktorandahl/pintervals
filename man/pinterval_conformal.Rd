@@ -33,13 +33,13 @@ pinterval_conformal(
 
 \item{upper_bound}{Optional maximum value for the prediction intervals. If not provided, the maximum (true) value of the calibration partition will be used}
 
-\item{calibrate}{= FALSE Logical. If TRUE, the function will calibrate the predictions and intervals using the calibration set. Default is FALSE.}
+\item{calibrate}{= FALSE Logical. If TRUE, the function will calibrate the predictions and intervals using the calibration set. Default is FALSE. See details for more information on calibration.}
 
 \item{calibration_method}{The method to use for calibration. Can be "glm" or "isotonic". Default is "glm". Only used if calibrate = TRUE.}
 
-\item{calibration_family}{The family used for the calibration model. Default is "gaussian". Only used if calibrate = TRUE and calibration_method = "glm". See `calibrate_predictions()` for more information.}
+\item{calibration_family}{The family used for the calibration model. Default is "gaussian". Only used if calibrate = TRUE and calibration_method = "glm".}
 
-\item{calibration_transform}{Optional transformation to apply to the predictions before calibration. Default is NULL. Only used if calibrate = TRUE and calibration_method = "glm". See `calibrate_predictions()` for more information.}
+\item{calibration_transform}{Optional transformation to apply to the predictions before calibration. Default is NULL. Only used if calibrate = TRUE and calibration_method = "glm".}
 
 \item{calib_truth}{A numeric vector of true values in the calibration partition. Only required if calib is a numeric vector}
 
@@ -58,11 +58,11 @@ This function computes prediction intervals using inductive conformal prediction
 
 Non-conformity scores are calculated using the specified `ncs_function`, which can be `"absolute_error"` or a user-defined custom function which computes the non-conformity scores. A custom function should take two arguments, a vector of predicted values and a vector of true values, in that order, and return a numeric vector of non-conformity scores.
 
-To determine the prediction intervals, the function performs a grid search over a specified range of possible outcome values, identifying intervals that satisfy the desired confidence level of \(1 - \alpha\). The user can define the range via the `lower_bound` and `upper_bound` parameters. If these are not supplied, the function defaults to using the minimum and maximum of the true values in the calibration data.
+To determine the prediction intervals, the function performs a grid search over a specified range of possible outcome values, identifying intervals that satisfy the desired confidence level of \(1 - \eqn{\alpha}\). The user can define the range via the `lower_bound` and `upper_bound` parameters. If these are not supplied, the function defaults to using the minimum and maximum of the true values in the calibration data.
 
 The resolution of the grid search can be controlled by either the `resolution` argument, which sets the minimum step size, or the `grid_size` argument, which sets the number of grid points. For wide prediction spaces, the grid search may be computationally intensive. In such cases, increasing the `resolution` or reducing the `grid_size` may improve performance.
 
-Optionally, the predicted values can be calibrated before interval construction by setting `calibrate = TRUE`. In this case, the predictions are passed through `calibrate_predictions()` to adjust the predictions based on the calibration set. The calibration method can be specified using `calibration_method` and `calibration_family`, with "glm" being the default method.
+Optionally, the predicted values can be calibrated before interval construction by setting `calibrate = TRUE`. In this case, the predictions are passed through `calibrate_predictions()` to adjust the predictions based on the calibration set. The calibration method can be specified using `calibration_method` and `calibration_family`, with "glm" being the default method. See \link[pintervals]{calibrate_predictions} for more information on calibration.
 
 The function returns a tibble with the predicted values and their corresponding lower and upper prediction interval bounds.
 }

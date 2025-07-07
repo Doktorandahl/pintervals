@@ -107,22 +107,29 @@ weights_calculator <- function(y_hat, calib){
 #' @param error vector of errors
 #' @param nboot number of bootstrap samples
 #' @param alpha confidence level
-#' @param lower_bound lower bound of the prediction interval
-#' @param upper_bound upper bound of the prediction interval
+#' @param error vector of errors.
+#' @param dw_bootstrap logical. If TRUE, the bootstrap samples will be weighted according to the distance function
+#' @param calib a vector of true values of the calibration partition. Used when weighted_bootstrap is TRUE
+#' @param error_type The type of error to use for the prediction intervals. Can be 'raw' or 'absolute'. If 'raw', bootstrapping will be done on the raw prediction errors. If 'absolute', bootstrapping will be done on the absolute prediction errors with random signs. Default is 'raw'
+#' @param distance_function a function that takes two numeric vectors and returns a numeric vector of distances. Default is NULL, in which case the absolute error will be used
 #'
 #' @return a numeric vector with the predicted value and the lower and upper bounds of the prediction interval
-bootstrap_inner <- function(pred, error, nboot, alpha, lower_bound, upper_bound){
+bootstrap_inner <- function(pred, calib, error, nboot, alpha, dw_bootstrap = FALSE, distance_function = NULL, error_type = c('raw','absolute')){
 	i <- NA
+if(!dw_bootstrap){
 	boot_error <- sample(error, size = nboot, replace = TRUE)
+}else{
+	boot_error <- sample(error, size = nboot, replace = TRUE, prob = 1/(1+distance_function(pred, calib)))
+}
+
+	if(error_type == 'absolute'){
+		boot_error <- sample(c(-1,1), size = nboot, replace = TRUE) * boot_error
+	}
+
 	boot_pred <- pred + boot_error
 	lb <- as.numeric(stats::quantile(boot_pred, alpha/2))
 	ub <- as.numeric(stats::quantile(boot_pred, 1-alpha/2))
-	if(lb < lower_bound){
-		lb <- lower_bound
-	}
-	if(ub > upper_bound){
-		ub <- upper_bound
-	}
+
 
 	return(c(pred = as.numeric(pred), lower_bound = lb, upper_bound = ub))
 }
