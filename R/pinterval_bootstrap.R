@@ -9,8 +9,20 @@
 #' @param error_type The type of error to use for the prediction intervals. Can be 'raw' or 'absolute'. If 'raw', bootstrapping will be done on the raw prediction errors. If 'absolute', bootstrapping will be done on the absolute prediction errors with random signs. Default is 'raw'
 #' @param alpha The confidence level for the prediction intervals. Must be a single numeric value between 0 and 1
 #' @param n_bootstraps The number of bootstraps to perform. Default is 1000
-#' @param dw_bootstrap Logical. If TRUE, the function will use distance-weighted bootstrapping. Default is FALSE. If TRUE, the probability of selecting a prediction error is weighted by the distance to the predicted value. The probability is computed as 1/(1 + distance), where distance is the distance between the predicted value and the calibration values.
-#' @param distance_function A function to compute the distance between the predicted value and the calibration values. Default is 'absolute' which computes the absolute distance between the predicted value and the calibration values. Can also be a function, or a character string matching a function, that takes two arguments, a single predicted value and a vector of calibration values, and returns a numeric vector of distances. See details for more information.
+#' @param distance_weighted_bootstrap Logical. If TRUE, the function will use distance-weighted bootstrapping. Default is FALSE. If TRUE, the probability of selecting a prediction error is weighted by the distance to the predicted value using the specified distance function and weight function. If FALSE, standard bootstrapping is performed.
+#' @param distance_features_calib A matrix, data frame, or numeric vector of features from which to compute distances when \code{distance_weighted_cp = TRUE}. This should contain the feature values for the calibration set. Must have the same number of rows as the calibration set. Can be the predicted values themselves, or any other features which give a meaningful distance measure.
+#' @param distance_features_pred A matrix, data frame, or numeric vector of feature values for the prediction set. Must be the same features as specified in \code{distance_features_calib}. Required if \code{distance_weighted_cp = TRUE}.
+#'
+#' @param normalize_distance Logical. If \code{TRUE}, distances are normalized to the [0, 1] interval before applying the weight function. This is typically recommended to ensure consistent scaling across features. Default is \code{TRUE}.
+#'
+#' @param weight_function A character string specifying the weighting kernel to use for distance-weighted conformal prediction. Options are:
+#' \itemize{
+#'   \item \code{"gaussian_kernel"}: \eqn{ w(d) = e^{-d^2} }
+#'   \item \code{"caucy_kernel"}: \eqn{ w(d) = 1/(1 + d^2) }
+#'   \item \code{"logistic"}: \eqn{ w(d) = 1//(1 + e^{d}) }
+#'   \item \code{"reciprocal_linear"}: \eqn{ w(d) = 1/(1 + d) }
+#' }
+#' The default is \code{"gaussian_kernel"}. Distances are computed as the Euclidean distance between the calibration and prediction feature vectors.
 #' @param calibrate = FALSE Logical. If TRUE, the function will calibrate the predictions and intervals using the calibration set. Default is FALSE. See details for more information.
 #' @param calibration_method The method to use for calibration. Can be "glm" or "isotonic". Default is "glm". Only used if calibrate = TRUE.
 #' @param calibration_family The family used for the calibration model. Default is "gaussian". Only used if calibrate = TRUE and calibration_method = "glm".
@@ -23,7 +35,7 @@
 #' - `"raw"`: bootstrapping is performed on the raw signed prediction errors (truth - prediction), allowing for asymmetric prediction intervals.
 #' - `"absolute"`: bootstrapping is done on the absolute errors, and random signs are applied when constructing intervals. This results in (approximately) symmetric intervals around the prediction.
 #'
-#' Distance-weighted bootstrapping (`dw_bootstrap = TRUE`) can be used to give more weight to calibration errors closer to each test prediction. Distances are calculated using the specified `distance_function`, which defaults to the absolute difference. Distance weighted bootstrapping assigns a probability of selection for each calibration error based on its distance to the predicted value, computed as \(1/(1 + distance)\). The distance function can be a custom function or a character string that matches a function, which takes two arguments: a single predicted value and a vector of calibration values, returning a numeric vector of distances.
+#' Distance-weighted bootstrapping (`dw_bootstrap = TRUE`) can be used to give more weight to calibration errors closer to each test prediction. Distances are calculated using the specified `distance_function`, which defaults to the absolute difference. Distance weighted bootstrapping assigns a probability of selection for each calibration error based on its distance to the predicted value, computed as \eqn{1/(1 + distance)}. The distance function can be a custom function or a character string that matches a function, which takes two arguments: a single predicted value and a vector of calibration values, returning a numeric vector of distances.
 #'
 #' The number of bootstrap samples is controlled via the `n_bootstraps` parameter. For computational efficiency, this can be reduced at the cost of interval precision.
 #'
@@ -66,17 +78,20 @@
 #' )
 #'
 pinterval_bootstrap <- function(pred,
-															 calib,
-															 calib_truth = NULL,
-															 error_type = c('raw','absolute'),
-															 alpha = 0.1,
-															 n_bootstraps=1000,
-																dw_bootstrap = FALSE,
-																distance_function = 'absolute',
-															 calibrate = FALSE,
-															 calibration_method = c('glm', 'isotonic'),
-															 calibration_family = 'gaussian',
-															 calibration_transform = NULL){
+																calib,
+																calib_truth = NULL,
+																error_type = c('raw','absolute'),
+																alpha = 0.1,
+																n_bootstraps=1000,
+																distance_weighted_bootstrap = FALSE,
+																distance_features_calib = NULL,
+																distance_features_pred = NULL,
+																normalize_distance = TRUE,
+																weight_function = c('gaussian_kernel', 'caucy_kernel','logistic','reciprocal_linear'),
+																calibrate = FALSE,
+																calibration_method = c('glm', 'isotonic'),
+																calibration_family = 'gaussian',
+																calibration_transform = NULL){
 
 	i <- NA
 	if(!is.numeric(pred)){
@@ -91,19 +106,13 @@ pinterval_bootstrap <- function(pred,
 		stop('calib must be a numeric vector or a 2 column tibble or matrix with the first column being the predicted values and the second column being the truth values')
 	}
 
-	if(calibrate && dw_bootstrap){
+	if(calibrate && distance_weighted_bootstrap){
 		warning('calibrate is TRUE, but dw_bootstrap is also TRUE. Calibration will be performed after bootstrapping, and the corresponding prediction intervals will be adjusted accordingly.')
 	}
 
-	if(is.character(distance_function)){
-		if(distance_function == 'absolute'){
-			distance_function <- function(x, y) abs(x - y)}
-		else{
-			distance_function <- match.fun(distance_function)
-		}
-	}else if(!is.function(distance_function)){
-		stop('distance_function must be a character string or a function')
-	}
+
+
+
 
 	if(!is.numeric(calib)){
 		calib_org <- calib
@@ -116,6 +125,48 @@ pinterval_bootstrap <- function(pred,
 		}
 	}
 
+	if(distance_weighted_bootstrap){
+		if(is.null(distance_features_calib) || is.null(distance_features_pred)){
+			stop('If distance_weighted_cp is TRUE, distance_features_calib and distance_features_pred must be provided')
+		}
+		if(!is.matrix(distance_features_calib) && !is.data.frame(distance_features_calib) && !is.numeric(distance_features_calib)){
+			stop('distance_features_calib must be a matrix, data frame, or numeric vector')
+		}
+		if(!is.matrix(distance_features_pred) && !is.data.frame(distance_features_pred) && !is.numeric(distance_features_pred)){
+			stop('distance_features_pred must be a matrix, data frame, or numeric vector')
+		}
+		if(is.numeric(distance_features_calib) && is.numeric(distance_features_pred)){
+			if(length(distance_features_calib) != length(calib) || length(distance_features_pred) != length(pred)){
+				stop('If distance_features_calib and distance_features_pred are numeric vectors, they must have the same length as calib and pred, respectively')
+			}
+		}else if(is.matrix(distance_features_calib) || is.data.frame(distance_features_calib)){
+			if(nrow(distance_features_calib) != length(calib)){
+				stop('If distance_features_calib is a matrix or data frame, it must have the same number of rows as calib')
+			}
+			if(ncol(distance_features_calib) != ncol(distance_features_pred)){
+				stop('distance_features_calib and distance_features_pred must have the same number of columns')
+			}
+			if(nrow(distance_features_pred) != length(pred)){
+				stop('If distance_features_pred is a matrix or data frame, it must have the same number of rows as pred')
+			}
+
+		}
+
+		distance_features_calib <- as.matrix(distance_features_calib)
+		distance_features_pred <- as.matrix(distance_features_pred)
+
+		if(!is.function(weight_function)){
+			weight_function <- match.arg(weight_function, c('gaussian_kernel', 'caucy_kernel','logistic','reciprocal_linear'))
+			weight_function <- switch(weight_function,
+																'gaussian_kernel' = function(d) exp(-d^2),
+																'caucy_kernel' = function(d) 1 / (1 + d^2),
+																'logistic' = function(d) 1 / (1 + exp(d)),
+																'reciprocal_linear' = function(d) 1 / (1 + d))
+		}
+	}
+
+
+
 	error_type <- match.arg(error_type, c('raw','absolute'))
 
 		if(error_type == 'raw'){
@@ -127,8 +178,11 @@ pinterval_bootstrap <- function(pred,
 	boot_set <- foreach::foreach(i = 1:length(pred)) %do%
 		bootstrap_inner(pred = pred[i], calib = calib, error = error, nboot = n_bootstraps,
 										alpha = alpha,error_type = error_type,
-										dw_bootstrap = dw_bootstrap,
-										distance_function = distance_function)
+										distance_weighted_bootstrap = distance_weighted_bootstrap,
+										distance_features_calib = distance_features_calib,
+										distance_features_pred = distance_features_pred,
+										normalize_distance = normalize_distance,
+										weight_function = weight_function)
 
 	boot_set <- dplyr::bind_rows(boot_set)
 

@@ -8,14 +8,18 @@ grid_finder(
   y_min,
   y_max,
   ncs,
-  ncs_function,
+  ncs_type,
   y_hat,
   alpha,
   min_step = NULL,
   grid_size = NULL,
-  return_min_q = FALSE,
-  weighted_cp = FALSE,
-  calib = NULL
+  calib = NULL,
+  coefs = NULL,
+  distance_weighted_cp = FALSE,
+  distance_features_calib = NULL,
+  distance_features_pred = NULL,
+  normalize_distance = TRUE,
+  weight_function = gauss_kern
 )
 }
 \arguments{
@@ -25,7 +29,7 @@ grid_finder(
 
 \item{ncs}{vector of non-conformity scores}
 
-\item{ncs_function}{a function that takes a vector of predicted values and a vector of true values and returns a vector of non-conformity scores}
+\item{ncs_type}{String indicating the non-conformity score function to use}
 
 \item{y_hat}{vector of predicted values}
 
@@ -35,11 +39,19 @@ grid_finder(
 
 \item{grid_size}{Alternative to min_step, the number of points to use in the grid search between the lower and upper bound}
 
-\item{return_min_q}{logical. If TRUE, the function will return the minimum quantile of the nonconformity scores for each predicted value}
-
-\item{weighted_cp}{logical. If TRUE, the function will use the weighted conformal prediction method. Default is FALSE}
-
 \item{calib}{a tibble with the predicted values and the true values of the calibration partition. Used when weighted_cp is TRUE. Default is NULL}
+
+\item{coefs}{a numeric vector of coefficients for the heterogeneous error model. Must be of length 2, where the first element is the intercept and the second element is the slope. Used when ncs_type is 'heterogeneous_error'. Default is NULL}
+
+\item{distance_weighted_cp}{logical. If TRUE, the non-conformity scores will be weighted according to the distance function}
+
+\item{distance_features_calib}{a matrix of features for the calibration partition. Used when distance_weighted_cp is TRUE}
+
+\item{distance_features_pred}{a matrix of features for the prediction partition. Used when distance_weighted_cp is TRUE}
+
+\item{normalize_distance}{logical. If TRUE, the distances will be normalized to the range [0,1]}
+
+\item{weight_function}{a function to use for weighting the distances. Can be 'gaussian_kernel', 'caucy_kernel', 'logistic', or 'reciprocal_linear'. Default is 'gaussian_kernel'}
 }
 \value{
 a tibble with the predicted values and the lower and upper bounds of the prediction intervals

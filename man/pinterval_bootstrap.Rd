@@ -11,8 +11,11 @@ pinterval_bootstrap(
   error_type = c("raw", "absolute"),
   alpha = 0.1,
   n_bootstraps = 1000,
-  dw_bootstrap = FALSE,
-  distance_function = "absolute",
+  distance_weighted_bootstrap = FALSE,
+  distance_features_calib = NULL,
+  distance_features_pred = NULL,
+  normalize_distance = TRUE,
+  weight_function = c("gaussian_kernel", "caucy_kernel", "logistic", "reciprocal_linear"),
   calibrate = FALSE,
   calibration_method = c("glm", "isotonic"),
   calibration_family = "gaussian",
@@ -32,9 +35,22 @@ pinterval_bootstrap(
 
 \item{n_bootstraps}{The number of bootstraps to perform. Default is 1000}
 
-\item{dw_bootstrap}{Logical. If TRUE, the function will use distance-weighted bootstrapping. Default is FALSE. If TRUE, the probability of selecting a prediction error is weighted by the distance to the predicted value. The probability is computed as 1/(1 + distance), where distance is the distance between the predicted value and the calibration values.}
+\item{distance_weighted_bootstrap}{Logical. If TRUE, the function will use distance-weighted bootstrapping. Default is FALSE. If TRUE, the probability of selecting a prediction error is weighted by the distance to the predicted value using the specified distance function and weight function. If FALSE, standard bootstrapping is performed.}
 
-\item{distance_function}{A function to compute the distance between the predicted value and the calibration values. Default is 'absolute' which computes the absolute distance between the predicted value and the calibration values. Can also be a function, or a character string matching a function, that takes two arguments, a single predicted value and a vector of calibration values, and returns a numeric vector of distances. See details for more information.}
+\item{distance_features_calib}{A matrix, data frame, or numeric vector of features from which to compute distances when \code{distance_weighted_cp = TRUE}. This should contain the feature values for the calibration set. Must have the same number of rows as the calibration set. Can be the predicted values themselves, or any other features which give a meaningful distance measure.}
+
+\item{distance_features_pred}{A matrix, data frame, or numeric vector of feature values for the prediction set. Must be the same features as specified in \code{distance_features_calib}. Required if \code{distance_weighted_cp = TRUE}.}
+
+\item{normalize_distance}{Logical. If \code{TRUE}, distances are normalized to the [0, 1] interval before applying the weight function. This is typically recommended to ensure consistent scaling across features. Default is \code{TRUE}.}
+
+\item{weight_function}{A character string specifying the weighting kernel to use for distance-weighted conformal prediction. Options are:
+\itemize{
+  \item \code{"gaussian_kernel"}: \eqn{ w(d) = e^{-d^2} }
+  \item \code{"caucy_kernel"}: \eqn{ w(d) = 1/(1 + d^2) }
+  \item \code{"logistic"}: \eqn{ w(d) = 1//(1 + e^{d}) }
+  \item \code{"reciprocal_linear"}: \eqn{ w(d) = 1/(1 + d) }
+}
+The default is \code{"gaussian_kernel"}. Distances are computed as the Euclidean distance between the calibration and prediction feature vectors.}
 
 \item{calibrate}{= FALSE Logical. If TRUE, the function will calibrate the predictions and intervals using the calibration set. Default is FALSE. See details for more information.}
 
@@ -51,7 +67,7 @@ Two types of error can be used for bootstrapping:
 - `"raw"`: bootstrapping is performed on the raw signed prediction errors (truth - prediction), allowing for asymmetric prediction intervals.
 - `"absolute"`: bootstrapping is done on the absolute errors, and random signs are applied when constructing intervals. This results in (approximately) symmetric intervals around the prediction.
 
-Distance-weighted bootstrapping (`dw_bootstrap = TRUE`) can be used to give more weight to calibration errors closer to each test prediction. Distances are calculated using the specified `distance_function`, which defaults to the absolute difference. Distance weighted bootstrapping assigns a probability of selection for each calibration error based on its distance to the predicted value, computed as \(1/(1 + distance)\). The distance function can be a custom function or a character string that matches a function, which takes two arguments: a single predicted value and a vector of calibration values, returning a numeric vector of distances.
+Distance-weighted bootstrapping (`dw_bootstrap = TRUE`) can be used to give more weight to calibration errors closer to each test prediction. Distances are calculated using the specified `distance_function`, which defaults to the absolute difference. Distance weighted bootstrapping assigns a probability of selection for each calibration error based on its distance to the predicted value, computed as \eqn{1/(1 + distance)}. The distance function can be a custom function or a character string that matches a function, which takes two arguments: a single predicted value and a vector of calibration values, returning a numeric vector of distances.
 
 The number of bootstrap samples is controlled via the `n_bootstraps` parameter. For computational efficiency, this can be reduced at the cost of interval precision.
 

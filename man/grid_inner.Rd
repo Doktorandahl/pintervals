@@ -10,8 +10,12 @@ grid_inner(
   ncs,
   pos_vals,
   alpha,
-  return_min_q = FALSE,
-  weights = NULL
+  ncs_type,
+  distance_weighted_cp,
+  distance_features_calib,
+  distance_features_pred,
+  normalize_distance,
+  weight_function
 )
 }
 \arguments{
@@ -25,9 +29,17 @@ grid_inner(
 
 \item{alpha}{confidence level}
 
-\item{return_min_q}{logical. If TRUE, the function will return the minimum quantile of the nonconformity scores for each predicted value}
+\item{ncs_type}{type of non-conformity score}
 
-\item{weights}{vector of weights for the weighted conformal prediction method}
+\item{distance_weighted_cp}{logical. If TRUE, the non-conformity scores will be weighted according to the distance function}
+
+\item{distance_features_calib}{a matrix of features for the calibration partition. Used when distance_weighted_cp is TRUE}
+
+\item{distance_features_pred}{a matrix of features for the prediction partition. Used when distance_weighted_cp is TRUE}
+
+\item{normalize_distance}{logical. If TRUE, the distances will be normalized to the range [0,1]}
+
+\item{weight_function}{a function to use for weighting the distances. Can be 'gaussian_kernel', 'caucy_kernel', 'logistic', or 'reciprocal_linear'. Default is 'gaussian_kernel'}
 }
 \value{
 a numeric vector with the predicted value and the lower and upper bounds of the prediction interval

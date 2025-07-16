@@ -8,9 +8,15 @@ pinterval_conformal(
   pred,
   calib = NULL,
   alpha = 0.1,
-  ncs_function = "absolute_error",
+  ncs_type = c("absolute_error", "relative_error", "za_relative_error",
+    "heterogeneous_error", "raw_error"),
   lower_bound = NULL,
   upper_bound = NULL,
+  distance_weighted_cp = FALSE,
+  distance_features_calib = NULL,
+  distance_features_pred = NULL,
+  normalize_distance = TRUE,
+  weight_function = c("gaussian_kernel", "caucy_kernel", "logistic", "reciprocal_linear"),
   calibrate = FALSE,
   calibration_method = "glm",
   calibration_family = "gaussian",
@@ -27,11 +33,36 @@ pinterval_conformal(
 
 \item{alpha}{The confidence level for the prediction intervals. Must be a single numeric value between 0 and 1}
 
-\item{ncs_function}{The function to compute nonconformity scores. Default is 'absolute_error'. The user can also provide a custom function, or a string that matches a function, which computes the nonconformity scores. This function should take two arguments, a vector of predicted values and a vector of true values, in that order, and should return a numeric vector of nonconformity scores.}
+\item{ncs_type}{A string specifying the type of nonconformity score to use. Available options are:
+\itemize{
+  \item \code{"absolute_error"}: \eqn{|y - \hat{y}|}
+  \item \code{"relative_error"}: \eqn{|y - \hat{y}| / \hat{y}}
+  \item \code{"zero_adjusted_relative_error"}: \eqn{|y - \hat{y}| / (\hat{y} + 1)}
+  \item \code{"heterogeneous_error"}: \eqn{|y - \hat{y}| / \sigma_{\hat{y}}} absolute error divided by a measure of heteroskedasticity, computed as the predicted value from a linear model of the absolute error on the predicted values
+  \item \code{"raw_error"}: the signed error \eqn{y - \hat{y}}
+}
+The default is \code{"absolute_error"}.}
 
-\item{lower_bound}{Optional minimum value for the prediction intervals. If not provided, the minimum (true) value of the calibration partition will be used}
+\item{lower_bound}{Optional minimum value for the prediction intervals. If not provided, the minimum (true) value of the calibration partition will be used.}
 
-\item{upper_bound}{Optional maximum value for the prediction intervals. If not provided, the maximum (true) value of the calibration partition will be used}
+\item{upper_bound}{Optional maximum value for the prediction intervals. If not provided, the maximum (true) value of the calibration partition will be used.}
+
+\item{distance_weighted_cp}{Logical. If \code{TRUE}, weighted conformal prediction is performed where the non-conformity scores are weighted based on the distance between calibration and prediction points in feature space. Default is \code{FALSE}.}
+
+\item{distance_features_calib}{A matrix, data frame, or numeric vector of features from which to compute distances when \code{distance_weighted_cp = TRUE}. This should contain the feature values for the calibration set. Must have the same number of rows as the calibration set. Can be the predicted values themselves, or any other features which give a meaningful distance measure.}
+
+\item{distance_features_pred}{A matrix, data frame, or numeric vector of feature values for the prediction set. Must be the same features as specified in \code{distance_features_calib}. Required if \code{distance_weighted_cp = TRUE}.}
+
+\item{normalize_distance}{Logical. If \code{TRUE}, distances are normalized to the [0, 1] interval before applying the weight function. This is typically recommended to ensure consistent scaling across features. Default is \code{TRUE}.}
+
+\item{weight_function}{A character string specifying the weighting kernel to use for distance-weighted conformal prediction. Options are:
+\itemize{
+  \item \code{"gaussian_kernel"}: \eqn{ w(d) = e^{-d^2} }
+  \item \code{"caucy_kernel"}: \eqn{ w(d) = 1/(1 + d^2) }
+  \item \code{"logistic"}: \eqn{ w(d) = 1//(1 + e^{d}) }
+  \item \code{"reciprocal_linear"}: \eqn{ w(d) = 1/(1 + d) }
+}
+The default is \code{"gaussian_kernel"}. Distances are computed as the Euclidean distance between the calibration and prediction feature vectors.}
 
 \item{calibrate}{= FALSE Logical. If TRUE, the function will calibrate the predictions and intervals using the calibration set. Default is FALSE. See details for more information on calibration.}
 
@@ -56,13 +87,52 @@ This function calculates conformal prediction intervals with a confidence level 
 \details{
 This function computes prediction intervals using inductive conformal prediction. The calibration set must include predicted values and true values. These can be provided either as separate vectors (`calib`and `calib_truth`) or as a two-column tibble or matrix where the first column contains the predicted values and the second column contains the true values. If `calib` is a numeric vector, `calib_truth` must also be provided.
 
-Non-conformity scores are calculated using the specified `ncs_function`, which can be `"absolute_error"` or a user-defined custom function which computes the non-conformity scores. A custom function should take two arguments, a vector of predicted values and a vector of true values, in that order, and return a numeric vector of non-conformity scores.
+Non-conformity scores are calculated using the specified `ncs_type`, which determines how the prediction error is measured. Available options include:
 
-To determine the prediction intervals, the function performs a grid search over a specified range of possible outcome values, identifying intervals that satisfy the desired confidence level of \(1 - \eqn{\alpha}\). The user can define the range via the `lower_bound` and `upper_bound` parameters. If these are not supplied, the function defaults to using the minimum and maximum of the true values in the calibration data.
+- `"absolute_error"`: the absolute difference between predicted and true values.
+- `"relative_error"`: the absolute error divided by the true value.
+- `"za_relative_error"`: zero-adjusted relative error, which replaces small or zero true values with a small constant to avoid division by zero.
+- `"heterogeneous_error"`: absolute error scaled by a linear model of prediction error magnitude as a function of the predicted value.
+- `"raw_error"`: the signed difference between predicted and true values.
+
+These options provide flexibility to adapt to different patterns of prediction error across the outcome space.
+
+To determine the prediction intervals, the function performs a grid search over a specified range of possible outcome values, identifying intervals that satisfy the desired confidence level of \eqn{1 - \eqn{\alpha}}. The user can define the range via the `lower_bound` and `upper_bound` parameters. If these are not supplied, the function defaults to using the minimum and maximum of the true values in the calibration data.
 
 The resolution of the grid search can be controlled by either the `resolution` argument, which sets the minimum step size, or the `grid_size` argument, which sets the number of grid points. For wide prediction spaces, the grid search may be computationally intensive. In such cases, increasing the `resolution` or reducing the `grid_size` may improve performance.
 
 Optionally, the predicted values can be calibrated before interval construction by setting `calibrate = TRUE`. In this case, the predictions are passed through `calibrate_predictions()` to adjust the predictions based on the calibration set. The calibration method can be specified using `calibration_method` and `calibration_family`, with "glm" being the default method. See \link[pintervals]{calibrate_predictions} for more information on calibration.
 
 The function returns a tibble with the predicted values and their corresponding lower and upper prediction interval bounds.
+}
+\examples{
+
+# Generate example data
+library(dplyr)
+library(tibble)
+x1 <- runif(1000)
+x2 <- runif(1000)
+y <- rlnorm(1000, meanlog = x1 + x2, sdlog = 0.5)
+df <- tibble(x1, x2, y)
+df_train <- df \%>\% slice(1:500)
+df_cal <- df \%>\% slice(501:750)
+df_test <- df \%>\% slice(751:1000)
+
+# Fit a model to the training data
+mod <- lm(log(y) ~ x1 + x2, data=df_train)
+
+# Generate predictions on the original y scale for the calibration data
+calib_pred  <- exp(predict(mod, newdata=df_cal))
+calib_truth <- df_cal$y
+
+# Generate predictions for the test data
+pred_test <- exp(predict(mod, newdata=df_test))
+
+# Calculate prediction intervals using conformal prediction.
+pinterval_conformal(pred_test,
+calib = calib_pred,
+calib_truth = calib_truth,
+alpha = 0.1,
+lower_bound = 0)
+
 }

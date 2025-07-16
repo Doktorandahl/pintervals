@@ -12,7 +12,12 @@ bootstrap_inner(
   alpha,
   dw_bootstrap = FALSE,
   distance_function = NULL,
-  error_type = c("raw", "absolute")
+  error_type = c("raw", "absolute"),
+  distance_weighted_bootstrap = FALSE,
+  distance_features_calib = NULL,
+  distance_features_pred = NULL,
+  normalize_distance = TRUE,
+  weight_function = gauss_kern
 )
 }
 \arguments{
@@ -31,6 +36,16 @@ bootstrap_inner(
 \item{distance_function}{a function that takes two numeric vectors and returns a numeric vector of distances. Default is NULL, in which case the absolute error will be used}
 
 \item{error_type}{The type of error to use for the prediction intervals. Can be 'raw' or 'absolute'. If 'raw', bootstrapping will be done on the raw prediction errors. If 'absolute', bootstrapping will be done on the absolute prediction errors with random signs. Default is 'raw'}
+
+\item{distance_weighted_bootstrap}{logical. If TRUE, the bootstrap samples will be weighted according to the distance function}
+
+\item{distance_features_calib}{a matrix of features for the calibration partition. Used when distance_weighted_bootstrap is TRUE}
+
+\item{distance_features_pred}{a matrix of features for the prediction partition. Used when distance_weighted_bootstrap is TRUE}
+
+\item{normalize_distance}{logical. If TRUE, the distances will be normalized to the range [0,1]}
+
+\item{weight_function}{a function to use for weighting the distances. Can be 'gaussian_kernel', 'caucy_kernel', 'logistic', or 'reciprocal_linear'. Default is 'gaussian_kernel'}
 }
 \value{
 a numeric vector with the predicted value and the lower and upper bounds of the prediction interval

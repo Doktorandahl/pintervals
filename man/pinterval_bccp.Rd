@@ -11,7 +11,13 @@ pinterval_bccp(
   calib_bins = NULL,
   breaks = NULL,
   alpha = 0.1,
-  ncs_function = "absolute_error",
+  ncs_type = c("absolute_error", "relative_error", "za_relative_error",
+    "heterogeneous_error", "raw_error"),
+  distance_weighted_cp = FALSE,
+  distance_features_calib = NULL,
+  distance_features_pred = NULL,
+  normalize_distance = TRUE,
+  weight_function = c("gaussian_kernel", "caucy_kernel", "logistic", "reciprocal_linear"),
   calibrate = FALSE,
   calibration_method = "glm",
   calibration_family = NULL,
@@ -35,7 +41,32 @@ pinterval_bccp(
 
 \item{alpha}{The confidence level for the prediction intervals. Must be a single numeric value between 0 and 1}
 
-\item{ncs_function}{The function to compute nonconformity scores. Default is 'absolute_error'. The user can also provide a custom function, or a string that matches a function, which computes the nonconformity scores. This function should take two arguments, a vector of predicted values and a vector of true values, in that order, and should return a numeric vector of nonconformity scores.}
+\item{ncs_type}{A string specifying the type of nonconformity score to use. Available options are:
+\itemize{
+  \item \code{"absolute_error"}: \eqn{|y - \hat{y}|}
+  \item \code{"relative_error"}: \eqn{|y - \hat{y}| / \hat{y}}
+  \item \code{"zero_adjusted_relative_error"}: \eqn{|y - \hat{y}| / (\hat{y} + 1)}
+  \item \code{"heterogeneous_error"}: \eqn{|y - \hat{y}| / \sigma_{\hat{y}}} absolute error divided by a measure of heteroskedasticity, computed as the predicted value from a linear model of the absolute error on the predicted values
+  \item \code{"raw_error"}: the signed error \eqn{y - \hat{y}}
+}
+The default is \code{"absolute_error"}.}
+
+\item{distance_weighted_cp}{Logical. If \code{TRUE}, weighted conformal prediction is performed where the non-conformity scores are weighted based on the distance between calibration and prediction points in feature space. Default is \code{FALSE}.}
+
+\item{distance_features_calib}{A matrix, data frame, or numeric vector of features from which to compute distances when \code{distance_weighted_cp = TRUE}. This should contain the feature values for the calibration set. Must have the same number of rows as the calibration set. Can be the predicted values themselves, or any other features which give a meaningful distance measure.}
+
+\item{distance_features_pred}{A matrix, data frame, or numeric vector of feature values for the prediction set. Must be the same features as specified in \code{distance_features_calib}. Required if \code{distance_weighted_cp = TRUE}.}
+
+\item{normalize_distance}{Logical. If \code{TRUE}, distances are normalized to the [0, 1] interval before applying the weight function. This is typically recommended to ensure consistent scaling across features. Default is \code{TRUE}.}
+
+\item{weight_function}{A character string specifying the weighting kernel to use for distance-weighted conformal prediction. Options are:
+\itemize{
+  \item \code{"gaussian_kernel"}: \eqn{ w(d) = e^{-d^2} }
+  \item \code{"caucy_kernel"}: \eqn{ w(d) = 1/(1 + d^2) }
+  \item \code{"logistic"}: \eqn{ w(d) = 1//(1 + e^{d}) }
+  \item \code{"reciprocal_linear"}: \eqn{ w(d) = 1/(1 + d) }
+}
+The default is \code{"gaussian_kernel"}. Distances are computed as the Euclidean distance between the calibration and prediction feature vectors.}
 
 \item{calibrate}{= FALSE Logical. If TRUE, the function will calibrate the predictions and intervals using the calibration set. Default is FALSE. See details for more information.}
 
@@ -60,11 +91,19 @@ A tibble with the predicted values, the lower and upper bounds of the prediction
 This function calculates bin-conditional conformal prediction intervals with a confidence level of 1-alpha for a vector of (continuous) predicted values using inductive conformal prediction on a bin-by-bin basis. The intervals are computed using a calibration set with predicted and true values and their associated bins. The function returns a tibble containing the predicted values along with the lower and upper bounds of the prediction intervals. Bin-conditional conformal prediction intervals are useful when the prediction error is not constant across the range of predicted values and ensures that the coverage is (approximately) correct for each bin under the assumption that the non-conformity scores are exchangeable within each bin.
 }
 \details{
-This function computes bin-conditional conformal prediction intervals using inductive conformal prediction applied separately within each bin of the calibration data. It is particularly useful when prediction error varies across the range of predicted values, as it enables locally valid coverage by ensuring that the coverage level \(1 - \eqn{\alpha}\) holds within each bin—assuming exchangeability of non-conformity scores within bins.
+This function computes bin-conditional conformal prediction intervals using inductive conformal prediction applied separately within each bin of the calibration data. It is particularly useful when prediction error varies across the range of predicted values, as it enables locally valid coverage by ensuring that the coverage level \eqn{1 - \eqn{\alpha}} holds within each bin—assuming exchangeability of non-conformity scores within bins.
 
 The calibration set must include predicted values, true values, and corresponding bin identifiers or breaks for the bins. These can be provided either as separate vectors (`calib`, `calib_truth`, and `calib_bins` or `breaks`).
 
-Non-conformity scores are calculated using the specified `ncs_function`, which can be `"absolute_error"` or a user-defined custom function which computes the non-conformity scores. A custom function should take two arguments, a vector of predicted values and a vector of true values, in that order, and return a numeric vector of non-conformity scores.
+Non-conformity scores are calculated using the specified `ncs_type`, which determines how the prediction error is measured. Available options include:
+
+- `"absolute_error"`: the absolute difference between predicted and true values.
+- `"relative_error"`: the absolute error divided by the true value.
+- `"za_relative_error"`: zero-adjusted relative error, which replaces small or zero true values with a small constant to avoid division by zero.
+- `"heterogeneous_error"`: absolute error scaled by a linear model of prediction error magnitude as a function of the predicted value.
+- `"raw_error"`: the signed difference between predicted and true values.
+
+These options provide flexibility to adapt to different patterns of prediction error across the outcome space.
 
 Bins endpoints can be defined manually via the `breaks` argument or inferred from the calibration data. If `contiguize = TRUE`, the function ensures the resulting prediction intervals are contiguous across bins, potentially increasing coverage beyond the nominal level in some bins. If `contiguize = FALSE`, the function may produce non-contiguous intervals, which are more efficient but may be harder to interpret.
 

@@ -1,7 +1,7 @@
 #' Mondrian conformal prediction intervals for continuous predictions
 #'
 #'@description
-#'This function calculates Mondrian conformal prediction intervals with a confidence level of 1-alpha for a vector of (continuous) predicted values using inductive conformal prediction on a Mondrian class-by-class basis. The intervals are computed using a calibration set with predicted and true values and their associated classes. The function returns a tibble containing the predicted values along with the lower and upper bounds of the prediction intervals. Mondrian conformal prediction intervals are useful when the prediction error is not constant across groups or classes, as they allow for locally valid coverage by ensuring that the coverage level \(1 - \eqn{\alpha}\) holds within each class—assuming exchangeability of non-conformity scores within classes.
+#'This function calculates Mondrian conformal prediction intervals with a confidence level of 1-alpha for a vector of (continuous) predicted values using inductive conformal prediction on a Mondrian class-by-class basis. The intervals are computed using a calibration set with predicted and true values and their associated classes. The function returns a tibble containing the predicted values along with the lower and upper bounds of the prediction intervals. Mondrian conformal prediction intervals are useful when the prediction error is not constant across groups or classes, as they allow for locally valid coverage by ensuring that the coverage level \eqn{1 - \eqn{\alpha}} holds within each class—assuming exchangeability of non-conformity scores within classes.
 #'
 #' @param pred Vector of predicted values or a 2 column tibble or matrix with the first column being the predicted values and the second column being the Mondrian class labels. If pred is a numeric vector, pred_class must be provided.
 #' @param pred_class A vector of class identifiers for the predicted values. This is used to group the predictions by class for Mondrian conformal prediction.
@@ -9,10 +9,33 @@
 #' @param calib_truth A numeric vector of true values in the calibration partition
 #' @param calib_class A vector of class identifiers for the calibration set.
 #' @param alpha The confidence level for the prediction intervals. Must be a single numeric value between 0 and 1
-#' @param ncs_function The function to compute nonconformity scores. Default is 'absolute_error'. The user can also provide a custom function, or a string that matches a function, which computes the nonconformity scores. This function should take two arguments, a vector of predicted values and a vector of true values, in that order, and should return a numeric vector of nonconformity scores.
+#' @param ncs_type A string specifying the type of nonconformity score to use. Available options are:
+#' \itemize{
+#'   \item \code{"absolute_error"}: \eqn{|y - \hat{y}|}
+#'   \item \code{"relative_error"}: \eqn{|y - \hat{y}| / \hat{y}}
+#'   \item \code{"zero_adjusted_relative_error"}: \eqn{|y - \hat{y}| / (\hat{y} + 1)}
+#'   \item \code{"heterogeneous_error"}: \eqn{|y - \hat{y}| / \sigma_{\hat{y}}} absolute error divided by a measure of heteroskedasticity, computed as the predicted value from a linear model of the absolute error on the predicted values
+#'   \item \code{"raw_error"}: the signed error \eqn{y - \hat{y}}
+#' }
+#' The default is \code{"absolute_error"}.
 #' @param lower_bound Optional minimum value for the prediction intervals. If not provided, the minimum (true) value of the calibration partition will be used
 #' @param upper_bound Optional maximum value for the prediction intervals. If not provided, the maximum (true) value of the calibration partition will be used
 #' @param calibrate = FALSE Logical. If TRUE, the function will calibrate the predictions and intervals using the calibration set. Default is FALSE. See details for more information on calibration.
+#' @param distance_weighted_cp Logical. If \code{TRUE}, weighted conformal prediction is performed where the non-conformity scores are weighted based on the distance between calibration and prediction points in feature space. Default is \code{FALSE}.
+#'
+#' @param distance_features_calib A matrix, data frame, or numeric vector of features from which to compute distances when \code{distance_weighted_cp = TRUE}. This should contain the feature values for the calibration set. Must have the same number of rows as the calibration set. Can be the predicted values themselves, or any other features which give a meaningful distance measure.
+#' @param distance_features_pred A matrix, data frame, or numeric vector of feature values for the prediction set. Must be the same features as specified in \code{distance_features_calib}. Required if \code{distance_weighted_cp = TRUE}.
+#'
+#' @param normalize_distance Logical. If \code{TRUE}, distances are normalized to the [0, 1] interval before applying the weight function. This is typically recommended to ensure consistent scaling across features. Default is \code{TRUE}.
+#'
+#' @param weight_function A character string specifying the weighting kernel to use for distance-weighted conformal prediction. Options are:
+#' \itemize{
+#'   \item \code{"gaussian_kernel"}: \eqn{ w(d) = e^{-d^2} }
+#'   \item \code{"caucy_kernel"}: \eqn{ w(d) = 1/(1 + d^2) }
+#'   \item \code{"logistic"}: \eqn{ w(d) = 1//(1 + e^{d}) }
+#'   \item \code{"reciprocal_linear"}: \eqn{ w(d) = 1/(1 + d) }
+#' }
+#' The default is \code{"gaussian_kernel"}. Distances are computed as the Euclidean distance between the calibration and prediction feature vectors.
 #' @param calibration_method The method to use for calibration. Can be "glm" or "isotonic". Default is "glm". Only used if calibrate = TRUE.
 #' @param calibration_family The family used for the calibration model. Default is "gaussian". Only used if calibrate = TRUE and calibration_method = "glm".
 #' @param calibration_transform Optional transformation to apply to the predictions before calibration. Default is NULL. Only used if calibrate = TRUE and calibration_method = "glm".
@@ -22,13 +45,21 @@
 #' @return A tibble with the predicted values, the lower and upper bounds of the prediction intervals. If treat_noncontiguous is 'non_contiguous', the lower and upper bounds are set in a list variable called 'intervals' where all non-contiguous intervals are stored.
 #'
 #' @details
-#' This function computes Mondrian conformal prediction intervals using inductive conformal prediction applied separately within each class (also called strata or groups) of the calibration data. It is especially useful when prediction error varies systematically across known categories, allowing for class-conditional validity by ensuring that the prediction intervals attain the desired coverage level \(1 - \eqn{\alpha}\) within each class—under the assumption of exchangeability within classes.
+#' This function computes Mondrian conformal prediction intervals using inductive conformal prediction applied separately within each class (also called strata or groups) of the calibration data. It is especially useful when prediction error varies systematically across known categories, allowing for class-conditional validity by ensuring that the prediction intervals attain the desired coverage level \eqn{1 - \eqn{\alpha}} within each class—under the assumption of exchangeability within classes.
 #'
 #' The calibration set must include predicted values, true values, and corresponding class labels. These can be supplied as separate vectors (`calib`, `calib_truth`, and `calib_class`) or as a single three-column matrix or tibble.
 #'
-#' Non-conformity scores are calculated using the specified `ncs_function`, which can be `"absolute_error"` or a user-defined custom function which computes the non-conformity scores. A custom function should take two arguments, a vector of predicted values and a vector of true values, in that order, and return a numeric vector of non-conformity scores.
+#' Non-conformity scores are calculated using the specified `ncs_type`, which determines how the prediction error is measured. Available options include:
 #'
-#' To determine the prediction intervals, the function performs a grid search over a specified range of possible outcome values, identifying intervals that satisfy the desired confidence level of \(1 - \eqn{\alpha}\). The user can define the range via the `lower_bound` and `upper_bound` parameters. If these are not supplied, the function defaults to using the minimum and maximum of the true values in the calibration data.
+#' - `"absolute_error"`: the absolute difference between predicted and true values.
+#' - `"relative_error"`: the absolute error divided by the true value.
+#' - `"za_relative_error"`: zero-adjusted relative error, which replaces small or zero true values with a small constant to avoid division by zero.
+#' - `"heterogeneous_error"`: absolute error scaled by a linear model of prediction error magnitude as a function of the predicted value.
+#' - `"raw_error"`: the signed difference between predicted and true values.
+#'
+#' These options provide flexibility to adapt to different patterns of prediction error across the outcome space.
+#'
+#' To determine the prediction intervals, the function performs a grid search over a specified range of possible outcome values, identifying intervals that satisfy the desired confidence level of \eqn{1 - \eqn{\alpha}}. The user can define the range via the `lower_bound` and `upper_bound` parameters. If these are not supplied, the function defaults to using the minimum and maximum of the true values in the calibration data.
 #'
 #' The resolution of the grid search can be controlled by either the `resolution` argument, which sets the minimum step size, or the `grid_size` argument, which sets the number of grid points. For wide prediction spaces, the grid search may be computationally intensive. In such cases, increasing the `resolution` or reducing the `grid_size` may improve performance.
 #'
@@ -84,7 +115,16 @@ pinterval_mondrian = function(pred,
 													lower_bound = NULL,
 													upper_bound = NULL,
 													alpha = 0.1,
-													ncs_function = 'absolute_error',
+													ncs_type = c('absolute_error',
+																			 'relative_error',
+																			 'za_relative_error',
+																			 'heterogeneous_error',
+																			 'raw_error'),
+													distance_weighted_cp = FALSE,
+													distance_features_calib = NULL,
+													distance_features_pred = NULL,
+													normalize_distance = TRUE,
+													weight_function = c('gaussian_kernel', 'caucy_kernel','logistic','reciprocal_linear'),
 													calibrate = FALSE,
 													calibration_method = 'glm',
 													calibration_family = NULL,
@@ -123,17 +163,13 @@ pinterval_mondrian = function(pred,
 		stop('alpha must be a single numeric value between 0 and 1')
 	}
 
-	if(is.character(ncs_function)){
-		ncs_function <- match.arg(ncs_function, c('absolute_error'))
-	}
+	ncs_type <- match.arg(ncs_type, c('absolute_error',
+																		'relative_error',
+																		'za_relative_error',
+																		'heterogeneous_error',
+																		'raw_error'))
 
-	if(ncs_function == 'absolute_error'){
-		ncs_function <- abs_error
-	}else if(is.character(ncs_function)){
-		ncs_function <- match.fun(ncs_function)
-	}else if(!is.function(ncs_function)){
-		stop('ncs_function must be a function or a character string matching a function. The ncs_function must take two arguments, a vector of predicted values and a vector of true values, in that order')
-	}
+
 
 	if(!is.numeric(calib)){
 		calib_org <- calib
@@ -152,6 +188,54 @@ pinterval_mondrian = function(pred,
 		}
 	}
 
+	if(ncs_type == 'heterogeneous_error'){
+		coefs <- stats::coef(stats::lm(abs(calib - calib_truth) ~ calib))
+	}else{
+		coefs <- NULL
+	}
+
+	if(distance_weighted_cp){
+		if(is.null(distance_features_calib) || is.null(distance_features_pred)){
+			stop('If distance_weighted_cp is TRUE, distance_features_calib and distance_features_pred must be provided')
+		}
+		if(!is.matrix(distance_features_calib) && !is.data.frame(distance_features_calib) && !is.numeric(distance_features_calib)){
+			stop('distance_features_calib must be a matrix, data frame, or numeric vector')
+		}
+		if(!is.matrix(distance_features_pred) && !is.data.frame(distance_features_pred) && !is.numeric(distance_features_pred)){
+			stop('distance_features_pred must be a matrix, data frame, or numeric vector')
+		}
+		if(is.numeric(distance_features_calib) && is.numeric(distance_features_pred)){
+			if(length(distance_features_calib) != length(calib) || length(distance_features_pred) != length(pred)){
+				stop('If distance_features_calib and distance_features_pred are numeric vectors, they must have the same length as calib and pred, respectively')
+			}
+		}else if(is.matrix(distance_features_calib) || is.data.frame(distance_features_calib)){
+			if(nrow(distance_features_calib) != length(calib)){
+				stop('If distance_features_calib is a matrix or data frame, it must have the same number of rows as calib')
+			}
+			if(ncol(distance_features_calib) != ncol(distance_features_pred)){
+				stop('distance_features_calib and distance_features_pred must have the same number of columns')
+			}
+			if(nrow(distance_features_pred) != length(pred)){
+				stop('If distance_features_pred is a matrix or data frame, it must have the same number of rows as pred')
+			}
+
+		}
+
+		distance_features_calib <- as.matrix(distance_features_calib)
+		distance_features_pred <- as.matrix(distance_features_pred)
+
+		if(!is.function(weight_function)){
+			weight_function <- match.arg(weight_function, c('gaussian_kernel', 'caucy_kernel','logistic','reciprocal_linear'))
+			weight_function <- switch(weight_function,
+																'gaussian_kernel' = function(d) exp(-d^2),
+																'caucy_kernel' = function(d) 1 / (1 + d^2),
+																'logistic' = function(d) 1 / (1 + exp(d)),
+																'reciprocal_linear' = function(d) 1 / (1 + d))
+		}
+	}
+
+
+
 
 	nobs_class <- as.numeric(table(calib_class))
 
@@ -160,7 +244,7 @@ pinterval_mondrian = function(pred,
 	}
 
 	class_labels <- sort(unique(calib_class))
-	if(length(calib_class)<2){
+	if(length(class_labels)<2){
 		stop('Calibration set must have at least two classes For continuous prediction intervals without classes, use pinterval_conformal() instead of pinterval_mondrian()')
 	}
 
@@ -169,7 +253,7 @@ pinterval_mondrian = function(pred,
 		res <- suppressWarnings(pinterval_conformal(pred = pred[pred_class==class_labels[i]],
 																				 lower_bound = lower_bound,
 																				 upper_bound = upper_bound,
-																				 ncs_function = ncs_function,
+																				 ncs_type = ncs_type,
 																				 calib = calib[calib_class==class_labels[i]],
 																				 calib_truth = calib_truth[calib_class==class_labels[i]],
 																				 calibrate = calibrate,
