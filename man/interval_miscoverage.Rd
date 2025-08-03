@@ -4,7 +4,7 @@
 \alias{interval_miscoverage}
 \title{Empirical miscoverage of prediction intervals}
 \usage{
-interval_miscoverage(truth, lower_bound, upper_bound, alpha)
+interval_miscoverage(truth, lower_bound, upper_bound, alpha, na.rm = FALSE)
 }
 \arguments{
 \item{truth}{A numeric vector of true outcome values.}
@@ -14,6 +14,8 @@ interval_miscoverage(truth, lower_bound, upper_bound, alpha)
 \item{upper_bound}{A numeric vector of upper bounds of the prediction intervals.}
 
 \item{alpha}{The nominal miscoverage rate (e.g., 0.1 for 90\% prediction intervals).}
+
+\item{na.rm}{Logical, whether to remove NA values before calculation. Default is FALSE.}
 }
 \value{
 A single numeric value between -1 and 1 representing the empirical miscoverage rate. A value close to 0 indicates that the prediction intervals are well-calibrated.
@@ -54,8 +56,9 @@ intervals <- pinterval_parametric(
 )
 
 # Calculate empirical coverage
-coverage(truth = df_test$y,
+interval_miscoverage(truth = df_test$y,
          lower_bound = intervals$lower_bound,
-         upper_bound = intervals$upper_bound)
+         upper_bound = intervals$upper_bound,
+         alpha = 0.1)
 
 }

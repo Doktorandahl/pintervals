@@ -110,7 +110,8 @@ interval_coverage <- function(truth, lower_bound, upper_bound,na.rm=FALSE) {
 #' # Calculate empirical coverage
 #' interval_miscoverage(truth = df_test$y,
 #'          lower_bound = intervals$lower_bound,
-#'          upper_bound = intervals$upper_bound)
+#'          upper_bound = intervals$upper_bound,
+#'          alpha = 0.1)
 #'
 interval_miscoverage <- function(truth, lower_bound, upper_bound, alpha,na.rm=FALSE) {
   # Check if the lengths of the vectors are equal

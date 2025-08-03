@@ -4,12 +4,14 @@
 \alias{interval_width}
 \title{Mean width of prediction intervals}
 \usage{
-interval_width(lower_bound, upper_bound)
+interval_width(lower_bound, upper_bound, na.rm = FALSE)
 }
 \arguments{
 \item{lower_bound}{A numeric vector of lower bounds of the prediction intervals.}
 
 \item{upper_bound}{A numeric vector of upper bounds of the prediction intervals.}
+
+\item{na.rm}{Logical, whether to remove NA values before calculation. Default is FALSE.}
 }
 \value{
 A single numeric value representing the mean width of the prediction intervals.

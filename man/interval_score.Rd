@@ -4,7 +4,7 @@
 \alias{interval_score}
 \title{Mean interval score (MIS) for prediction intervals}
 \usage{
-interval_score(truth, lower_bound, upper_bound, alpha)
+interval_score(truth, lower_bound, upper_bound, alpha, na.rm = FALSE)
 }
 \arguments{
 \item{truth}{A numeric vector of true outcome values.}
@@ -14,6 +14,8 @@ interval_score(truth, lower_bound, upper_bound, alpha)
 \item{upper_bound}{A numeric vector of upper bounds of the prediction intervals.}
 
 \item{alpha}{The nominal miscoverage rate (e.g., 0.1 for 90\% prediction intervals).}
+
+\item{na.rm}{Logical, whether to remove NA values before calculation. Default is FALSE.}
 }
 \value{
 A single numeric value representing the mean interval score across all observations.

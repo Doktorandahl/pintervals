@@ -4,7 +4,7 @@
 \alias{interval_coverage}
 \title{Empirical coverage of prediction intervals}
 \usage{
-interval_coverage(truth, lower_bound, upper_bound)
+interval_coverage(truth, lower_bound, upper_bound, na.rm = FALSE)
 }
 \arguments{
 \item{truth}{A numeric vector of true outcome values.}
@@ -12,6 +12,8 @@ interval_coverage(truth, lower_bound, upper_bound)
 \item{lower_bound}{A numeric vector of lower bounds of the prediction intervals.}
 
 \item{upper_bound}{A numeric vector of upper bounds of the prediction intervals.}
+
+\item{na.rm}{Logical, whether to remove NA values before calculation. Default is FALSE.}
 }
 \value{
 A single numeric value between 0 and 1 representing the proportion of covered values.
