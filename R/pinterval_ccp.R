@@ -27,10 +27,10 @@
 #' @param cluster_method Clustering method used to group Mondrian classes. Options are \code{"kmeans"} or \code{"ks"} (Kolmogorov-Smirnov). Default is \code{"kmeans"}.
 #' @param cluster_train_fraction Fraction of the calibration data used to estimate nonconformity scores and compute clustering. Default is 1 (use all).
 #' @param optimize_n_clusters Logical. If \code{TRUE}, the number of clusters is chosen automatically based on internal clustering criteria.
-#' @param optimize_n_clusters_method Method used for cluster optimization. One of \code{"calinhara"} (Calinski-Harabasz index) or \code{"min_cluster_size"}.
+#' @param optimize_n_clusters_method Method used for cluster optimization. One of \code{"calinhara"} (Calinski-Harabasz index) or \code{"min_cluster_size"}. Default is \code{"calinhara"}.
 #' @param min_cluster_size Minimum number of calibration points per cluster. Used only when \code{optimize_n_clusters_method = "min_cluster_size"}.
 #' @param min_n_clusters Minimum number of clusters to consider when optimizing.
-#' @param max_n_clusters Maximum number of clusters to consider. Can be a numeric value or a rule-based string: \code{"half"} or \code{"sqrt"} (interpreted relative to class count).
+#' @param max_n_clusters Maximum number of clusters to consider. If \code{NULL}, the upper limit is set to the number of unique Mondrian classes minus 1.
 #'
 #' @param distance_weighted_cp Logical. If \code{TRUE}, weighted conformal prediction is performed where the non-conformity scores are weighted based on the distance between calibration and prediction points in feature space. Default is \code{FALSE}.
 #'
@@ -154,7 +154,7 @@ pinterval_ccp = function(pred,
 												 optimize_n_clusters_method = c('calinhara','min_cluster_size'),
 												 min_cluster_size = 150,
 												 min_n_clusters = 2,
-												 max_n_clusters = c('half','sqrt'),
+												 max_n_clusters = NULL,
 															distance_weighted_cp = FALSE,
 															distance_features_calib = NULL,
 															distance_features_pred = NULL,
@@ -168,6 +168,13 @@ pinterval_ccp = function(pred,
 															grid_size = NULL){
 
 	i <- NA
+
+	min_class_size <- max(10, ceiling(1/alpha))
+
+
+	if(setdiff(unique(pred_class), unique(calib_class)) %>% length() > 0){
+		warning('Some classes in pred_class are not present in calib_class. These will result in NA prediction intervals for those classes.')
+	}
 
 
 	if(!is.numeric(pred) && ncol(pred) != 2){
@@ -316,24 +323,34 @@ if(optimize_n_clusters && optimize_n_clusters_method == 'min_cluster_size'){
 
 
 	calib_cluster_vec <- clusterer(ncs_calib_cluster, n_clusters, calib_cluster_class,
-																 method = cluster_method)
+																 method = cluster_method, min_class_size = min_class_size)
 
 
 }else if(optimize_n_clusters && optimize_n_clusters_method == 'calinhara'){
 
-	if(is.null(n_clusters) && is.null(min_n_clusters) && is.null(max_n_clusters)){
-		stop('If optimize_n_clusters_method is "calinhara", min_n_clusters, and max_n_clusters must be provided, or n_clusters must be provided as a vector of n_clusters to optimize over')
+	# if(is.null(n_clusters) && is.null(min_n_clusters) && is.null(max_n_clusters)){
+	# 	stop('If optimize_n_clusters_method is "calinhara", min_n_clusters, and max_n_clusters must be provided, or n_clusters must be provided as a vector of n_clusters to optimize over')
+	# }
+
+
+	if(is.null(max_n_clusters)){
+		max_n_clusters <- length(unique(calib_cluster_class)) - 1
+		warning('max_n_clusters is not provided, setting to number of unique Mondrian classes minus 1: ', max_n_clusters)
 	}
 
 if(!is.null(n_clusters) && length(n_clusters == 1) && is.numeric(min_n_clusters) && is.numeric(max_n_clusters)){
-	warning('Optimize clusters is set to TRUE, but n_clusters is provided as a single value. This will be ignored and the number of clusters will be optimized using the Calinhara using the min_n_clusters and max_n_clusters parameters.')
+	warning('Optimize clusters is set to TRUE, but n_clusters is provided as a single value. This will be ignored and the number of clusters will be optimized using the Calinhara method with the min_n_clusters and max_n_clusters parameters.')
 }
 
+if(!((is.numeric(min_n_clusters) && length(min_n_clusters) == 1 && min_n_clusters > 0) && (is.numeric(max_n_clusters) && length(max_n_clusters) == 1 && max_n_clusters > min_n_clusters)) && is.null(n_clusters)){
+		stop('If optimize_n_clusters_method is "calinhara", min_n_clusters and max_n_clusters must be single positive numeric values with max_n_clusters > min_n_clusters, or n_clusters must be provided as a vector of n_clusters to optimize over')
+}
 	if(is.numeric(n_clusters) && length(n_clusters) > 1){
 		if(!is.null(min_n_clusters) || !is.null(max_n_clusters)){
 			warning('n_clusters is provided as a vector, so min_n_clusters and max_n_clusters will be ignored')
 
-		}
+
+	}
 		ms <- n_clusters
 	}else{
 		ms <- seq(from = min_n_clusters, to = max_n_clusters, by = 1)
@@ -353,25 +370,47 @@ if(!is.null(n_clusters) && length(n_clusters == 1) && is.numeric(min_n_clusters)
 		stop('If optimize_n_clusters is FALSE, n_clusters must be a single positive numeric value')
 	}
 	calib_cluster_vec <- clusterer(ncs_calib_cluster, n_clusters, calib_cluster_class,
-																 method = cluster_method)
+																 method = cluster_method, min_class_size = min_class_size)
 
+}
+
+
+if(any(table(calib_cluster_class) < min_class_size)){
+	warning('Some classes in in the cluster calibration set have less than ', min_class_size, ' calibration points. These classes are assigned to the NULL cluster and will utilize the full calibration set for prediction intervals, rather than cluster-specific intervals.')
 }
 
 calib_clusters <- class_to_clusters(calib_class, calib_cluster_vec)
 pred_clusters <- class_to_clusters(pred_class, calib_cluster_vec)
 
-cluster_labels <- sort(unique(calib_clusters))
-
+cluster_labels <- sort(unique(pred_clusters))
+if(any(is.na(pred_clusters))){
+	cluster_labels <- c(cluster_labels, NA)
+}
 
 
 	cp_intervals <- foreach::foreach(i = 1:length(cluster_labels),.final=dplyr::bind_rows) %do%{
 		indices <- which(pred_clusters == cluster_labels[i])
-		res <- suppressWarnings(pinterval_conformal(pred = pred[pred_clusters==cluster_labels[i]],
+		if(is.na(cluster_labels[i])){
+			res <- suppressWarnings(pinterval_conformal(pred = pred[is.na(pred_clusters)],
+																									lower_bound = lower_bound,
+																									upper_bound = upper_bound,
+																									ncs_type = ncs_type,
+																									calib = calib,
+																									calib_truth = calib_truth,
+																									calibrate = calibrate,
+																									calibration_method = calibration_method,
+																									calibration_family = calibration_family,
+																									alpha = alpha,
+																									resolution = resolution,
+																									grid_size = grid_size))
+			res$indices <- which(is.na(pred_clusters))
+		}else{
+		res <- suppressWarnings(pinterval_conformal(pred = na.omit(pred[pred_clusters==cluster_labels[i]]),
 																								lower_bound = lower_bound,
 																								upper_bound = upper_bound,
 																								ncs_type = ncs_type,
-																								calib = calib[calib_clusters==cluster_labels[i]],
-																								calib_truth = calib_truth[calib_clusters==cluster_labels[i]],
+																								calib = na.omit(calib[calib_clusters==cluster_labels[i]]),
+																								calib_truth = na.omit(calib_truth[calib_clusters==cluster_labels[i]]),
 																								calibrate = calibrate,
 																								calibration_method = calibration_method,
 																								calibration_family = calibration_family,
@@ -379,8 +418,10 @@ cluster_labels <- sort(unique(calib_clusters))
 																								resolution = resolution,
 																								grid_size = grid_size))
 		res$indices <- indices
+		}
 		res
-	}
+		}
+
 
 	cp_intervals2 <- cp_intervals %>%
 		dplyr::arrange(indices) %>%

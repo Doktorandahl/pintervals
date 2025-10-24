@@ -180,8 +180,8 @@ grid_inner <- function(hyp_ncs,y_hat,ncs,pos_vals,alpha,ncs_type,
 											 weight_function){
 i <- NULL
 if(distance_weighted_cp){
-	distances <- foreach::foreach(i = 1:nrow(distance_features_calib)) %do%
-		stats::dist(rbind(distance_features_calib[i,]),distance_features_pred)[1]
+	distances <- foreach::foreach(i = 1:nrow(distance_features_calib),.final = unlist) %do%
+		stats::dist(rbind(distance_features_calib[i,],distance_features_pred))[1]
 
 	if(normalize_distance){
 		distances <- distances/max(distances)
@@ -192,6 +192,10 @@ if(distance_weighted_cp){
 
 }else{
 	wt <- rep(1, length(ncs))
+}
+
+if(is.na(y_hat)){
+	return(c(pred = NA_real_, lower_bound = NA_real_, upper_bound = NA_real_))
 }
 
 
@@ -461,7 +465,7 @@ contiguize_intervals <- function(pot_lower_bounds,
 	}
 }
 
-#' Function to optimize clusters based on Calibrated Clustering
+#' Function to optimize clusters based on the Calinski-Harabasz index
 #' @param ncs Vector of non-conformity scores
 #' @param class_vec Vector of class labels
 #' @param method Clustering method to use, either 'ks' for Kolmogorov-Smirnov or 'kmeans' for K-means clustering
@@ -470,7 +474,7 @@ contiguize_intervals <- function(pot_lower_bounds,
 #' @param ms Vector of specific numbers of clusters to consider. If NULL, defaults to a sequence from min_m to max_m
 #' @param maxit Maximum number of iterations for the clustering algorithm
 #' @param q Quantiles to use for K-means clustering, default is a sequence from 0.1 to 0.9 in steps of 0.1
-#' @return A vector of cluster assignments, with attributes containing the clusters, coverage gaps, method used, number of clusters, and Calibrated Clustering index
+#' @return A vector of cluster assignments, with attributes containing the clusters, coverage gaps, method used, number of clusters, and the Calinski-Harabasz index
 optimize_clusters <- function(ncs, class_vec, method = c('ks', 'kmeans'), min_m = 2, max_m = NULL,
 															ms = NULL, maxit = 100, q = seq(0.1, 0.9, by=0.1)){
 	method <- match.arg(method, c('ks', 'kmeans'))
@@ -507,10 +511,18 @@ clusters <- clusters_pot[[which.max(ch_indices)]]
 #' @param method Clustering method to use, either 'ks' for Kolmogorov-Smirnov or 'kmeans' for K-means clustering
 #' @param q Quantiles to use for K-means clustering, default is a sequence from 0.1 to 0.9 in steps of 0.1
 #' @return A vector of cluster assignments, with attributes containing the clusters, coverage gaps, method used, number of clusters, and Calibrated Clustering index
-clusterer <- function(ncs, m, class_vec, maxit = 100, method = c('ks','kmeans'),q = seq(0.1, 0.9, by=0.1)){
+clusterer <- function(ncs, m, class_vec, maxit = 100, method = c('ks','kmeans'),q = seq(0.1, 0.9, by=0.1), min_class_size = 10){
 	i <- NULL
 
+	obs_per_class <- table(class_vec)
+
+	null_cluster <- names(obs_per_class[obs_per_class < min_class_size])
+
 	method <- match.arg(method, c('ks', 'kmeans'))
+
+	ncs <- ncs[!class_vec %in% null_cluster]
+	class_vec2 <- class_vec
+	class_vec <- class_vec[!class_vec %in% null_cluster]
 
 	if(method == 'ks'){
 	clusters <- ks_cluster(ncs, class_vec, m, maxit)
@@ -523,12 +535,14 @@ clusterer <- function(ncs, m, class_vec, maxit = 100, method = c('ks','kmeans'),
 	coverage_gaps <- foreach::foreach(i = 1:length(clusters), .final = unlist) %do%
 		coverage_gap_finder(ncs, class_vec, clusters[[i]])
 
-	cluster_vec <- rep(NA, length(class_vec))
+	cluster_vec <- rep(NA, length(class_vec2))
 	for(i in 1:length(clusters)){
-		cluster_vec[class_vec %in% clusters[[i]]] <- i
+		cluster_vec[class_vec2 %in% clusters[[i]]] <- i
 	}
 
 	ch_score <- ch_index(ncs, class_vec, clusters, q = q)
+
+	clusters$null_cluster <- null_cluster
 
 	attributes(cluster_vec) <- list(clusters = clusters,
 																	coverage_gaps = coverage_gaps,
@@ -547,9 +561,10 @@ class_to_clusters <- function(class_vec, cluster_vec_calib){
 	i <- NULL
 
 	clusters <- attr(cluster_vec_calib, 'clusters')
+	clusters2 <- clusters[!names(clusters) == "null_cluster"]
 	cluster_vec <- rep(NA, length(class_vec))
-	for(i in 1:length(clusters)){
-		cluster_vec[class_vec %in% clusters[[i]]] <- i
+	for(i in 1:length(clusters2)){
+		cluster_vec[class_vec %in% clusters2[[i]]] <- i
 	}
 
 	attributes(cluster_vec) <- list(clusters = clusters,

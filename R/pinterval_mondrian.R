@@ -134,6 +134,12 @@ pinterval_mondrian = function(pred,
 
 	i <- NA
 
+	if(setdiff(unique(pred_class), unique(calib_class)) %>% length() > 0){
+		warning('Some classes in pred_class are not present in calib_class. These will result in NA prediction intervals for those classes.')
+	}
+
+
+
 
 	if(!is.numeric(pred) && ncol(pred) != 2){
 		stop('pred must be a numeric scalar or vector or a 2 column tibble or matrix with the first column being the predicted values and the second column being the class labels')
@@ -243,13 +249,20 @@ pinterval_mondrian = function(pred,
 		warning('Some classes have too few observations to calculate prediction intervals at the specified alpha level. Consider using a larger calibration set or a higher alpha level')
 	}
 
-	class_labels <- sort(unique(calib_class))
+	class_labels <- sort(unique(pred_class))
 	if(length(class_labels)<2){
 		stop('Calibration set must have at least two classes For continuous prediction intervals without classes, use pinterval_conformal() instead of pinterval_mondrian()')
 	}
 
 	cp_intervals <- foreach::foreach(i = 1:length(class_labels),.final=dplyr::bind_rows) %do%{
 		indices <- which(pred_class == class_labels[i])
+		if(length(calib[calib_class==class_labels[i]]) == 0){
+			res <- tibble::tibble(pred = pred[pred_class==class_labels[i]],
+														lower_bound = NA_real_,
+														upper_bound = NA_real_,
+														indices = which(pred_class == class_labels[i]))
+		}else{
+
 		res <- suppressWarnings(pinterval_conformal(pred = pred[pred_class==class_labels[i]],
 																				 lower_bound = lower_bound,
 																				 upper_bound = upper_bound,
@@ -262,6 +275,7 @@ pinterval_mondrian = function(pred,
 																				 alpha = alpha,
 																				 resolution = resolution,
 																				 grid_size = grid_size))
+		}
 		res$indices <- indices
 		res
 	}

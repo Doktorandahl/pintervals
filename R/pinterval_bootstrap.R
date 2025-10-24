@@ -197,10 +197,9 @@ pinterval_bootstrap <- function(pred,
 		}
 
 		calibrated_diffs <- pred - calibrated_predictions
-		boot_set <- boot_set %>%
-			dplyr::mutate(lower_bound = rlang::.data$lower_bound + calibrated_diffs,
-									 upper_bound = rlang::.data$upper_bound + calibrated_diffs,
-																			 pred = calibrated_predictions)
+		boot_set$lower_bound <- boot_set$lower_bound + calibrated_diffs
+		boot_set$upper_bound <- boot_set$upper_bound + calibrated_diffs
+		boot_set$pred <- calibrated_predictions
 
 	}
 
