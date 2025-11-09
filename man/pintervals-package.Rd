@@ -16,6 +16,7 @@ Provides tools for estimating model-agnostic prediction intervals using conforma
 Other contributors:
 \itemize{
   \item Jonathan P. Williams [contributor]
+  \item Anders Hjort [contributor]
 }
 
 }

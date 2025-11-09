@@ -26,7 +26,7 @@
 #' @param distance_features_calib A matrix, data frame, or numeric vector of features from which to compute distances when \code{distance_weighted_cp = TRUE}. This should contain the feature values for the calibration set. Must have the same number of rows as the calibration set. Can be the predicted values themselves, or any other features which give a meaningful distance measure.
 #' @param distance_features_pred A matrix, data frame, or numeric vector of feature values for the prediction set. Must be the same features as specified in \code{distance_features_calib}. Required if \code{distance_weighted_cp = TRUE}.
 #'
-#' @param normalize_distance Logical. If \code{TRUE}, distances are normalized to the [0, 1] interval before applying the weight function. This is typically recommended to ensure consistent scaling across features. Default is \code{TRUE}.
+#' @param normalize_distance Either 'minmax', 'sd', or 'none'. Indicates if and how to normalize the distances when distance_weighted_cp is TRUE. Normalization helps ensure that distances are on a comparable scale across features. Default is 'minmax'.
 #'
 #' @param weight_function A character string specifying the weighting kernel to use for distance-weighted conformal prediction. Options are:
 #' \itemize{

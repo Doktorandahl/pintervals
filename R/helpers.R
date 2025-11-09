@@ -122,7 +122,7 @@ heterogeneous_error <- function(pred, truth, coefs){
 #' @param distance_weighted_cp logical. If TRUE, the non-conformity scores will be weighted according to the distance function
 #' @param distance_features_calib a matrix of features for the calibration partition. Used when distance_weighted_cp is TRUE
 #' @param distance_features_pred a matrix of features for the prediction partition. Used when distance_weighted_cp is TRUE
-#' @param normalize_distance logical. If TRUE, the distances will be normalized to the range [0,1]
+#' @param normalize_distance Either "none", "minmax", or "sd". Indicates how to normalize the distances when distance_weighted_cp is TRUE
 #' @param weight_function a function to use for weighting the distances. Can be 'gaussian_kernel', 'caucy_kernel', 'logistic', or 'reciprocal_linear'. Default is 'gaussian_kernel'
 #'
 #' @return a tibble with the predicted values and the lower and upper bounds of the prediction intervals
@@ -130,7 +130,7 @@ heterogeneous_error <- function(pred, truth, coefs){
 grid_finder <- function(y_min,y_max,ncs,ncs_type,y_hat, alpha, min_step = NULL, grid_size = NULL, calib = NULL, coefs = NULL,distance_weighted_cp = FALSE,
 												distance_features_calib = NULL,
 												distance_features_pred = NULL,
-												normalize_distance = TRUE,
+												normalize_distance = c('minmax','sd','none'),
 												weight_function = gauss_kern){
 
 	i <- NA
@@ -168,7 +168,7 @@ grid_finder <- function(y_min,y_max,ncs,ncs_type,y_hat, alpha, min_step = NULL, 
 #' @param distance_weighted_cp logical. If TRUE, the non-conformity scores will be weighted according to the distance function
 #' @param distance_features_calib a matrix of features for the calibration partition. Used when distance_weighted_cp is TRUE
 #' @param distance_features_pred a matrix of features for the prediction partition. Used when distance_weighted_cp is TRUE
-#' @param normalize_distance logical. If TRUE, the distances will be normalized to the range [0,1]
+#' @param normalize_distance Either 'minmax', 'sd', or 'none'. Indicates how to normalize the distances when distance_weighted_cp is TRUE
 #' @param weight_function a function to use for weighting the distances. Can be 'gaussian_kernel', 'caucy_kernel', 'logistic', or 'reciprocal_linear'. Default is 'gaussian_kernel'
 #'
 #' @return a numeric vector with the predicted value and the lower and upper bounds of the prediction interval
@@ -180,11 +180,12 @@ grid_inner <- function(hyp_ncs,y_hat,ncs,pos_vals,alpha,ncs_type,
 											 weight_function){
 i <- NULL
 if(distance_weighted_cp){
-	distances <- foreach::foreach(i = 1:nrow(distance_features_calib),.final = unlist) %do%
-		stats::dist(rbind(distance_features_calib[i,],distance_features_pred))[1]
+	distances <- row_euclidean_distance(as.matrix(distance_features_calib),as.numeric(distance_features_pred))
 
-	if(normalize_distance){
+	if(normalize_distance == 'minmax'){
 		distances <- distances/max(distances)
+	}else if(normalize_distance == 'sd'){
+		distances <- distances/stats::sd(distances)
 	}
 
 	wt <- weight_function(distances)
@@ -240,7 +241,7 @@ if(is.na(y_hat)){
 #' @param distance_function a function that takes two numeric vectors and returns a numeric vector of distances. Default is NULL, in which case the absolute error will be used
 #' @param distance_features_calib a matrix of features for the calibration partition. Used when distance_weighted_bootstrap is TRUE
 #' @param distance_features_pred a matrix of features for the prediction partition. Used when distance_weighted_bootstrap is TRUE
-#' @param normalize_distance logical. If TRUE, the distances will be normalized to the range [0,1]
+#' @param normalize_distance Either "none", "minmax", or "sd". Indicates how to normalize the distances when distance_weighted_bootstrap is TRUE
 #' @param weight_function a function to use for weighting the distances. Can be 'gaussian_kernel', 'caucy_kernel', 'logistic', or 'reciprocal_linear'. Default is 'gaussian_kernel'
 #'
 #' @return a numeric vector with the predicted value and the lower and upper bounds of the prediction interval
@@ -248,7 +249,7 @@ bootstrap_inner <- function(pred, calib, error, nboot, alpha, dw_bootstrap = FAL
 														distance_weighted_bootstrap = FALSE,
 														distance_features_calib = NULL,
 														distance_features_pred = NULL,
-														normalize_distance = TRUE,
+														normalize_distance = c('minmax','sd','none'),
 														weight_function = gauss_kern){
 	i <- NA
 if(!distance_weighted_bootstrap){
@@ -258,9 +259,12 @@ if(!distance_weighted_bootstrap){
 	distances <- foreach::foreach(i = 1:nrow(distance_features_calib)) %do%
 		stats::dist(rbind(distance_features_calib[i,]),distance_features_pred)[1]
 
-	if(normalize_distance){
+	if(normalize_distance == 'minmax'){
 		distances <- distances/max(distances)
+	}else if(normalize_distance == 'sd'){
+		distances <- distances/stats::sd(distances)
 	}
+
 	boot_error <- sample(error, size = nboot, replace = TRUE, prob = weight_function(distances))
 }
 

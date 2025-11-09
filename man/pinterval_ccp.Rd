@@ -22,7 +22,7 @@ pinterval_ccp(
   optimize_n_clusters_method = c("calinhara", "min_cluster_size"),
   min_cluster_size = 150,
   min_n_clusters = 2,
-  max_n_clusters = c("half", "sqrt"),
+  max_n_clusters = NULL,
   distance_weighted_cp = FALSE,
   distance_features_calib = NULL,
   distance_features_pred = NULL,
@@ -71,13 +71,13 @@ The default is \code{"absolute_error"}.}
 
 \item{optimize_n_clusters}{Logical. If \code{TRUE}, the number of clusters is chosen automatically based on internal clustering criteria.}
 
-\item{optimize_n_clusters_method}{Method used for cluster optimization. One of \code{"calinhara"} (Calinski-Harabasz index) or \code{"min_cluster_size"}.}
+\item{optimize_n_clusters_method}{Method used for cluster optimization. One of \code{"calinhara"} (Calinski-Harabasz index) or \code{"min_cluster_size"}. Default is \code{"calinhara"}.}
 
 \item{min_cluster_size}{Minimum number of calibration points per cluster. Used only when \code{optimize_n_clusters_method = "min_cluster_size"}.}
 
 \item{min_n_clusters}{Minimum number of clusters to consider when optimizing.}
 
-\item{max_n_clusters}{Maximum number of clusters to consider. Can be a numeric value or a rule-based string: \code{"half"} or \code{"sqrt"} (interpreted relative to class count).}
+\item{max_n_clusters}{Maximum number of clusters to consider. If \code{NULL}, the upper limit is set to the number of unique Mondrian classes minus 1.}
 
 \item{distance_weighted_cp}{Logical. If \code{TRUE}, weighted conformal prediction is performed where the non-conformity scores are weighted based on the distance between calibration and prediction points in feature space. Default is \code{FALSE}.}
 

@@ -10,7 +10,8 @@ clusterer(
   class_vec,
   maxit = 100,
   method = c("ks", "kmeans"),
-  q = seq(0.1, 0.9, by = 0.1)
+  q = seq(0.1, 0.9, by = 0.1),
+  min_class_size = 10
 )
 }
 \arguments{

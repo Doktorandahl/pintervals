@@ -17,8 +17,11 @@ Imports:
     Hmisc,
     MASS,
     purrr,
+    Rcpp,
     rlang,
     tibble
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 Depends: 
     R (>= 3.5)
+LinkingTo: 
+    Rcpp

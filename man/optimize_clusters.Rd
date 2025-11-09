@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{optimize_clusters}
 \alias{optimize_clusters}
-\title{Function to optimize clusters based on Calibrated Clustering}
+\title{Function to optimize clusters based on the Calinski-Harabasz index}
 \usage{
 optimize_clusters(
   ncs,
@@ -33,8 +33,8 @@ optimize_clusters(
 \item{q}{Quantiles to use for K-means clustering, default is a sequence from 0.1 to 0.9 in steps of 0.1}
 }
 \value{
-A vector of cluster assignments, with attributes containing the clusters, coverage gaps, method used, number of clusters, and Calibrated Clustering index
+A vector of cluster assignments, with attributes containing the clusters, coverage gaps, method used, number of clusters, and the Calinski-Harabasz index
 }
 \description{
-Function to optimize clusters based on Calibrated Clustering
+Function to optimize clusters based on the Calinski-Harabasz index
 }
