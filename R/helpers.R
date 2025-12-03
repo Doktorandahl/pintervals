@@ -164,6 +164,7 @@ grid_finder <- function(
 			distance_weighted_cp,
 			distance_features_calib,
 			distance_features_pred[i, ],
+			distance_type,
 			normalize_distance,
 			weight_function
 		)
@@ -196,15 +197,26 @@ grid_inner <- function(
 	distance_weighted_cp,
 	distance_features_calib,
 	distance_features_pred,
+	distance_type,
 	normalize_distance,
 	weight_function
 ) {
 	i <- NULL
 	if (distance_weighted_cp) {
-		distances <- row_euclidean_distance(
-			as.matrix(distance_features_calib),
-			as.numeric(distance_features_pred)
-		)
+		if (distance_type == 'euclidean') {
+			distances <- row_euclidean_distance(
+				as.matrix(distance_features_calib),
+				as.numeric(distance_features_pred)
+			)
+		} else if (distance_type == 'mahalanobis') {
+			distances <- row_mahalanobis_distance(
+				as.matrix(distance_features_calib),
+				as.numeric(distance_features_pred),
+				solve(cov(distance_features_calib))
+			)
+		} else {
+			stop('Unknown distance type')
+		}
 
 		if (normalize_distance == 'minmax') {
 			distances <- distances / max(distances)
@@ -325,6 +337,7 @@ grid_inner <- function(
 #' @param distance_function a function that takes two numeric vectors and returns a numeric vector of distances. Default is NULL, in which case the absolute error will be used
 #' @param distance_features_calib a matrix of features for the calibration partition. Used when distance_weighted_bootstrap is TRUE
 #' @param distance_features_pred a matrix of features for the prediction partition. Used when distance_weighted_bootstrap is TRUE
+#' @param distance_type The type of distance metric to use when computing distances between calibration and prediction points. Options are 'mahalanobis' (default) and 'euclidean'.
 #' @param normalize_distance Either "none", "minmax", or "sd". Indicates how to normalize the distances when distance_weighted_bootstrap is TRUE
 #' @param weight_function a function to use for weighting the distances. Can be 'gaussian_kernel', 'caucy_kernel', 'logistic', or 'reciprocal_linear'. Default is 'gaussian_kernel'
 #'
@@ -341,6 +354,7 @@ bootstrap_inner <- function(
 	distance_weighted_bootstrap = FALSE,
 	distance_features_calib = NULL,
 	distance_features_pred = NULL,
+	distance_type = c('mahalanobis', 'euclidean'),
 	normalize_distance = c('minmax', 'sd', 'none'),
 	weight_function = gauss_kern
 ) {
@@ -348,10 +362,20 @@ bootstrap_inner <- function(
 	if (!distance_weighted_bootstrap) {
 		boot_error <- sample(error, size = nboot, replace = TRUE)
 	} else {
-		distances <- foreach::foreach(i = 1:nrow(distance_features_calib)) %do%
-			stats::dist(rbind(distance_features_calib[i, ]), distance_features_pred)[
-				1
-			]
+		if (distance_type == 'euclidean') {
+			distances <- row_euclidean_distance(
+				as.matrix(distance_features_calib),
+				as.numeric(distance_features_pred)
+			)
+		} else if (distance_type == 'mahalanobis') {
+			distances <- row_mahalanobis_distance(
+				as.matrix(distance_features_calib),
+				as.numeric(distance_features_pred),
+				solve(cov(distance_features_calib))
+			)
+		} else {
+			stop('Unknown distance type')
+		}
 
 		if (normalize_distance == 'minmax') {
 			distances <- distances / max(distances)

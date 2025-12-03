@@ -24,6 +24,7 @@
 #'
 #' @param distance_features_calib A matrix, data frame, or numeric vector of features from which to compute distances when \code{distance_weighted_cp = TRUE}. This should contain the feature values for the calibration set. Must have the same number of rows as the calibration set. Can be the predicted values themselves, or any other features which give a meaningful distance measure.
 #' @param distance_features_pred A matrix, data frame, or numeric vector of feature values for the prediction set. Must be the same features as specified in \code{distance_features_calib}. Required if \code{distance_weighted_cp = TRUE}.
+#' @param distance_type The type of distance metric to use when computing distances between calibration and prediction points. Options are 'mahalanobis' (default) and 'euclidean'.
 #'
 #' @param normalize_distance Either 'minmax', 'sd', or 'none'. Indicates if and how to normalize the distances when distance_weighted_cp is TRUE. Normalization helps ensure that distances are on a comparable scale across features. Default is 'minmax'.
 #'
@@ -123,6 +124,7 @@ pinterval_bccp = function(
 	distance_features_calib = NULL,
 	distance_features_pred = NULL,
 	normalize_distance = TRUE,
+	distance_type = c('mahalanobis', 'euclidean'),
 	weight_function = c(
 		'gaussian_kernel',
 		'caucy_kernel',
@@ -186,6 +188,8 @@ pinterval_bccp = function(
 	if (!is.null(breaks) & !is.null(calib_bins)) {
 		warning("If breaks are provided, calib_bins will be ignored")
 	}
+
+	distance_type <- match.arg(distance_type, c('mahalanobis', 'euclidean'))
 
 	if (!is.numeric(calib)) {
 		calib_org <- calib
@@ -324,6 +328,14 @@ pinterval_bccp = function(
 			calibrate = calibrate,
 			calibration_method = calibration_method,
 			calibration_family = calibration_family,
+			distance_weighted_cp = distance_weighted_cp,
+			distance_features_calib = distance_features_calib[
+				calib_bins == bin_labels[i],
+			],
+			distance_features_pred = distance_features_pred,
+			distance_type = distance_type,
+			normalize_distance = normalize_distance,
+			weight_function = weight_function,
 			alpha = alpha,
 			resolution = resolution,
 			grid_size = grid_size

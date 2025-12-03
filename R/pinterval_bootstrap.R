@@ -12,6 +12,7 @@
 #' @param distance_weighted_bootstrap Logical. If TRUE, the function will use distance-weighted bootstrapping. Default is FALSE. If TRUE, the probability of selecting a prediction error is weighted by the distance to the predicted value using the specified distance function and weight function. If FALSE, standard bootstrapping is performed.
 #' @param distance_features_calib A matrix, data frame, or numeric vector of features from which to compute distances when \code{distance_weighted_cp = TRUE}. This should contain the feature values for the calibration set. Must have the same number of rows as the calibration set. Can be the predicted values themselves, or any other features which give a meaningful distance measure.
 #' @param distance_features_pred A matrix, data frame, or numeric vector of feature values for the prediction set. Must be the same features as specified in \code{distance_features_calib}. Required if \code{distance_weighted_cp = TRUE}.
+#' @param distance_type The type of distance metric to use when computing distances between calibration and prediction points. Options are 'mahalanobis' (default) and 'euclidean'.
 #'
 #' @param normalize_distance Either 'minmax', 'sd', or 'none'. Indicates if and how to normalize the distances when distance_weighted_bootstrap is TRUE. Normalization helps ensure that distances are on a comparable scale across features. Default is 'minmax'.
 #'
@@ -87,6 +88,7 @@ pinterval_bootstrap <- function(
 	distance_weighted_bootstrap = FALSE,
 	distance_features_calib = NULL,
 	distance_features_pred = NULL,
+	distance_type = c('mahalanobis', 'euclidean'),
 	normalize_distance = TRUE,
 	weight_function = c(
 		'gaussian_kernel',
@@ -187,6 +189,8 @@ pinterval_bootstrap <- function(
 			}
 		}
 
+		distance_type <- match.arg(distance_type, c('mahalanobis', 'euclidean'))
+
 		distance_features_calib <- as.matrix(distance_features_calib)
 		distance_features_pred <- as.matrix(distance_features_pred)
 
@@ -224,6 +228,7 @@ pinterval_bootstrap <- function(
 			distance_weighted_bootstrap = distance_weighted_bootstrap,
 			distance_features_calib = distance_features_calib,
 			distance_features_pred = distance_features_pred,
+			distance_type = distance_type,
 			normalize_distance = normalize_distance,
 			weight_function = weight_function
 		)

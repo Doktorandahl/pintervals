@@ -34,10 +34,51 @@ NumericVector row_euclidean_distance(NumericMatrix X, NumericVector v) {
 	return dists;
 }
 
+// [[Rcpp::export]]
+NumericVector row_mahalanobis_distance(NumericMatrix X,
+                                       NumericVector v,
+                                       NumericMatrix S_inv) {
+  int n = X.nrow();
+  int p = X.ncol();
 
-// You can include R code blocks in C++ files processed with sourceCpp
-// (useful for testing and development). The R code will be automatically
-// run after the compilation.
-//
+  if (v.size() != p) {
+    stop("Length of v must match number of columns in X.");
+  }
+  if (S_inv.nrow() != p || S_inv.ncol() != p) {
+    stop("S_inv must be a square matrix with dimensions equal to ncol(X).");
+  }
 
+  NumericVector dists(n);
+
+  // Temporary storage for differences and S_inv * diff
+  std::vector<double> diff(p);
+  std::vector<double> Sinv_diff(p);
+
+  for (int i = 0; i < n; i++) {
+    // diff = X(i, :) - v
+    for (int j = 0; j < p; j++) {
+      diff[j] = X(i, j) - v[j];
+    }
+
+    // Sinv_diff = S_inv %*% diff
+    for (int j = 0; j < p; j++) {
+      double acc = 0.0;
+      // Row j of S_inv times diff
+      for (int k = 0; k < p; k++) {
+        acc += S_inv(j, k) * diff[k];
+      }
+      Sinv_diff[j] = acc;
+    }
+
+    // quad = diff^T * (S_inv * diff)
+    double quad = 0.0;
+    for (int j = 0; j < p; j++) {
+      quad += diff[j] * Sinv_diff[j];
+    }
+
+    dists[i] = std::sqrt(quad);
+  }
+
+  return dists;
+}
 
