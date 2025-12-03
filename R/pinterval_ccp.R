@@ -134,314 +134,426 @@
 #' # View clustered prediction intervals
 #' head(intervals)
 #'
-pinterval_ccp = function(pred,
-															pred_class = NULL,
-															calib = NULL,
-															calib_truth = NULL,
-															calib_class = NULL,
-															lower_bound = NULL,
-															upper_bound = NULL,
-															alpha = 0.1,
-															ncs_type = c('absolute_error',
-																					 'relative_error',
-																					 'za_relative_error',
-																					 'heterogeneous_error',
-																					 'raw_error'),
-												 n_clusters = NULL,
-												 cluster_method = c('kmeans','ks'),
-												 cluster_train_fraction = 1,
-												 optimize_n_clusters = TRUE,
-												 optimize_n_clusters_method = c('calinhara','min_cluster_size'),
-												 min_cluster_size = 150,
-												 min_n_clusters = 2,
-												 max_n_clusters = NULL,
-															distance_weighted_cp = FALSE,
-															distance_features_calib = NULL,
-															distance_features_pred = NULL,
-															normalize_distance = TRUE,
-															weight_function = c('gaussian_kernel', 'caucy_kernel','logistic','reciprocal_linear'),
-															calibrate = FALSE,
-															calibration_method = 'glm',
-															calibration_family = NULL,
-															calibration_transform = NULL,
-															resolution = 0.01,
-															grid_size = NULL){
-
+pinterval_ccp = function(
+	pred,
+	pred_class = NULL,
+	calib = NULL,
+	calib_truth = NULL,
+	calib_class = NULL,
+	lower_bound = NULL,
+	upper_bound = NULL,
+	alpha = 0.1,
+	ncs_type = c(
+		'absolute_error',
+		'relative_error',
+		'za_relative_error',
+		'heterogeneous_error',
+		'raw_error'
+	),
+	n_clusters = NULL,
+	cluster_method = c('kmeans', 'ks'),
+	cluster_train_fraction = 1,
+	optimize_n_clusters = TRUE,
+	optimize_n_clusters_method = c('calinhara', 'min_cluster_size'),
+	min_cluster_size = 150,
+	min_n_clusters = 2,
+	max_n_clusters = NULL,
+	distance_weighted_cp = FALSE,
+	distance_features_calib = NULL,
+	distance_features_pred = NULL,
+	normalize_distance = TRUE,
+	weight_function = c(
+		'gaussian_kernel',
+		'caucy_kernel',
+		'logistic',
+		'reciprocal_linear'
+	),
+	calibrate = FALSE,
+	calibration_method = 'glm',
+	calibration_family = NULL,
+	calibration_transform = NULL,
+	resolution = 0.01,
+	grid_size = NULL
+) {
 	i <- NA
 
-	min_class_size <- max(10, ceiling(1/alpha))
+	min_class_size <- max(10, ceiling(1 / alpha))
 
-
-	if(setdiff(unique(pred_class), unique(calib_class)) %>% length() > 0){
-		warning('Some classes in pred_class are not present in calib_class. These will result in NA prediction intervals for those classes.')
+	if (setdiff(unique(pred_class), unique(calib_class)) %>% length() > 0) {
+		warning(
+			'Some classes in pred_class are not present in calib_class. These will result in NA prediction intervals for those classes.'
+		)
 	}
 
-
-	if(!is.numeric(pred) && ncol(pred) != 2){
-		stop('pred must be a numeric scalar or vector or a 2 column tibble or matrix with the first column being the predicted values and the second column being the class labels')
+	if (!is.numeric(pred) && ncol(pred) != 2) {
+		stop(
+			'pred must be a numeric scalar or vector or a 2 column tibble or matrix with the first column being the predicted values and the second column being the class labels'
+		)
 	}
 
-	if(is.numeric(pred) && is.null(pred_class)){
+	if (is.numeric(pred) && is.null(pred_class)) {
 		stop('If pred is numeric, pred_class must be provided')
 	}
 
-	if(!is.numeric(pred)){
+	if (!is.numeric(pred)) {
 		pred_class <- as.numeric(pred[[2]])
 		pred <- as.numeric(pred[[1]])
 	}
 
-	if(is.numeric(calib) & is.null(calib_truth)){
+	if (is.numeric(calib) & is.null(calib_truth)) {
 		stop('If calib is numeric, calib_truth must be provided')
 	}
 
-	if(is.numeric(calib) & is.null(calib_class)){
+	if (is.numeric(calib) & is.null(calib_class)) {
 		stop('If calib is numeric, calib_class must be provided')
 	}
-	if(!is.numeric(calib) && ncol(calib)<3){
-		stop('calib must be a numeric vector or a 3 column tibble or matrix with the first column being the predicted values, the second column being the truth values, and the third column being the class labels')
+	if (!is.numeric(calib) && ncol(calib) < 3) {
+		stop(
+			'calib must be a numeric vector or a 3 column tibble or matrix with the first column being the predicted values, the second column being the truth values, and the third column being the class labels'
+		)
 	}
 
-	if(!is.numeric(alpha) || alpha<=0 || alpha>=1 || length(alpha)!=1){
+	if (!is.numeric(alpha) || alpha <= 0 || alpha >= 1 || length(alpha) != 1) {
 		stop('alpha must be a single numeric value between 0 and 1')
 	}
 
-	ncs_type <- match.arg(ncs_type, c('absolute_error',
-																		'relative_error',
-																		'za_relative_error',
-																		'heterogeneous_error',
-																		'raw_error'))
+	ncs_type <- match.arg(
+		ncs_type,
+		c(
+			'absolute_error',
+			'relative_error',
+			'za_relative_error',
+			'heterogeneous_error',
+			'raw_error'
+		)
+	)
 
-
-
-	if(!is.numeric(calib)){
+	if (!is.numeric(calib)) {
 		calib_org <- calib
-		if(is.matrix(calib)){
-			calib <- as.numeric(calib_org[,1])
-			calib_truth <- as.numeric(calib_org[,2])
-			if(is.null(calib_class) && ncol(calib_org) == 3){
-				calib_class <- as.numeric(calib_org[,3])
+		if (is.matrix(calib)) {
+			calib <- as.numeric(calib_org[, 1])
+			calib_truth <- as.numeric(calib_org[, 2])
+			if (is.null(calib_class) && ncol(calib_org) == 3) {
+				calib_class <- as.numeric(calib_org[, 3])
 			}
-		}else{
+		} else {
 			calib_truth <- as.numeric(calib_org[[2]])
 			calib <- as.numeric(calib_org[[1]])
-			if(is.null(calib_class) && ncol(calib_org) == 3){
+			if (is.null(calib_class) && ncol(calib_org) == 3) {
 				calib_class <- as.numeric(calib_org[[3]])
 			}
 		}
 	}
 
-	if(ncs_type == 'heterogeneous_error'){
+	if (ncs_type == 'heterogeneous_error') {
 		coefs <- stats::coef(stats::lm(abs(calib - calib_truth) ~ calib))
-	}else{
+	} else {
 		coefs <- NULL
 	}
 
-	if(distance_weighted_cp){
-		if(is.null(distance_features_calib) || is.null(distance_features_pred)){
-			stop('If distance_weighted_cp is TRUE, distance_features_calib and distance_features_pred must be provided')
+	if (distance_weighted_cp) {
+		if (is.null(distance_features_calib) || is.null(distance_features_pred)) {
+			stop(
+				'If distance_weighted_cp is TRUE, distance_features_calib and distance_features_pred must be provided'
+			)
 		}
-		if(!is.matrix(distance_features_calib) && !is.data.frame(distance_features_calib) && !is.numeric(distance_features_calib)){
-			stop('distance_features_calib must be a matrix, data frame, or numeric vector')
+		if (
+			!is.matrix(distance_features_calib) &&
+				!is.data.frame(distance_features_calib) &&
+				!is.numeric(distance_features_calib)
+		) {
+			stop(
+				'distance_features_calib must be a matrix, data frame, or numeric vector'
+			)
 		}
-		if(!is.matrix(distance_features_pred) && !is.data.frame(distance_features_pred) && !is.numeric(distance_features_pred)){
-			stop('distance_features_pred must be a matrix, data frame, or numeric vector')
+		if (
+			!is.matrix(distance_features_pred) &&
+				!is.data.frame(distance_features_pred) &&
+				!is.numeric(distance_features_pred)
+		) {
+			stop(
+				'distance_features_pred must be a matrix, data frame, or numeric vector'
+			)
 		}
-		if(is.numeric(distance_features_calib) && is.numeric(distance_features_pred)){
-			if(length(distance_features_calib) != length(calib) || length(distance_features_pred) != length(pred)){
-				stop('If distance_features_calib and distance_features_pred are numeric vectors, they must have the same length as calib and pred, respectively')
+		if (
+			is.numeric(distance_features_calib) && is.numeric(distance_features_pred)
+		) {
+			if (
+				length(distance_features_calib) != length(calib) ||
+					length(distance_features_pred) != length(pred)
+			) {
+				stop(
+					'If distance_features_calib and distance_features_pred are numeric vectors, they must have the same length as calib and pred, respectively'
+				)
 			}
-		}else if(is.matrix(distance_features_calib) || is.data.frame(distance_features_calib)){
-			if(nrow(distance_features_calib) != length(calib)){
-				stop('If distance_features_calib is a matrix or data frame, it must have the same number of rows as calib')
+		} else if (
+			is.matrix(distance_features_calib) ||
+				is.data.frame(distance_features_calib)
+		) {
+			if (nrow(distance_features_calib) != length(calib)) {
+				stop(
+					'If distance_features_calib is a matrix or data frame, it must have the same number of rows as calib'
+				)
 			}
-			if(ncol(distance_features_calib) != ncol(distance_features_pred)){
-				stop('distance_features_calib and distance_features_pred must have the same number of columns')
+			if (ncol(distance_features_calib) != ncol(distance_features_pred)) {
+				stop(
+					'distance_features_calib and distance_features_pred must have the same number of columns'
+				)
 			}
-			if(nrow(distance_features_pred) != length(pred)){
-				stop('If distance_features_pred is a matrix or data frame, it must have the same number of rows as pred')
+			if (nrow(distance_features_pred) != length(pred)) {
+				stop(
+					'If distance_features_pred is a matrix or data frame, it must have the same number of rows as pred'
+				)
 			}
-
 		}
 
 		distance_features_calib <- as.matrix(distance_features_calib)
 		distance_features_pred <- as.matrix(distance_features_pred)
 
-		if(!is.function(weight_function)){
-			weight_function <- match.arg(weight_function, c('gaussian_kernel', 'caucy_kernel','logistic','reciprocal_linear'))
-			weight_function <- switch(weight_function,
-																'gaussian_kernel' = function(d) exp(-d^2),
-																'caucy_kernel' = function(d) 1 / (1 + d^2),
-																'logistic' = function(d) 1 / (1 + exp(d)),
-																'reciprocal_linear' = function(d) 1 / (1 + d))
+		if (!is.function(weight_function)) {
+			weight_function <- match.arg(
+				weight_function,
+				c('gaussian_kernel', 'caucy_kernel', 'logistic', 'reciprocal_linear')
+			)
+			weight_function <- switch(
+				weight_function,
+				'gaussian_kernel' = function(d) exp(-d^2),
+				'caucy_kernel' = function(d) 1 / (1 + d^2),
+				'logistic' = function(d) 1 / (1 + exp(d)),
+				'reciprocal_linear' = function(d) 1 / (1 + d)
+			)
 		}
 	}
 
-class_labels <- sort(unique(calib_class))
-	if(length(class_labels)<2){
-		stop('Calibration set must have at least two classes For continuous prediction intervals without classes, use pinterval_conformal() instead of pinterval_mondrian()')
+	class_labels <- sort(unique(calib_class))
+	if (length(class_labels) < 2) {
+		stop(
+			'Calibration set must have at least two classes For continuous prediction intervals without classes, use pinterval_conformal() instead of pinterval_mondrian()'
+		)
 	}
 
-
-if(!optimize_n_clusters && is.null(n_clusters)){
+	if (!optimize_n_clusters && is.null(n_clusters)) {
 		stop('If optimize_n_clusters is FALSE, n_clusters must be provided')
 	}
 
-optimize_n_clusters_method <- match.arg(optimize_n_clusters_method, c('calinhara','min_cluster_size'))
-cluster_method <- match.arg(cluster_method, c('kmeans','ks'))
+	optimize_n_clusters_method <- match.arg(
+		optimize_n_clusters_method,
+		c('calinhara', 'min_cluster_size')
+	)
+	cluster_method <- match.arg(cluster_method, c('kmeans', 'ks'))
 
-if(cluster_train_fraction == 1){
-	warning('cluster_train_fraction is set to 1, which means the entire calibration set will be used for clustering. This may lead to overfitting.')
-	calib_cluster <- calib
-	calib_cluster_class <- calib_class
-	calib_cluster_truth <- calib_truth
-}else{
-	if(cluster_train_fraction <= 0 || cluster_train_fraction >= 1){
-		stop('cluster_train_fraction must be a numeric value between 0 and 1')
-	}
-	calib_cluster_ids <- sample(1:length(calib), size = floor(length(calib) * cluster_train_fraction), replace = FALSE)
-	calib_cluster <- calib[calib_cluster_ids]
-	calib_cluster_class <- calib_class[calib_cluster_ids]
-	calib_cluster_truth <- calib_truth[calib_cluster_ids]
-	calib <- calib[-calib_cluster_ids]
-	calib_truth <- calib_truth[-calib_cluster_ids]
-	calib_class <- calib_class[-calib_cluster_ids]
-}
-
-ncs_calib_cluster <- ncs_compute(ncs_type, calib_cluster, calib_cluster_truth, coefs)
-
-
-if(optimize_n_clusters && optimize_n_clusters_method == 'min_cluster_size'){
-	if(is.null(min_cluster_size) || !is.numeric(min_cluster_size) || length(min_cluster_size) != 1 || min_cluster_size <= 0){
-		stop('If optimize_n_clusters_method is "min_cluster_size", min_cluster_size must be a single positive numeric value')
-	}
-	ntilde <- max(1/alpha - 1, min(table(calib_class)))
-	ktilde <- sum(table(calib_class) >= ntilde)
-	gamma <- ktilde/(ktilde + min_cluster_size/2)
-
-	n_clusters <- floor(ntilde/(gamma*2))
-
-
-
-	calib_cluster_vec <- clusterer(ncs_calib_cluster, n_clusters, calib_cluster_class,
-																 method = cluster_method, min_class_size = min_class_size)
-
-
-}else if(optimize_n_clusters && optimize_n_clusters_method == 'calinhara'){
-
-	# if(is.null(n_clusters) && is.null(min_n_clusters) && is.null(max_n_clusters)){
-	# 	stop('If optimize_n_clusters_method is "calinhara", min_n_clusters, and max_n_clusters must be provided, or n_clusters must be provided as a vector of n_clusters to optimize over')
-	# }
-
-
-	if(is.null(max_n_clusters)){
-		max_n_clusters <- length(unique(calib_cluster_class)) - 1
-		warning('max_n_clusters is not provided, setting to number of unique Mondrian classes minus 1: ', max_n_clusters)
-	}
-
-if(!is.null(n_clusters) && length(n_clusters == 1) && is.numeric(min_n_clusters) && is.numeric(max_n_clusters)){
-	warning('Optimize clusters is set to TRUE, but n_clusters is provided as a single value. This will be ignored and the number of clusters will be optimized using the Calinhara method with the min_n_clusters and max_n_clusters parameters.')
-}
-
-if(!((is.numeric(min_n_clusters) && length(min_n_clusters) == 1 && min_n_clusters > 0) && (is.numeric(max_n_clusters) && length(max_n_clusters) == 1 && max_n_clusters > min_n_clusters)) && is.null(n_clusters)){
-		stop('If optimize_n_clusters_method is "calinhara", min_n_clusters and max_n_clusters must be single positive numeric values with max_n_clusters > min_n_clusters, or n_clusters must be provided as a vector of n_clusters to optimize over')
-}
-	if(is.numeric(n_clusters) && length(n_clusters) > 1){
-		if(!is.null(min_n_clusters) || !is.null(max_n_clusters)){
-			warning('n_clusters is provided as a vector, so min_n_clusters and max_n_clusters will be ignored')
-
-
-	}
-		ms <- n_clusters
-	}else{
-		ms <- seq(from = min_n_clusters, to = max_n_clusters, by = 1)
-	}
-
-
-
-
-	calib_cluster_vec <- optimize_clusters(ncs_calib_cluster,
-																				 calib_cluster_class,
-																				 method = cluster_method,
-																				 ms = ms)
-
-
-}else if(!optimize_n_clusters){
-	if(is.null(n_clusters) || !is.numeric(n_clusters) || length(n_clusters) != 1 || n_clusters <= 0){
-		stop('If optimize_n_clusters is FALSE, n_clusters must be a single positive numeric value')
-	}
-	calib_cluster_vec <- clusterer(ncs_calib_cluster, n_clusters, calib_cluster_class,
-																 method = cluster_method, min_class_size = min_class_size)
-
-}
-
-
-if(any(table(calib_cluster_class) < min_class_size)){
-	warning('Some classes in in the cluster calibration set have less than ', min_class_size, ' calibration points. These classes are assigned to the NULL cluster and will utilize the full calibration set for prediction intervals, rather than cluster-specific intervals.')
-}
-
-calib_clusters <- class_to_clusters(calib_class, calib_cluster_vec)
-pred_clusters <- class_to_clusters(pred_class, calib_cluster_vec)
-
-cluster_labels <- sort(unique(pred_clusters))
-if(any(is.na(pred_clusters))){
-	cluster_labels <- c(cluster_labels, NA)
-}
-
-
-	cp_intervals <- foreach::foreach(i = 1:length(cluster_labels),.final=dplyr::bind_rows) %do%{
-		indices <- which(pred_clusters == cluster_labels[i])
-		if(is.na(cluster_labels[i])){
-			res <- suppressWarnings(pinterval_conformal(pred = pred[is.na(pred_clusters)],
-																									lower_bound = lower_bound,
-																									upper_bound = upper_bound,
-																									ncs_type = ncs_type,
-																									calib = calib,
-																									calib_truth = calib_truth,
-																									calibrate = calibrate,
-																									calibration_method = calibration_method,
-																									calibration_family = calibration_family,
-																									alpha = alpha,
-																									resolution = resolution,
-																									grid_size = grid_size))
-			res$indices <- which(is.na(pred_clusters))
-		}else{
-		res <- suppressWarnings(pinterval_conformal(pred = na.omit(pred[pred_clusters==cluster_labels[i]]),
-																								lower_bound = lower_bound,
-																								upper_bound = upper_bound,
-																								ncs_type = ncs_type,
-																								calib = na.omit(calib[calib_clusters==cluster_labels[i]]),
-																								calib_truth = na.omit(calib_truth[calib_clusters==cluster_labels[i]]),
-																								calibrate = calibrate,
-																								calibration_method = calibration_method,
-																								calibration_family = calibration_family,
-																								alpha = alpha,
-																								resolution = resolution,
-																								grid_size = grid_size))
-		res$indices <- indices
+	if (cluster_train_fraction == 1) {
+		warning(
+			'cluster_train_fraction is set to 1, which means the entire calibration set will be used for clustering. This may lead to overfitting.'
+		)
+		calib_cluster <- calib
+		calib_cluster_class <- calib_class
+		calib_cluster_truth <- calib_truth
+	} else {
+		if (cluster_train_fraction <= 0 || cluster_train_fraction >= 1) {
+			stop('cluster_train_fraction must be a numeric value between 0 and 1')
 		}
-		res
+		calib_cluster_ids <- sample(
+			1:length(calib),
+			size = floor(length(calib) * cluster_train_fraction),
+			replace = FALSE
+		)
+		calib_cluster <- calib[calib_cluster_ids]
+		calib_cluster_class <- calib_class[calib_cluster_ids]
+		calib_cluster_truth <- calib_truth[calib_cluster_ids]
+		calib <- calib[-calib_cluster_ids]
+		calib_truth <- calib_truth[-calib_cluster_ids]
+		calib_class <- calib_class[-calib_cluster_ids]
+	}
+
+	ncs_calib_cluster <- ncs_compute(
+		ncs_type,
+		calib_cluster,
+		calib_cluster_truth,
+		coefs
+	)
+
+	if (optimize_n_clusters && optimize_n_clusters_method == 'min_cluster_size') {
+		if (
+			is.null(min_cluster_size) ||
+				!is.numeric(min_cluster_size) ||
+				length(min_cluster_size) != 1 ||
+				min_cluster_size <= 0
+		) {
+			stop(
+				'If optimize_n_clusters_method is "min_cluster_size", min_cluster_size must be a single positive numeric value'
+			)
+		}
+		ntilde <- max(1 / alpha - 1, min(table(calib_class)))
+		ktilde <- sum(table(calib_class) >= ntilde)
+		gamma <- ktilde / (ktilde + min_cluster_size / 2)
+
+		n_clusters <- floor(ntilde / (gamma * 2))
+
+		calib_cluster_vec <- clusterer(
+			ncs_calib_cluster,
+			n_clusters,
+			calib_cluster_class,
+			method = cluster_method,
+			min_class_size = min_class_size
+		)
+	} else if (optimize_n_clusters && optimize_n_clusters_method == 'calinhara') {
+		# if(is.null(n_clusters) && is.null(min_n_clusters) && is.null(max_n_clusters)){
+		# 	stop('If optimize_n_clusters_method is "calinhara", min_n_clusters, and max_n_clusters must be provided, or n_clusters must be provided as a vector of n_clusters to optimize over')
+		# }
+
+		if (is.null(max_n_clusters)) {
+			max_n_clusters <- length(unique(calib_cluster_class)) - 1
+			warning(
+				'max_n_clusters is not provided, setting to number of unique Mondrian classes minus 1: ',
+				max_n_clusters
+			)
 		}
 
+		if (
+			!is.null(n_clusters) &&
+				length(n_clusters == 1) &&
+				is.numeric(min_n_clusters) &&
+				is.numeric(max_n_clusters)
+		) {
+			warning(
+				'Optimize clusters is set to TRUE, but n_clusters is provided as a single value. This will be ignored and the number of clusters will be optimized using the Calinhara method with the min_n_clusters and max_n_clusters parameters.'
+			)
+		}
+
+		if (
+			!((is.numeric(min_n_clusters) &&
+				length(min_n_clusters) == 1 &&
+				min_n_clusters > 0) &&
+				(is.numeric(max_n_clusters) &&
+					length(max_n_clusters) == 1 &&
+					max_n_clusters > min_n_clusters)) &&
+				is.null(n_clusters)
+		) {
+			stop(
+				'If optimize_n_clusters_method is "calinhara", min_n_clusters and max_n_clusters must be single positive numeric values with max_n_clusters > min_n_clusters, or n_clusters must be provided as a vector of n_clusters to optimize over'
+			)
+		}
+		if (is.numeric(n_clusters) && length(n_clusters) > 1) {
+			if (!is.null(min_n_clusters) || !is.null(max_n_clusters)) {
+				warning(
+					'n_clusters is provided as a vector, so min_n_clusters and max_n_clusters will be ignored'
+				)
+			}
+			ms <- n_clusters
+		} else {
+			ms <- seq(from = min_n_clusters, to = max_n_clusters, by = 1)
+		}
+
+		calib_cluster_vec <- optimize_clusters(
+			ncs_calib_cluster,
+			calib_cluster_class,
+			method = cluster_method,
+			ms = ms
+		)
+	} else if (!optimize_n_clusters) {
+		if (
+			is.null(n_clusters) ||
+				!is.numeric(n_clusters) ||
+				length(n_clusters) != 1 ||
+				n_clusters <= 0
+		) {
+			stop(
+				'If optimize_n_clusters is FALSE, n_clusters must be a single positive numeric value'
+			)
+		}
+		calib_cluster_vec <- clusterer(
+			ncs_calib_cluster,
+			n_clusters,
+			calib_cluster_class,
+			method = cluster_method,
+			min_class_size = min_class_size
+		)
+	}
+
+	if (any(table(calib_cluster_class) < min_class_size)) {
+		warning(
+			'Some classes in in the cluster calibration set have less than ',
+			min_class_size,
+			' calibration points. These classes are assigned to the NULL cluster and will utilize the full calibration set for prediction intervals, rather than cluster-specific intervals.'
+		)
+	}
+
+	calib_clusters <- class_to_clusters(calib_class, calib_cluster_vec)
+	pred_clusters <- class_to_clusters(pred_class, calib_cluster_vec)
+
+	cluster_labels <- sort(unique(pred_clusters))
+	if (any(is.na(pred_clusters))) {
+		cluster_labels <- c(cluster_labels, NA)
+	}
+
+	cp_intervals <- foreach::foreach(
+		i = 1:length(cluster_labels),
+		.final = dplyr::bind_rows
+	) %do%
+		{
+			indices <- which(pred_clusters == cluster_labels[i])
+			if (is.na(cluster_labels[i])) {
+				res <- suppressWarnings(pinterval_conformal(
+					pred = pred[is.na(pred_clusters)],
+					lower_bound = lower_bound,
+					upper_bound = upper_bound,
+					ncs_type = ncs_type,
+					calib = calib,
+					calib_truth = calib_truth,
+					calibrate = calibrate,
+					calibration_method = calibration_method,
+					calibration_family = calibration_family,
+					alpha = alpha,
+					resolution = resolution,
+					grid_size = grid_size
+				))
+				res$indices <- which(is.na(pred_clusters))
+			} else {
+				res <- suppressWarnings(pinterval_conformal(
+					pred = na.omit(pred[pred_clusters == cluster_labels[i]]),
+					lower_bound = lower_bound,
+					upper_bound = upper_bound,
+					ncs_type = ncs_type,
+					calib = na.omit(calib[calib_clusters == cluster_labels[i]]),
+					calib_truth = na.omit(calib_truth[
+						calib_clusters == cluster_labels[i]
+					]),
+					calibrate = calibrate,
+					calibration_method = calibration_method,
+					calibration_family = calibration_family,
+					alpha = alpha,
+					resolution = resolution,
+					grid_size = grid_size
+				))
+				res$indices <- indices
+			}
+			res
+		}
 
 	cp_intervals2 <- cp_intervals %>%
 		dplyr::arrange(indices) %>%
 		dplyr::select(-indices) %>%
-		dplyr::mutate(class = pred_class,
-									cluster = pred_clusters)
+		dplyr::mutate(class = pred_class, cluster = pred_clusters)
 
 	attr(cp_intervals2, 'clusters') = attr(calib_cluster_vec, 'clusters')
 	attr(cp_intervals2, 'method') <- attr(calib_cluster_vec, 'method')
 	attr(cp_intervals2, 'n_clusters') <- attr(calib_cluster_vec, 'm')
 	attr(cp_intervals2, 'calib_ch_index') <- attr(calib_cluster_vec, 'ch_index')
-	attr(cp_intervals2, 'calib_coverage_gaps') <- attr(calib_cluster_vec, 'coverage_gaps')
+	attr(cp_intervals2, 'calib_coverage_gaps') <- attr(
+		calib_cluster_vec,
+		'coverage_gaps'
+	)
 
-	if(calibrate){
-		calibrated_preds <- calibrate_predictions(pred = pred,
-																							calib = calib,
-																							calib_truth = calib_truth,
-																							method = calibration_method,
-																							family = calibration_family,
-																							transform = calibration_transform)
+	if (calibrate) {
+		calibrated_preds <- calibrate_predictions(
+			pred = pred,
+			calib = calib,
+			calib_truth = calib_truth,
+			method = calibration_method,
+			family = calibration_family,
+			transform = calibration_transform
+		)
 		cp_intervals2 <- cp_intervals2 %>%
 			dplyr::mutate(pred = calibrated_preds)
 	}

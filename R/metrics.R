@@ -48,44 +48,53 @@
 #'          lower_bound = intervals$lower_bound,
 #'          upper_bound = intervals$upper_bound)
 #'
-interval_coverage <- function(truth, lower_bound=NULL, upper_bound=NULL, intervals = NULL, return_vector = FALSE, na.rm=FALSE) {
-
-	if(!is.null(intervals)){
-	intervals_idx <- which(purrr::map_lgl(intervals,~!is.null(.x)))
-	covered_interval <- foreach::foreach(i = intervals_idx) %do% {
-		cover(truth[i], intervals[[i]])
-	 }
+interval_coverage <- function(
+	truth,
+	lower_bound = NULL,
+	upper_bound = NULL,
+	intervals = NULL,
+	return_vector = FALSE,
+	na.rm = FALSE
+) {
+	if (!is.null(intervals)) {
+		intervals_idx <- which(purrr::map_lgl(intervals, ~ !is.null(.x)))
+		covered_interval <- foreach::foreach(i = intervals_idx) %do%
+			{
+				cover(truth[i], intervals[[i]])
+			}
 	}
 
-	if(!is.null(lower_bound) & !is.null(upper_bound)){
-  # Calculate coverage
-  covered <- (truth >= lower_bound) & (truth <= upper_bound)
+	if (!is.null(lower_bound) & !is.null(upper_bound)) {
+		# Calculate coverage
+		covered <- (truth >= lower_bound) & (truth <= upper_bound)
 	}
 
-	if(is.null(intervals)){
+	if (is.null(intervals)) {
 		out <- covered
-	}else if(is.null(lower_bound) | is.null(upper_bound)){
+	} else if (is.null(lower_bound) | is.null(upper_bound)) {
 		out <- unlist(covered_interval)
-	}else{
-		out <- rep(NA,length(truth))
+	} else {
+		out <- rep(NA, length(truth))
 		out[intervals_idx] <- unlist(covered_interval)
-		out[setdiff(1:length(truth),intervals_idx)] <- covered[setdiff(1:length(truth),intervals_idx)]
+		out[setdiff(1:length(truth), intervals_idx)] <- covered[setdiff(
+			1:length(truth),
+			intervals_idx
+		)]
 	}
 
-	if(return_vector){
+	if (return_vector) {
 		return(out)
 	} else {
-		return(mean(out,na.rm=na.rm))
+		return(mean(out, na.rm = na.rm))
 	}
-
 }
 
 
-cover <- function(truth, intervals){
-	  lower_bound <- intervals$lower_bound
-  upper_bound <- intervals$upper_bound
-  covered <- (truth >= lower_bound) & (truth <= upper_bound)
-  return(max(covered))
+cover <- function(truth, intervals) {
+	lower_bound <- intervals$lower_bound
+	upper_bound <- intervals$upper_bound
+	covered <- (truth >= lower_bound) & (truth <= upper_bound)
+	return(max(covered))
 }
 
 #' Empirical miscoverage of prediction intervals
@@ -140,17 +149,25 @@ cover <- function(truth, intervals){
 #'          upper_bound = intervals$upper_bound,
 #'          alpha = 0.1)
 #'
-interval_miscoverage <- function(truth, lower_bound, upper_bound, alpha,na.rm=FALSE) {
-  # Check if the lengths of the vectors are equal
-  if (length(truth) != length(lower_bound) || length(truth) != length(upper_bound)) {
-    stop("All input vectors must have the same length.")
-  }
+interval_miscoverage <- function(
+	truth,
+	lower_bound,
+	upper_bound,
+	alpha,
+	na.rm = FALSE
+) {
+	# Check if the lengths of the vectors are equal
+	if (
+		length(truth) != length(lower_bound) || length(truth) != length(upper_bound)
+	) {
+		stop("All input vectors must have the same length.")
+	}
 
-  # Calculate empirical coverage
-  covered <- (truth >= lower_bound) & (truth <= upper_bound)
+	# Calculate empirical coverage
+	covered <- (truth >= lower_bound) & (truth <= upper_bound)
 
-  # Return the proportion of covered values
-  return(mean(covered,na.rm=na.rm) - (1 - alpha))
+	# Return the proportion of covered values
+	return(mean(covered, na.rm = na.rm) - (1 - alpha))
 }
 
 #' Mean interval score (MIS) for prediction intervals
@@ -210,61 +227,64 @@ interval_miscoverage <- function(truth, lower_bound, upper_bound, alpha,na.rm=FA
 #'          lower_bound = intervals$lower_bound,
 #'          upper_bound = intervals$upper_bound,
 #'          alpha = 0.1)
-interval_score <- function(truth, lower_bound=NULL, upper_bound=NULL, intervals = NULL, return_vector = FALSE,alpha,na.rm=FALSE) {
-
-
-	if(!is.null(intervals)){
-		intervals_idx <- which(purrr::map_lgl(intervals,~!is.null(.x)))
-		mis_intervals <- foreach::foreach(i = intervals_idx) %do% {
-			interval_score_interval(intervals[[i]], truth[i], alpha)
-		}
+interval_score <- function(
+	truth,
+	lower_bound = NULL,
+	upper_bound = NULL,
+	intervals = NULL,
+	return_vector = FALSE,
+	alpha,
+	na.rm = FALSE
+) {
+	if (!is.null(intervals)) {
+		intervals_idx <- which(purrr::map_lgl(intervals, ~ !is.null(.x)))
+		mis_intervals <- foreach::foreach(i = intervals_idx) %do%
+			{
+				interval_score_interval(intervals[[i]], truth[i], alpha)
+			}
 	}
 
-	if(!is.null(lower_bound) & !is.null(upper_bound)){
-
-  # Calculate mean interval score (MIS)
-	mis_values <- (upper_bound - lower_bound) +
-    2/alpha * abs(lower_bound-truth) * (truth < lower_bound) +
-		    2/alpha * abs(truth-upper_bound) * (truth > upper_bound)
+	if (!is.null(lower_bound) & !is.null(upper_bound)) {
+		# Calculate mean interval score (MIS)
+		mis_values <- (upper_bound - lower_bound) +
+			2 / alpha * abs(lower_bound - truth) * (truth < lower_bound) +
+			2 / alpha * abs(truth - upper_bound) * (truth > upper_bound)
 	}
 
-	if(is.null(intervals)){
+	if (is.null(intervals)) {
 		out <- mis_values
-	}else if(is.null(lower_bound) | is.null(upper_bound)){
+	} else if (is.null(lower_bound) | is.null(upper_bound)) {
 		out <- unlist(mis_intervals)
-
-	}else{
-		out <- rep(NA,length(truth))
+	} else {
+		out <- rep(NA, length(truth))
 		out[intervals_idx] <- unlist(mis_intervals)
-		out[setdiff(1:length(truth),intervals_idx)] <- mis_values[setdiff(1:length(truth),intervals_idx)]
+		out[setdiff(1:length(truth), intervals_idx)] <- mis_values[setdiff(
+			1:length(truth),
+			intervals_idx
+		)]
 	}
 
-	if(return_vector){
+	if (return_vector) {
 		return(out)
 	} else {
-		return(mean(out,na.rm=na.rm))
+		return(mean(out, na.rm = na.rm))
 	}
-
 }
 
 
-interval_score_interval <- function(intervals, truth, alpha, na.rm=FALSE) {
-  lower_bound <- intervals$lower_bound
-  upper_bound <- intervals$upper_bound
-  if(any((truth >= lower_bound) & (truth <= upper_bound))){
-  	return(sum(upper_bound-lower_bound))
-  }  else{
-  	min_penalty <- min(c(
-  		2/alpha * abs(lower_bound - truth)[truth < lower_bound],
-  		2/alpha * abs(truth - upper_bound)[truth > upper_bound]
-  	))
-  	return(sum(upper_bound - lower_bound) + min_penalty)
-  }
-
-
-  }
-
-
+interval_score_interval <- function(intervals, truth, alpha, na.rm = FALSE) {
+	lower_bound <- intervals$lower_bound
+	upper_bound <- intervals$upper_bound
+	if (any((truth >= lower_bound) & (truth <= upper_bound))) {
+		return(sum(upper_bound - lower_bound))
+	} else {
+		min_penalty <- min(c(
+			2 / alpha * abs(lower_bound - truth)[truth < lower_bound],
+			2 / alpha * abs(truth - upper_bound)[truth > upper_bound]
+		))
+		return(sum(upper_bound - lower_bound) + min_penalty)
+	}
+}
 
 
 #' Mean width of prediction intervals
@@ -316,44 +336,48 @@ interval_score_interval <- function(intervals, truth, alpha, na.rm=FALSE) {
 #' # Calculate empirical coverage
 #' interval_width(lower_bound = intervals$lower_bound,
 #'          upper_bound = intervals$upper_bound)
-interval_width <- function(lower_bound=NULL, upper_bound=NULL, intervals = NULL, return_vector = FALSE, na.rm=FALSE) {
-
-	if(!is.null(intervals)){
-		intervals_idx <- which(purrr::map_lgl(intervals,~!is.null(.x)))
-		width_intervals <- foreach::foreach(i = intervals_idx) %do% {
-			width_interval(intervals[[i]])
-		}
+interval_width <- function(
+	lower_bound = NULL,
+	upper_bound = NULL,
+	intervals = NULL,
+	return_vector = FALSE,
+	na.rm = FALSE
+) {
+	if (!is.null(intervals)) {
+		intervals_idx <- which(purrr::map_lgl(intervals, ~ !is.null(.x)))
+		width_intervals <- foreach::foreach(i = intervals_idx) %do%
+			{
+				width_interval(intervals[[i]])
+			}
 	}
 
-	if(!is.null(lower_bound) & !is.null(upper_bound)){
-
-  # Calculate the width of the intervals
-  widths <- upper_bound - lower_bound
+	if (!is.null(lower_bound) & !is.null(upper_bound)) {
+		# Calculate the width of the intervals
+		widths <- upper_bound - lower_bound
 	}
-	if(is.null(intervals)){
+	if (is.null(intervals)) {
 		out <- widths
-	}else if(is.null(lower_bound) | is.null(upper_bound)){
+	} else if (is.null(lower_bound) | is.null(upper_bound)) {
 		out <- unlist(width_intervals)
-	} else{
-		out <- rep(NA,length(lower_bound))
+	} else {
+		out <- rep(NA, length(lower_bound))
 		out[intervals_idx] <- unlist(width_intervals)
-		out[setdiff(1:length(lower_bound),intervals_idx)] <- widths[setdiff(1:length(lower_bound),intervals_idx)]
+		out[setdiff(1:length(lower_bound), intervals_idx)] <- widths[setdiff(
+			1:length(lower_bound),
+			intervals_idx
+		)]
 	}
 
-		if(return_vector){
-			return(out)
-		} else {
-			return(mean(out,na.rm=na.rm))
-		}
+	if (return_vector) {
+		return(out)
+	} else {
+		return(mean(out, na.rm = na.rm))
+	}
 }
 
 
 width_interval <- function(intervals) {
-  lower_bound <- intervals$lower_bound
-  upper_bound <- intervals$upper_bound
-  return(sum(upper_bound - lower_bound))
+	lower_bound <- intervals$lower_bound
+	upper_bound <- intervals$upper_bound
+	return(sum(upper_bound - lower_bound))
 }
-
-
-
-

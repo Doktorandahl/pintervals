@@ -77,130 +77,183 @@
 #'   n_bootstraps = 1000
 #' )
 #'
-pinterval_bootstrap <- function(pred,
-																calib,
-																calib_truth = NULL,
-																error_type = c('raw','absolute'),
-																alpha = 0.1,
-																n_bootstraps=1000,
-																distance_weighted_bootstrap = FALSE,
-																distance_features_calib = NULL,
-																distance_features_pred = NULL,
-																normalize_distance = TRUE,
-																weight_function = c('gaussian_kernel', 'caucy_kernel','logistic','reciprocal_linear'),
-																calibrate = FALSE,
-																calibration_method = c('glm', 'isotonic'),
-																calibration_family = 'gaussian',
-																calibration_transform = NULL){
-
+pinterval_bootstrap <- function(
+	pred,
+	calib,
+	calib_truth = NULL,
+	error_type = c('raw', 'absolute'),
+	alpha = 0.1,
+	n_bootstraps = 1000,
+	distance_weighted_bootstrap = FALSE,
+	distance_features_calib = NULL,
+	distance_features_pred = NULL,
+	normalize_distance = TRUE,
+	weight_function = c(
+		'gaussian_kernel',
+		'caucy_kernel',
+		'logistic',
+		'reciprocal_linear'
+	),
+	calibrate = FALSE,
+	calibration_method = c('glm', 'isotonic'),
+	calibration_family = 'gaussian',
+	calibration_transform = NULL
+) {
 	i <- NA
-	if(!is.numeric(pred)){
+	if (!is.numeric(pred)) {
 		stop('pred must be a single number or a numeric vector')
 	}
 
-	if(is.numeric(calib) & (is.null(calib_truth))){
+	if (is.numeric(calib) & (is.null(calib_truth))) {
 		stop('If calib is numeric, calib_truth must be provided')
 	}
 
-	if(!is.numeric(calib) && ncol(calib)!=2){
-		stop('calib must be a numeric vector or a 2 column tibble or matrix with the first column being the predicted values and the second column being the truth values')
+	if (!is.numeric(calib) && ncol(calib) != 2) {
+		stop(
+			'calib must be a numeric vector or a 2 column tibble or matrix with the first column being the predicted values and the second column being the truth values'
+		)
 	}
 
-	if(calibrate && distance_weighted_bootstrap){
-		warning('calibrate is TRUE, but dw_bootstrap is also TRUE. Calibration will be performed after bootstrapping, and the corresponding prediction intervals will be adjusted accordingly.')
+	if (calibrate && distance_weighted_bootstrap) {
+		warning(
+			'calibrate is TRUE, but dw_bootstrap is also TRUE. Calibration will be performed after bootstrapping, and the corresponding prediction intervals will be adjusted accordingly.'
+		)
 	}
 
-
-
-
-
-	if(!is.numeric(calib)){
+	if (!is.numeric(calib)) {
 		calib_org <- calib
-		if(is.matrix(calib)){
-			calib <- as.numeric(calib_org[,1])
-			calib_truth <- as.numeric(calib_org[,2])
-		}else{
+		if (is.matrix(calib)) {
+			calib <- as.numeric(calib_org[, 1])
+			calib_truth <- as.numeric(calib_org[, 2])
+		} else {
 			calib_truth <- as.numeric(calib_org[[2]])
 			calib <- as.numeric(calib_org[[1]])
 		}
 	}
 
-	if(distance_weighted_bootstrap){
-		if(is.null(distance_features_calib) || is.null(distance_features_pred)){
-			stop('If distance_weighted_cp is TRUE, distance_features_calib and distance_features_pred must be provided')
+	if (distance_weighted_bootstrap) {
+		if (is.null(distance_features_calib) || is.null(distance_features_pred)) {
+			stop(
+				'If distance_weighted_cp is TRUE, distance_features_calib and distance_features_pred must be provided'
+			)
 		}
-		if(!is.matrix(distance_features_calib) && !is.data.frame(distance_features_calib) && !is.numeric(distance_features_calib)){
-			stop('distance_features_calib must be a matrix, data frame, or numeric vector')
+		if (
+			!is.matrix(distance_features_calib) &&
+				!is.data.frame(distance_features_calib) &&
+				!is.numeric(distance_features_calib)
+		) {
+			stop(
+				'distance_features_calib must be a matrix, data frame, or numeric vector'
+			)
 		}
-		if(!is.matrix(distance_features_pred) && !is.data.frame(distance_features_pred) && !is.numeric(distance_features_pred)){
-			stop('distance_features_pred must be a matrix, data frame, or numeric vector')
+		if (
+			!is.matrix(distance_features_pred) &&
+				!is.data.frame(distance_features_pred) &&
+				!is.numeric(distance_features_pred)
+		) {
+			stop(
+				'distance_features_pred must be a matrix, data frame, or numeric vector'
+			)
 		}
-		if(is.numeric(distance_features_calib) && is.numeric(distance_features_pred)){
-			if(length(distance_features_calib) != length(calib) || length(distance_features_pred) != length(pred)){
-				stop('If distance_features_calib and distance_features_pred are numeric vectors, they must have the same length as calib and pred, respectively')
+		if (
+			is.numeric(distance_features_calib) && is.numeric(distance_features_pred)
+		) {
+			if (
+				length(distance_features_calib) != length(calib) ||
+					length(distance_features_pred) != length(pred)
+			) {
+				stop(
+					'If distance_features_calib and distance_features_pred are numeric vectors, they must have the same length as calib and pred, respectively'
+				)
 			}
-		}else if(is.matrix(distance_features_calib) || is.data.frame(distance_features_calib)){
-			if(nrow(distance_features_calib) != length(calib)){
-				stop('If distance_features_calib is a matrix or data frame, it must have the same number of rows as calib')
+		} else if (
+			is.matrix(distance_features_calib) ||
+				is.data.frame(distance_features_calib)
+		) {
+			if (nrow(distance_features_calib) != length(calib)) {
+				stop(
+					'If distance_features_calib is a matrix or data frame, it must have the same number of rows as calib'
+				)
 			}
-			if(ncol(distance_features_calib) != ncol(distance_features_pred)){
-				stop('distance_features_calib and distance_features_pred must have the same number of columns')
+			if (ncol(distance_features_calib) != ncol(distance_features_pred)) {
+				stop(
+					'distance_features_calib and distance_features_pred must have the same number of columns'
+				)
 			}
-			if(nrow(distance_features_pred) != length(pred)){
-				stop('If distance_features_pred is a matrix or data frame, it must have the same number of rows as pred')
+			if (nrow(distance_features_pred) != length(pred)) {
+				stop(
+					'If distance_features_pred is a matrix or data frame, it must have the same number of rows as pred'
+				)
 			}
-
 		}
 
 		distance_features_calib <- as.matrix(distance_features_calib)
 		distance_features_pred <- as.matrix(distance_features_pred)
 
-		if(!is.function(weight_function)){
-			weight_function <- match.arg(weight_function, c('gaussian_kernel', 'caucy_kernel','logistic','reciprocal_linear'))
-			weight_function <- switch(weight_function,
-																'gaussian_kernel' = function(d) exp(-d^2),
-																'caucy_kernel' = function(d) 1 / (1 + d^2),
-																'logistic' = function(d) 1 / (1 + exp(d)),
-																'reciprocal_linear' = function(d) 1 / (1 + d))
+		if (!is.function(weight_function)) {
+			weight_function <- match.arg(
+				weight_function,
+				c('gaussian_kernel', 'caucy_kernel', 'logistic', 'reciprocal_linear')
+			)
+			weight_function <- switch(
+				weight_function,
+				'gaussian_kernel' = function(d) exp(-d^2),
+				'caucy_kernel' = function(d) 1 / (1 + d^2),
+				'logistic' = function(d) 1 / (1 + exp(d)),
+				'reciprocal_linear' = function(d) 1 / (1 + d)
+			)
 		}
 	}
 
+	error_type <- match.arg(error_type, c('raw', 'absolute'))
 
-
-	error_type <- match.arg(error_type, c('raw','absolute'))
-
-		if(error_type == 'raw'){
-			error <- calib - calib_truth
-		}else if(error_type == 'absolute'){
-			error <- abs(calib - calib_truth)
-		}
+	if (error_type == 'raw') {
+		error <- calib - calib_truth
+	} else if (error_type == 'absolute') {
+		error <- abs(calib - calib_truth)
+	}
 
 	boot_set <- foreach::foreach(i = 1:length(pred)) %do%
-		bootstrap_inner(pred = pred[i], calib = calib, error = error, nboot = n_bootstraps,
-										alpha = alpha,error_type = error_type,
-										distance_weighted_bootstrap = distance_weighted_bootstrap,
-										distance_features_calib = distance_features_calib,
-										distance_features_pred = distance_features_pred,
-										normalize_distance = normalize_distance,
-										weight_function = weight_function)
+		bootstrap_inner(
+			pred = pred[i],
+			calib = calib,
+			error = error,
+			nboot = n_bootstraps,
+			alpha = alpha,
+			error_type = error_type,
+			distance_weighted_bootstrap = distance_weighted_bootstrap,
+			distance_features_calib = distance_features_calib,
+			distance_features_pred = distance_features_pred,
+			normalize_distance = normalize_distance,
+			weight_function = weight_function
+		)
 
 	boot_set <- dplyr::bind_rows(boot_set)
 
-	if(calibrate){
+	if (calibrate) {
 		calibration_method <- match.arg(calibration_method, c('glm', 'isotonic'))
-		if(calibration_method == 'glm'){
-			calibrated_predictions <- calibrate_predictions(pred, calib, calib_truth, method = calibration_method,
-																										family = calibration_family,
-																										transform = calibration_transform)
-		}else if(calibration_method == 'isotonic'){
-			calibrated_predictions <- calibrate_predictions(pred, calib, calib_truth, method = calibration_method)
+		if (calibration_method == 'glm') {
+			calibrated_predictions <- calibrate_predictions(
+				pred,
+				calib,
+				calib_truth,
+				method = calibration_method,
+				family = calibration_family,
+				transform = calibration_transform
+			)
+		} else if (calibration_method == 'isotonic') {
+			calibrated_predictions <- calibrate_predictions(
+				pred,
+				calib,
+				calib_truth,
+				method = calibration_method
+			)
 		}
 
 		calibrated_diffs <- pred - calibrated_predictions
 		boot_set$lower_bound <- boot_set$lower_bound + calibrated_diffs
 		boot_set$upper_bound <- boot_set$upper_bound + calibrated_diffs
 		boot_set$pred <- calibrated_predictions
-
 	}
 
 	return(boot_set)

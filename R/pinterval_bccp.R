@@ -105,177 +105,244 @@
 #' calib_bins = calib_bins,
 #' alpha = 0.1)
 #'
-pinterval_bccp = function(pred,
-									 calib = NULL,
-									 calib_truth = NULL,
-									 calib_bins = NULL,
-									 breaks = NULL,
-									 alpha = 0.1,
-									 ncs_type = c('absolute_error',
-									 						 'relative_error',
-									 						 'za_relative_error',
-									 						 'heterogeneous_error',
-									 						 'raw_error'),
-									 distance_weighted_cp = FALSE,
-									 distance_features_calib = NULL,
-									 distance_features_pred = NULL,
-									 normalize_distance = TRUE,
-									 weight_function = c('gaussian_kernel', 'caucy_kernel','logistic','reciprocal_linear'),
-									 calibrate = FALSE,
-									 calibration_method = 'glm',
-									 calibration_family = NULL,
-									 calibration_transform = NULL,
-									 resolution = 0.01,
-									 grid_size = NULL,
-									 right = TRUE,
-									 contiguize = FALSE){
-
+pinterval_bccp = function(
+	pred,
+	calib = NULL,
+	calib_truth = NULL,
+	calib_bins = NULL,
+	breaks = NULL,
+	alpha = 0.1,
+	ncs_type = c(
+		'absolute_error',
+		'relative_error',
+		'za_relative_error',
+		'heterogeneous_error',
+		'raw_error'
+	),
+	distance_weighted_cp = FALSE,
+	distance_features_calib = NULL,
+	distance_features_pred = NULL,
+	normalize_distance = TRUE,
+	weight_function = c(
+		'gaussian_kernel',
+		'caucy_kernel',
+		'logistic',
+		'reciprocal_linear'
+	),
+	calibrate = FALSE,
+	calibration_method = 'glm',
+	calibration_family = NULL,
+	calibration_transform = NULL,
+	resolution = 0.01,
+	grid_size = NULL,
+	right = TRUE,
+	contiguize = FALSE
+) {
 	i <- NA
 
-
-	if(!is.numeric(pred)){
+	if (!is.numeric(pred)) {
 		stop('pred must be a numeric scalar or vector')
 	}
 
-		if(is.numeric(calib) & is.null(calib_truth)){
-			stop('If calib is numeric, calib_truth must be provided')
-		}
-		if(!is.numeric(calib) && ncol(calib)<2){
-			stop('calib must be a numeric vector or a 2 or 3 column tibble or matrix with the first column being the predicted values, the second column being the truth values, and (optionally) the third column being the bin values if bin structure is not provided in argument bins')
-		}
+	if (is.numeric(calib) & is.null(calib_truth)) {
+		stop('If calib is numeric, calib_truth must be provided')
+	}
+	if (!is.numeric(calib) && ncol(calib) < 2) {
+		stop(
+			'calib must be a numeric vector or a 2 or 3 column tibble or matrix with the first column being the predicted values, the second column being the truth values, and (optionally) the third column being the bin values if bin structure is not provided in argument bins'
+		)
+	}
 
-		if((is.null(breaks)) && (is.null(calib_bins) || (!is.numeric(calib) && ncol(calib)!=3))){
-			stop('If breaks are not provided, bins for the calibration set must be provided as a vector or a as the last column of the calib if calib is a tibble or matrix')
-		}
+	if (
+		(is.null(breaks)) &&
+			(is.null(calib_bins) || (!is.numeric(calib) && ncol(calib) != 3))
+	) {
+		stop(
+			'If breaks are not provided, bins for the calibration set must be provided as a vector or a as the last column of the calib if calib is a tibble or matrix'
+		)
+	}
 
-	if(!is.numeric(alpha) || alpha<=0 || alpha>=1 || length(alpha)!=1){
+	if (!is.numeric(alpha) || alpha <= 0 || alpha >= 1 || length(alpha) != 1) {
 		stop('alpha must be a single numeric value between 0 and 1')
 	}
 
-	ncs_type <- match.arg(ncs_type, c('absolute_error',
-																		'relative_error',
-																		'za_relative_error',
-																		'heterogeneous_error',
-																		'raw_error'))
+	ncs_type <- match.arg(
+		ncs_type,
+		c(
+			'absolute_error',
+			'relative_error',
+			'za_relative_error',
+			'heterogeneous_error',
+			'raw_error'
+		)
+	)
 
-
-	if((is.null(breaks))){
-		warning('No explicit bin structure provided, breaks are calculated as the minimum and maximum values for each bin in the calibration set')
+	if ((is.null(breaks))) {
+		warning(
+			'No explicit bin structure provided, breaks are calculated as the minimum and maximum values for each bin in the calibration set'
+		)
 	}
 
-	if(!is.null(breaks) & !is.null(calib_bins)){
+	if (!is.null(breaks) & !is.null(calib_bins)) {
 		warning("If breaks are provided, calib_bins will be ignored")
 	}
 
-		if(!is.numeric(calib)){
-			calib_org <- calib
-			if(is.matrix(calib)){
-				calib <- as.numeric(calib_org[,1])
-				calib_truth <- as.numeric(calib_org[,2])
-				if(is.null(calib_bins) && ncol(calib_org) == 3 && !is.null(breaks)){
-					calib_bins <- as.numeric(calib_org[,3])
-				}
-			}else{
-				calib_truth <- as.numeric(calib_org[[2]])
-				calib <- as.numeric(calib_org[[1]])
-				if(is.null(calib_bins) && ncol(calib_org) == 3 && !is.null(breaks)){
-					calib_bins <- as.numeric(calib_org[[3]])
-				}
+	if (!is.numeric(calib)) {
+		calib_org <- calib
+		if (is.matrix(calib)) {
+			calib <- as.numeric(calib_org[, 1])
+			calib_truth <- as.numeric(calib_org[, 2])
+			if (is.null(calib_bins) && ncol(calib_org) == 3 && !is.null(breaks)) {
+				calib_bins <- as.numeric(calib_org[, 3])
+			}
+		} else {
+			calib_truth <- as.numeric(calib_org[[2]])
+			calib <- as.numeric(calib_org[[1]])
+			if (is.null(calib_bins) && ncol(calib_org) == 3 && !is.null(breaks)) {
+				calib_bins <- as.numeric(calib_org[[3]])
 			}
 		}
+	}
 
-	if(ncs_type == 'heterogeneous_error'){
+	if (ncs_type == 'heterogeneous_error') {
 		coefs <- stats::coef(stats::lm(abs(calib - calib_truth) ~ calib))
-	}else{
+	} else {
 		coefs <- NULL
 	}
 
-	if(distance_weighted_cp){
-		if(is.null(distance_features_calib) || is.null(distance_features_pred)){
-			stop('If distance_weighted_cp is TRUE, distance_features_calib and distance_features_pred must be provided')
+	if (distance_weighted_cp) {
+		if (is.null(distance_features_calib) || is.null(distance_features_pred)) {
+			stop(
+				'If distance_weighted_cp is TRUE, distance_features_calib and distance_features_pred must be provided'
+			)
 		}
-		if(!is.matrix(distance_features_calib) && !is.data.frame(distance_features_calib) && !is.numeric(distance_features_calib)){
-			stop('distance_features_calib must be a matrix, data frame, or numeric vector')
+		if (
+			!is.matrix(distance_features_calib) &&
+				!is.data.frame(distance_features_calib) &&
+				!is.numeric(distance_features_calib)
+		) {
+			stop(
+				'distance_features_calib must be a matrix, data frame, or numeric vector'
+			)
 		}
-		if(!is.matrix(distance_features_pred) && !is.data.frame(distance_features_pred) && !is.numeric(distance_features_pred)){
-			stop('distance_features_pred must be a matrix, data frame, or numeric vector')
+		if (
+			!is.matrix(distance_features_pred) &&
+				!is.data.frame(distance_features_pred) &&
+				!is.numeric(distance_features_pred)
+		) {
+			stop(
+				'distance_features_pred must be a matrix, data frame, or numeric vector'
+			)
 		}
-		if(is.numeric(distance_features_calib) && is.numeric(distance_features_pred)){
-			if(length(distance_features_calib) != length(calib) || length(distance_features_pred) != length(pred)){
-				stop('If distance_features_calib and distance_features_pred are numeric vectors, they must have the same length as calib and pred, respectively')
+		if (
+			is.numeric(distance_features_calib) && is.numeric(distance_features_pred)
+		) {
+			if (
+				length(distance_features_calib) != length(calib) ||
+					length(distance_features_pred) != length(pred)
+			) {
+				stop(
+					'If distance_features_calib and distance_features_pred are numeric vectors, they must have the same length as calib and pred, respectively'
+				)
 			}
-		}else if(is.matrix(distance_features_calib) || is.data.frame(distance_features_calib)){
-			if(nrow(distance_features_calib) != length(calib)){
-				stop('If distance_features_calib is a matrix or data frame, it must have the same number of rows as calib')
+		} else if (
+			is.matrix(distance_features_calib) ||
+				is.data.frame(distance_features_calib)
+		) {
+			if (nrow(distance_features_calib) != length(calib)) {
+				stop(
+					'If distance_features_calib is a matrix or data frame, it must have the same number of rows as calib'
+				)
 			}
-			if(ncol(distance_features_calib) != ncol(distance_features_pred)){
-				stop('distance_features_calib and distance_features_pred must have the same number of columns')
+			if (ncol(distance_features_calib) != ncol(distance_features_pred)) {
+				stop(
+					'distance_features_calib and distance_features_pred must have the same number of columns'
+				)
 			}
-			if(nrow(distance_features_pred) != length(pred)){
-				stop('If distance_features_pred is a matrix or data frame, it must have the same number of rows as pred')
+			if (nrow(distance_features_pred) != length(pred)) {
+				stop(
+					'If distance_features_pred is a matrix or data frame, it must have the same number of rows as pred'
+				)
 			}
-
 		}
 
 		distance_features_calib <- as.matrix(distance_features_calib)
 		distance_features_pred <- as.matrix(distance_features_pred)
 
-		if(!is.function(weight_function)){
-			weight_function <- match.arg(weight_function, c('gaussian_kernel', 'caucy_kernel','logistic','reciprocal_linear'))
-			weight_function <- switch(weight_function,
-																'gaussian_kernel' = function(d) exp(-d^2),
-																'caucy_kernel' = function(d) 1 / (1 + d^2),
-																'logistic' = function(d) 1 / (1 + exp(d)),
-																'reciprocal_linear' = function(d) 1 / (1 + d))
+		if (!is.function(weight_function)) {
+			weight_function <- match.arg(
+				weight_function,
+				c('gaussian_kernel', 'caucy_kernel', 'logistic', 'reciprocal_linear')
+			)
+			weight_function <- switch(
+				weight_function,
+				'gaussian_kernel' = function(d) exp(-d^2),
+				'caucy_kernel' = function(d) 1 / (1 + d^2),
+				'logistic' = function(d) 1 / (1 + exp(d)),
+				'reciprocal_linear' = function(d) 1 / (1 + d)
+			)
 		}
 	}
 
-
-
-	if(is.null(calib_bins)){
-			calib_bins <- cut(calib_truth,breaks = breaks,labels = FALSE,right = right)
+	if (is.null(calib_bins)) {
+		calib_bins <- cut(
+			calib_truth,
+			breaks = breaks,
+			labels = FALSE,
+			right = right
+		)
 	}
 
 	nobs_bins <- as.numeric(table(calib_bins))
 
-	if(any(nobs_bins*alpha/2<1)){
-		warning('Some bins have too few observations to calculate prediction intervals at the specified alpha level. Consider using a larger calibration set or a higher alpha level')
+	if (any(nobs_bins * alpha / 2 < 1)) {
+		warning(
+			'Some bins have too few observations to calculate prediction intervals at the specified alpha level. Consider using a larger calibration set or a higher alpha level'
+		)
 	}
 
-		bin_labels <- sort(unique(calib_bins))
-		if(length(bin_labels)<2){
-			stop('Calibration set must have at least two bins. For continuous prediction intervals without bins, use pinterval_conformal() instead of pinterval_bccp()')
-		}
+	bin_labels <- sort(unique(calib_bins))
+	if (length(bin_labels) < 2) {
+		stop(
+			'Calibration set must have at least two bins. For continuous prediction intervals without bins, use pinterval_conformal() instead of pinterval_bccp()'
+		)
+	}
 
-		lower_bounds <- foreach::foreach(i = bin_labels,.final = unlist) %do% min(calib_truth[calib_bins==i])
-		upper_bounds <- foreach::foreach(i = bin_labels,.final = unlist) %do% max(calib_truth[calib_bins==i])
+	lower_bounds <- foreach::foreach(i = bin_labels, .final = unlist) %do%
+		min(calib_truth[calib_bins == i])
+	upper_bounds <- foreach::foreach(i = bin_labels, .final = unlist) %do%
+		max(calib_truth[calib_bins == i])
 
 	cp_intervals <- foreach::foreach(i = 1:length(bin_labels)) %do%
-		suppressWarnings(pinterval_conformal(pred = pred,
-																			 lower_bound = lower_bounds[i],
-																			 upper_bound = upper_bounds[i],
-																			 ncs_type = ncs_type,
-																			 calib = calib[calib_bins==bin_labels[i]],
-																			 calib_truth = calib_truth[calib_bins==bin_labels[i]],
-																			 calibrate = calibrate,
-																			 calibration_method = calibration_method,
-																			 calibration_family = calibration_family,
-																			 alpha = alpha,
-																			 resolution = resolution,
-																			 grid_size = grid_size))
+		suppressWarnings(pinterval_conformal(
+			pred = pred,
+			lower_bound = lower_bounds[i],
+			upper_bound = upper_bounds[i],
+			ncs_type = ncs_type,
+			calib = calib[calib_bins == bin_labels[i]],
+			calib_truth = calib_truth[calib_bins == bin_labels[i]],
+			calibrate = calibrate,
+			calibration_method = calibration_method,
+			calibration_family = calibration_family,
+			alpha = alpha,
+			resolution = resolution,
+			grid_size = grid_size
+		))
 
+	cp_intervals2 <- flatten_cp_bin_intervals(
+		cp_intervals,
+		contiguize = contiguize
+	)
 
-
-
-	cp_intervals2 <- flatten_cp_bin_intervals(cp_intervals, contiguize = contiguize)
-
-	if(calibrate){
-		calibrated_preds <- calibrate_predictions(pred = pred,
-																							calib = calib,
-																							calib_truth = calib_truth,
-																							method = calibration_method,
-																							family = calibration_family,
-																							transform = calibration_transform)
+	if (calibrate) {
+		calibrated_preds <- calibrate_predictions(
+			pred = pred,
+			calib = calib,
+			calib_truth = calib_truth,
+			method = calibration_method,
+			family = calibration_family,
+			transform = calibration_transform
+		)
 		cp_intervals2 <- cp_intervals2 %>%
 			dplyr::mutate(pred = calibrated_preds)
 	}

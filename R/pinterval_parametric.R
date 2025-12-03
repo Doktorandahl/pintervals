@@ -87,155 +87,190 @@
 #'   calib_truth = df_cal$y,
 #'   dist = "gamma"
 #' )
-pinterval_parametric <- function(pred,
-																 calib = NULL,
-																 calib_truth = NULL,
-																 dist = c('norm',
-																 				 'lnorm',
-																 				 'exp',
-																 				 'pois',
-																 				 'nbinom',
-																 				 'gamma',
-																 				 'chisq',
-																 				 'logis',
-																 				 'beta'),
-																 pars = list(),
-																 alpha = 0.1,
-																 calibrate = FALSE,
-																 calibration_method = c('glm', 'isotonic'),
-																 calibration_family = 'gaussian',
-																 calibration_transform = NULL){
-
-
-	if(!is.numeric(pred)){
+pinterval_parametric <- function(
+	pred,
+	calib = NULL,
+	calib_truth = NULL,
+	dist = c(
+		'norm',
+		'lnorm',
+		'exp',
+		'pois',
+		'nbinom',
+		'gamma',
+		'chisq',
+		'logis',
+		'beta'
+	),
+	pars = list(),
+	alpha = 0.1,
+	calibrate = FALSE,
+	calibration_method = c('glm', 'isotonic'),
+	calibration_family = 'gaussian',
+	calibration_transform = NULL
+) {
+	if (!is.numeric(pred)) {
 		stop('pred must be a single number or a numeric vector')
 	}
 
-	if(length(dist) > 1){
+	if (length(dist) > 1) {
 		stop('dist must be a single distribution')
 	}
 
-	if(!is.character(dist) & !is.function(dist)){
-		stop('dist must be a character string matching a distribution or a function representing a distribution')
+	if (!is.character(dist) & !is.function(dist)) {
+		stop(
+			'dist must be a character string matching a distribution or a function representing a distribution'
+		)
 	}
 
-	if(is.null(calib) && is.null(pars) && length(pars) == 0){
+	if (is.null(calib) && is.null(pars) && length(pars) == 0) {
 		stop('Either calib or pars must be provided.')
 	}
 
-if(!is.null(calib) && is.numeric(calib) && is.null(calib_truth)){
+	if (!is.null(calib) && is.numeric(calib) && is.null(calib_truth)) {
 		stop('If calib is numeric, calib_truth must be provided')
-}
-
-	if(!is.null(calib) && !is.numeric(calib) && ncol(calib)!=2){
-		stop('calib must be a numeric vector or a 2 column tibble or matrix with the first column being the predicted values and the second column being the truth values')
 	}
 
-	if(length(pars) != 0 && !is.list(pars)){
-		stop('pars must be a list of parameters for the distribution for each prediction')
+	if (!is.null(calib) && !is.numeric(calib) && ncol(calib) != 2) {
+		stop(
+			'calib must be a numeric vector or a 2 column tibble or matrix with the first column being the predicted values and the second column being the truth values'
+		)
 	}
 
-	if(length(pars) != 0 && !is.null(calib) && !calibrate){
-		warning('pars is provided, but calibrate is set to FALSE. The parameters will be used as provided and not estimated from the calibration data.')
+	if (length(pars) != 0 && !is.list(pars)) {
+		stop(
+			'pars must be a list of parameters for the distribution for each prediction'
+		)
 	}
 
-	if(length(pars) != 0 && !is.null(calib)){
-		warning('pars is provided, but calib is also provided. The provided parameters will be used for the prediction intervals and calib for the calibration of the predictions.')
+	if (length(pars) != 0 && !is.null(calib) && !calibrate) {
+		warning(
+			'pars is provided, but calibrate is set to FALSE. The parameters will be used as provided and not estimated from the calibration data.'
+		)
 	}
 
-
-
-	if(calibrate){
-		pred <- calibrate_predictions(pred = pred,
-																							calib = calib,
-																							calib_truth = calib_truth,
-																							method = calibration_method,
-																							family = calibration_family,
-																							transform = calibration_transform)
+	if (length(pars) != 0 && !is.null(calib)) {
+		warning(
+			'pars is provided, but calib is also provided. The provided parameters will be used for the prediction intervals and calib for the calibration of the predictions.'
+		)
 	}
 
+	if (calibrate) {
+		pred <- calibrate_predictions(
+			pred = pred,
+			calib = calib,
+			calib_truth = calib_truth,
+			method = calibration_method,
+			family = calibration_family,
+			transform = calibration_transform
+		)
+	}
 
-
-	if(length(pars) == 0){
-		if(dist %in% c('chisq','qchisq','pois','qpois','exp','qexp') && !calibrate){
-			warning('The distribution is a one-parameter distribution, and calibrate is set to FALSE. No parameters will be estimated from the calibration data.')
-			if(dist %in% c('chisq','qchisq')){
+	if (length(pars) == 0) {
+		if (
+			dist %in%
+				c('chisq', 'qchisq', 'pois', 'qpois', 'exp', 'qexp') &&
+				!calibrate
+		) {
+			warning(
+				'The distribution is a one-parameter distribution, and calibrate is set to FALSE. No parameters will be estimated from the calibration data.'
+			)
+			if (dist %in% c('chisq', 'qchisq')) {
 				pars$df <- pred
-			}else if(dist %in% c('pois','qpois')){
+			} else if (dist %in% c('pois', 'qpois')) {
 				pars$lambda <- pred
-			}else if(dist %in% c('exp','qexp')){
-				pars$rate <- 1/pred
+			} else if (dist %in% c('exp', 'qexp')) {
+				pars$rate <- 1 / pred
 			}
-
-		}else	if(dist %in% c('norm','qnorm')){
-			message('The distribution is a normal distribution. The standard deviation parameters will be estimated from the calibration data.')
+		} else if (dist %in% c('norm', 'qnorm')) {
+			message(
+				'The distribution is a normal distribution. The standard deviation parameters will be estimated from the calibration data.'
+			)
 			pars$mean <- pred
 			pars$sd <- sqrt(var((calib - calib_truth)))
-		}else if(dist %in% c('lnorm','qlnorm')){
-			message('The distribution is a log-normal distribution. The standard deviation parameters will be estimated from the calibration data.')
+		} else if (dist %in% c('lnorm', 'qlnorm')) {
+			message(
+				'The distribution is a log-normal distribution. The standard deviation parameters will be estimated from the calibration data.'
+			)
 			pars$meanlog <- log(pred)
 			pars$sdlog <- sqrt(var((log(calib) - log(calib_truth))))
-		}else if(dist %in% c('pois','qpois')){
+		} else if (dist %in% c('pois', 'qpois')) {
 			pars$lambda <- pred
-		}else if(dist %in% c('nbinom','qnbinom')){
-			message('The distribution is a negative binomial distribution. The size (dispersion) parameter will be estimated from the calibration data. The dispersion parameter is assumed to be constant across predictions.')
+		} else if (dist %in% c('nbinom', 'qnbinom')) {
+			message(
+				'The distribution is a negative binomial distribution. The size (dispersion) parameter will be estimated from the calibration data. The dispersion parameter is assumed to be constant across predictions.'
+			)
 			pars$mu <- pred
 			mle_theta <- MASS::glm.nb(calib_truth ~ offset(log(calib)))
-			pars$size <-  mle_theta$theta
-		}else if(dist %in% c('gamma','qgamma')){
-			message('The distribution is a gamma distribution. The rate (dispersion) parameter will be estimated from the calibration data. The dispersion parameter is assumed to be constant across predictions.')
+			pars$size <- mle_theta$theta
+		} else if (dist %in% c('gamma', 'qgamma')) {
+			message(
+				'The distribution is a gamma distribution. The rate (dispersion) parameter will be estimated from the calibration data. The dispersion parameter is assumed to be constant across predictions.'
+			)
 
-			dispersion <- summary(stats::glm(calib_truth ~ offset(log(calib)), family = stats::Gamma(link = 'log')))$dispersion
+			dispersion <- summary(stats::glm(
+				calib_truth ~ offset(log(calib)),
+				family = stats::Gamma(link = 'log')
+			))$dispersion
 
 			pars$shape <- pred / dispersion
 			pars$rate <- dispersion
-		}else if(dist %in% c('logis','qlogis')){
-			message('The distribution is a logistic distribution. The scale parameter will be estimated from the calibration data.')
+		} else if (dist %in% c('logis', 'qlogis')) {
+			message(
+				'The distribution is a logistic distribution. The scale parameter will be estimated from the calibration data.'
+			)
 			pars$location <- pred
 			var <- var((calib - calib_truth))
-			pars$scale <- sqrt(3* var/pi^2)
+			pars$scale <- sqrt(3 * var / pi^2)
+		} else if (dist %in% c('beta', 'qbeta')) {
+			if (
+				any(calib > 1) ||
+					any(calib < 0) ||
+					any(calib_truth > 1) ||
+					any(calib_truth < 0)
+			) {
+				stop(
+					'The beta distribution requires values between 0 and 1. Please ensure that calib is between 0 and 1.'
+				)
+			}
+			message(
+				'The distribution is a beta distribution. The precision parameter will be estimated from the calibration data. The precision parameter is assumed to be constant across predictions.'
+			)
 
-
-	}else if(dist %in% c('beta','qbeta')){
-		if(any(calib>1) || any(calib<0) || any(calib_truth>1) || any(calib_truth<0)){
-			stop('The beta distribution requires values between 0 and 1. Please ensure that calib is between 0 and 1.')
-		}
-		message('The distribution is a beta distribution. The precision parameter will be estimated from the calibration data. The precision parameter is assumed to be constant across predictions.')
-
-		var_hat <- var((calib - calib_truth))
-		phi_hat <- (mean(calib) * (1 - mean(calib))) / var_hat - 1
-		if(phi_hat <= 0){
-			stop('The estimated precision parameter is non-positive. Please check the calibration data.')
-		}
-		pars$shape1 <- pred * phi_hat
-		pars$shape2 <- (1 - pred) * phi_hat
-
-
-		}else{
-			stop('The distribution is not supported or not implemented yet. Please provide the parameters in pars.')
+			var_hat <- var((calib - calib_truth))
+			phi_hat <- (mean(calib) * (1 - mean(calib))) / var_hat - 1
+			if (phi_hat <= 0) {
+				stop(
+					'The estimated precision parameter is non-positive. Please check the calibration data.'
+				)
+			}
+			pars$shape1 <- pred * phi_hat
+			pars$shape2 <- (1 - pred) * phi_hat
+		} else {
+			stop(
+				'The distribution is not supported or not implemented yet. Please provide the parameters in pars.'
+			)
 		}
 	}
 
-	if(!is.function(dist)){
-		if(substring(dist, 1, 1) == 'q'){
+	if (!is.function(dist)) {
+		if (substring(dist, 1, 1) == 'q') {
 			dist <- match.fun(dist)
-		}else{
+		} else {
 			dist <- match.fun(paste0('q', dist))
 		}
 	}
 
+	lower_bounds <- do.call(dist, args = c(list(p = alpha / 2), pars))
+	upper_bounds <- do.call(dist, args = c(list(p = 1 - alpha / 2), pars))
 
-
-	lower_bounds <- do.call(dist, args = c(list(p = alpha/2), pars))
-	upper_bounds <- do.call(dist, args = c(list(p = 1-alpha/2), pars))
-
-
-	out <- dplyr::tibble(pred = pred,
-											 lower_bound = lower_bounds,
-											 upper_bound = upper_bounds)
+	out <- dplyr::tibble(
+		pred = pred,
+		lower_bound = lower_bounds,
+		upper_bound = upper_bounds
+	)
 
 	attr(out, 'dist') <- dist
-
 
 	return(out)
 }
