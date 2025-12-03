@@ -20,7 +20,6 @@
 #' The default is \code{"absolute_error"}.
 #' @param lower_bound Optional minimum value for the prediction intervals. If not provided, the minimum (true) value of the calibration partition will be used
 #' @param upper_bound Optional maximum value for the prediction intervals. If not provided, the maximum (true) value of the calibration partition will be used
-#' @param calibrate = FALSE Logical. If TRUE, the function will calibrate the predictions and intervals using the calibration set. Default is FALSE. See details for more information on calibration.
 #' @param distance_weighted_cp Logical. If \code{TRUE}, weighted conformal prediction is performed where the non-conformity scores are weighted based on the distance between calibration and prediction points in feature space. Default is \code{FALSE}.
 #'
 #' @param distance_features_calib A matrix, data frame, or numeric vector of features from which to compute distances when \code{distance_weighted_cp = TRUE}. This should contain the feature values for the calibration set. Must have the same number of rows as the calibration set. Can be the predicted values themselves, or any other features which give a meaningful distance measure.
@@ -37,9 +36,6 @@
 #'   \item \code{"reciprocal_linear"}: \eqn{ w(d) = 1/(1 + d) }
 #' }
 #' The default is \code{"gaussian_kernel"}. Distances are computed as the Euclidean distance between the calibration and prediction feature vectors.
-#' @param calibration_method The method to use for calibration. Can be "glm" or "isotonic". Default is "glm". Only used if calibrate = TRUE.
-#' @param calibration_family The family used for the calibration model. Default is "gaussian". Only used if calibrate = TRUE and calibration_method = "glm".
-#' @param calibration_transform Optional transformation to apply to the predictions before calibration. Default is NULL. Only used if calibrate = TRUE and calibration_method = "glm".
 #' @param resolution The minimum step size for the grid search. Default is 0.01. See details for more information.
 #' @param grid_size Alternative to `resolution`, the number of points to use in the grid search between the lower and upper bound. If provided, resolution will be ignored.
 #'
@@ -64,7 +60,6 @@
 #'
 #' The resolution of the grid search can be controlled by either the `resolution` argument, which sets the minimum step size, or the `grid_size` argument, which sets the number of grid points. For wide prediction spaces, the grid search may be computationally intensive. In such cases, increasing the `resolution` or reducing the `grid_size` may improve performance.
 #'
-#' Optionally, the predicted values can be calibrated before interval construction by setting `calibrate = TRUE`. In this case, the predictions are passed through `calibrate_predictions()` to adjust the predictions based on the calibration set. The calibration method can be specified using `calibration_method` and `calibration_family`, with "glm" being the default method. See \link[pintervals]{calibrate_predictions} for more information on calibration.
 #'
 #' The function returns a tibble with the original predictions and their corresponding lower and upper prediction interval bounds.
 #'
@@ -353,19 +348,6 @@ pinterval_mondrian = function(
 		dplyr::arrange(indices) %>%
 		dplyr::select(-indices) %>%
 		dplyr::mutate(class = pred_class)
-
-	if (calibrate) {
-		calibrated_preds <- calibrate_predictions(
-			pred = pred,
-			calib = calib,
-			calib_truth = calib_truth,
-			method = calibration_method,
-			family = calibration_family,
-			transform = calibration_transform
-		)
-		cp_intervals2 <- cp_intervals2 %>%
-			dplyr::mutate(pred = calibrated_preds)
-	}
 
 	return(cp_intervals2)
 }

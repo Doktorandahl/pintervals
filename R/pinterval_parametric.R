@@ -9,10 +9,6 @@
 #' @param pars List of named parameters for the distribution for each prediction. Not needed if calib is provided and the distribution is one of the default options. If a custom distribution function is provided, this list should contain the parameters needed for the quantile function, with names matching the corresponding arguments for the parameter names of the distribution function. See details for more information.
 #'
 #' @param alpha The confidence level for the prediction intervals. Must be a single numeric value between 0 and 1
-#' @param calibrate = FALSE Logical. If TRUE, the function will calibrate the predictions and intervals using the calibration set. Default is FALSE. See details for more information.
-#' @param calibration_method The method to use for calibration. Can be "glm" or "isotonic". Default is "glm". Only used if calibrate = TRUE.
-#' @param calibration_family The family used for the calibration model. Default is "gaussian". Only used if calibrate = TRUE and calibration_method = "glm".
-#' @param calibration_transform Optional transformation to apply to the predictions before calibration. Default is NULL. Only used if calibrate = TRUE and calibration_method = "glm".
 #'
 #' @details
 #' This function supports a wide range of distributions for constructing prediction intervals. Built-in support is provided for the following distributions: `"norm"`, `"lnorm"`, `"exp"`, `"pois"`, `"nbinom"`, `"chisq"`, `"gamma"`, `"logis"`, and `"beta"`. For each of these, parameters can be automatically estimated from a calibration set if not supplied directly via the `pars` argument.
@@ -24,11 +20,9 @@
 #' - **Negative binomial**: dispersion via `glm.nb()`
 #' - **Beta**: precision estimated from error variance
 #'
-#' If `pars` is supplied, it should be a list of named arguments corresponding to the distribution’s quantile function. Parameters may be scalars or vectors (one per prediction). When both `pars` and `calib` are provided, the values in `pars` are used, while `calib` is only used for optional prediction calibration (`calibrate = TRUE`).
+#' If `pars` is supplied, it should be a list of named arguments corresponding to the distribution’s quantile function. Parameters may be scalars or vectors (one per prediction). When both `pars` and `calib` are provided, the values in `pars` are used.
 #'
 #' Users may also specify a custom distribution by passing a quantile function directly (e.g., a function with the signature `function(p, ...)`) as the `dist` argument, in which case `pars` must be provided explicitly.
-#'
-#' Optionally, the predicted values can be calibrated in conjuncture with interval construction by setting `calibrate = TRUE`. In this case, the predictions are passed through `calibrate_predictions()` to adjust the predictions based on the calibration set. The calibration method can be specified using `calibration_method` and `calibration_family`, with "glm" being the default method. See \link[pintervals]{calibrate_predictions} for more information on calibration.
 #'
 #' @return A tibble with the predicted values and the lower and upper bounds of the prediction intervals
 #' @export
@@ -103,11 +97,7 @@ pinterval_parametric <- function(
 		'beta'
 	),
 	pars = list(),
-	alpha = 0.1,
-	calibrate = FALSE,
-	calibration_method = c('glm', 'isotonic'),
-	calibration_family = 'gaussian',
-	calibration_transform = NULL
+	alpha = 0.1
 ) {
 	if (!is.numeric(pred)) {
 		stop('pred must be a single number or a numeric vector')
@@ -143,46 +133,14 @@ pinterval_parametric <- function(
 		)
 	}
 
-	if (length(pars) != 0 && !is.null(calib) && !calibrate) {
-		warning(
-			'pars is provided, but calibrate is set to FALSE. The parameters will be used as provided and not estimated from the calibration data.'
-		)
-	}
-
 	if (length(pars) != 0 && !is.null(calib)) {
 		warning(
 			'pars is provided, but calib is also provided. The provided parameters will be used for the prediction intervals and calib for the calibration of the predictions.'
 		)
 	}
 
-	if (calibrate) {
-		pred <- calibrate_predictions(
-			pred = pred,
-			calib = calib,
-			calib_truth = calib_truth,
-			method = calibration_method,
-			family = calibration_family,
-			transform = calibration_transform
-		)
-	}
-
 	if (length(pars) == 0) {
-		if (
-			dist %in%
-				c('chisq', 'qchisq', 'pois', 'qpois', 'exp', 'qexp') &&
-				!calibrate
-		) {
-			warning(
-				'The distribution is a one-parameter distribution, and calibrate is set to FALSE. No parameters will be estimated from the calibration data.'
-			)
-			if (dist %in% c('chisq', 'qchisq')) {
-				pars$df <- pred
-			} else if (dist %in% c('pois', 'qpois')) {
-				pars$lambda <- pred
-			} else if (dist %in% c('exp', 'qexp')) {
-				pars$rate <- 1 / pred
-			}
-		} else if (dist %in% c('norm', 'qnorm')) {
+		if (dist %in% c('norm', 'qnorm')) {
 			message(
 				'The distribution is a normal distribution. The standard deviation parameters will be estimated from the calibration data.'
 			)

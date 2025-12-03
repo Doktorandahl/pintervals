@@ -24,10 +24,6 @@
 #'   \item \code{"reciprocal_linear"}: \eqn{ w(d) = 1/(1 + d) }
 #' }
 #' The default is \code{"gaussian_kernel"}. Distances are computed as the Euclidean distance between the calibration and prediction feature vectors.
-#' @param calibrate = FALSE Logical. If TRUE, the function will calibrate the predictions and intervals using the calibration set. Default is FALSE. See details for more information.
-#' @param calibration_method The method to use for calibration. Can be "glm" or "isotonic". Default is "glm". Only used if calibrate = TRUE.
-#' @param calibration_family The family used for the calibration model. Default is "gaussian". Only used if calibrate = TRUE and calibration_method = "glm".
-#' @param calibration_transform Optional transformation to apply to the predictions before calibration. Default is NULL. Only used if calibrate = TRUE and calibration_method = "glm".
 #'
 #' #' @details
 #' This function estimates prediction intervals using bootstrapped prediction errors derived from a calibration set. It supports both standard and distance-weighted bootstrapping. The calibration set must consist of predicted values and corresponding true values, either provided as separate vectors or as a two-column tibble or matrix. Alternatively, users may provide a vector of precomputed prediction errors if model predictions and truths are already processed.
@@ -40,7 +36,6 @@
 #'
 #' The number of bootstrap samples is controlled via the `n_bootstraps` parameter. For computational efficiency, this can be reduced at the cost of interval precision.
 #'
-#' Optionally, the predicted values can be calibrated in conjuncture with interval construction by setting `calibrate = TRUE`. In this case, the predictions are passed through `calibrate_predictions()` to adjust the predictions based on the calibration set. The calibration method can be specified using `calibration_method` and `calibration_family`, with "glm" being the default method. See \link[pintervals]{calibrate_predictions} for more information on calibration.
 #'
 #' @return A tibble with the predicted values, lower bounds, and upper bounds of the prediction intervals
 #' @export
@@ -95,11 +90,7 @@ pinterval_bootstrap <- function(
 		'caucy_kernel',
 		'logistic',
 		'reciprocal_linear'
-	),
-	calibrate = FALSE,
-	calibration_method = c('glm', 'isotonic'),
-	calibration_family = 'gaussian',
-	calibration_transform = NULL
+	)
 ) {
 	i <- NA
 	if (!is.numeric(pred)) {
@@ -113,12 +104,6 @@ pinterval_bootstrap <- function(
 	if (!is.numeric(calib) && ncol(calib) != 2) {
 		stop(
 			'calib must be a numeric vector or a 2 column tibble or matrix with the first column being the predicted values and the second column being the truth values'
-		)
-	}
-
-	if (calibrate && distance_weighted_bootstrap) {
-		warning(
-			'calibrate is TRUE, but dw_bootstrap is also TRUE. Calibration will be performed after bootstrapping, and the corresponding prediction intervals will be adjusted accordingly.'
 		)
 	}
 
@@ -234,32 +219,6 @@ pinterval_bootstrap <- function(
 		)
 
 	boot_set <- dplyr::bind_rows(boot_set)
-
-	if (calibrate) {
-		calibration_method <- match.arg(calibration_method, c('glm', 'isotonic'))
-		if (calibration_method == 'glm') {
-			calibrated_predictions <- calibrate_predictions(
-				pred,
-				calib,
-				calib_truth,
-				method = calibration_method,
-				family = calibration_family,
-				transform = calibration_transform
-			)
-		} else if (calibration_method == 'isotonic') {
-			calibrated_predictions <- calibrate_predictions(
-				pred,
-				calib,
-				calib_truth,
-				method = calibration_method
-			)
-		}
-
-		calibrated_diffs <- pred - calibrated_predictions
-		boot_set$lower_bound <- boot_set$lower_bound + calibrated_diffs
-		boot_set$upper_bound <- boot_set$upper_bound + calibrated_diffs
-		boot_set$pred <- calibrated_predictions
-	}
 
 	return(boot_set)
 }

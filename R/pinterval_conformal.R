@@ -35,10 +35,6 @@
 #'   \item \code{"reciprocal_linear"}: \eqn{ w(d) = 1/(1 + d) }
 #' }
 #' The default is \code{"gaussian_kernel"}. Distances are computed as the Euclidean distance between the calibration and prediction feature vectors.
-#' @param calibrate = FALSE Logical. If TRUE, the function will calibrate the predictions and intervals using the calibration set. Default is FALSE. See details for more information on calibration.
-#' @param calibration_method The method to use for calibration. Can be "glm" or "isotonic". Default is "glm". Only used if calibrate = TRUE.
-#' @param calibration_family The family used for the calibration model. Default is "gaussian". Only used if calibrate = TRUE and calibration_method = "glm".
-#' @param calibration_transform Optional transformation to apply to the predictions before calibration. Default is NULL. Only used if calibrate = TRUE and calibration_method = "glm".
 #' @param resolution The minimum step size for the grid search. Default is 0.01. See details for more information.
 #' @param grid_size Alternative to `resolution`, the number of points to use in the grid search between the lower and upper bound. If provided, resolution will be ignored.
 #'
@@ -59,7 +55,6 @@
 #'
 #' The resolution of the grid search can be controlled by either the `resolution` argument, which sets the minimum step size, or the `grid_size` argument, which sets the number of grid points. For wide prediction spaces, the grid search may be computationally intensive. In such cases, increasing the `resolution` or reducing the `grid_size` may improve performance.
 #'
-#' Optionally, the predicted values can be calibrated before interval construction by setting `calibrate = TRUE`. In this case, the predictions are passed through `calibrate_predictions()` to adjust the predictions based on the calibration set. The calibration method can be specified using `calibration_method` and `calibration_family`, with "glm" being the default method. See \link[pintervals]{calibrate_predictions} for more information on calibration.
 #'
 #' The function returns a tibble with the predicted values and their corresponding lower and upper prediction interval bounds.
 #'
@@ -121,10 +116,6 @@ pinterval_conformal <- function(
 		'logistic',
 		'reciprocal_linear'
 	),
-	calibrate = FALSE,
-	calibration_method = 'glm',
-	calibration_family = 'gaussian',
-	calibration_transform = NULL,
 	calib_truth = NULL,
 	resolution = 0.01,
 	grid_size = NULL
@@ -285,19 +276,6 @@ pinterval_conformal <- function(
 		normalize_distance = normalize_distance,
 		weight_function = weight_function
 	)
-
-	if (calibrate) {
-		calibrated_preds <- calibrate_predictions(
-			pred = pred,
-			calib = calib,
-			calib_truth = calib_truth,
-			method = calibration_method,
-			family = calibration_family,
-			transform = calibration_transform
-		)
-		cp_set <- cp_set %>%
-			dplyr::mutate(pred = calibrated_preds)
-	}
 
 	return(cp_set)
 }
