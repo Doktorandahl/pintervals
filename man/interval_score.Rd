@@ -4,7 +4,15 @@
 \alias{interval_score}
 \title{Mean interval score (MIS) for prediction intervals}
 \usage{
-interval_score(truth, lower_bound, upper_bound, alpha, na.rm = FALSE)
+interval_score(
+  truth,
+  lower_bound = NULL,
+  upper_bound = NULL,
+  intervals = NULL,
+  return_vector = FALSE,
+  alpha,
+  na.rm = FALSE
+)
 }
 \arguments{
 \item{truth}{A numeric vector of true outcome values.}

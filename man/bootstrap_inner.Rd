@@ -16,7 +16,8 @@ bootstrap_inner(
   distance_weighted_bootstrap = FALSE,
   distance_features_calib = NULL,
   distance_features_pred = NULL,
-  normalize_distance = TRUE,
+  distance_type = c("mahalanobis", "euclidean"),
+  normalize_distance = c("minmax", "sd", "none"),
   weight_function = gauss_kern
 )
 }
@@ -43,7 +44,9 @@ bootstrap_inner(
 
 \item{distance_features_pred}{a matrix of features for the prediction partition. Used when distance_weighted_bootstrap is TRUE}
 
-\item{normalize_distance}{logical. If TRUE, the distances will be normalized to the range [0,1]}
+\item{distance_type}{The type of distance metric to use when computing distances between calibration and prediction points. Options are 'mahalanobis' (default) and 'euclidean'.}
+
+\item{normalize_distance}{Either "none", "minmax", or "sd". Indicates how to normalize the distances when distance_weighted_bootstrap is TRUE}
 
 \item{weight_function}{a function to use for weighting the distances. Can be 'gaussian_kernel', 'caucy_kernel', 'logistic', or 'reciprocal_linear'. Default is 'gaussian_kernel'}
 }

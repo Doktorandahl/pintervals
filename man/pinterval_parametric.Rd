@@ -10,17 +10,13 @@ pinterval_parametric(
   calib_truth = NULL,
   dist = c("norm", "lnorm", "exp", "pois", "nbinom", "gamma", "chisq", "logis", "beta"),
   pars = list(),
-  alpha = 0.1,
-  calibrate = FALSE,
-  calibration_method = c("glm", "isotonic"),
-  calibration_family = "gaussian",
-  calibration_transform = NULL
+  alpha = 0.1
 )
 }
 \arguments{
 \item{pred}{Vector of predicted values}
 
-\item{calib}{A numeric vector of predicted values in the calibration partition or a 2 column tibble or matrix with the first column being the predicted values and the second column being the truth values}
+\item{calib}{A numeric vector of predicted values in the calibration partition, or a 2 column tibble or matrix with the first column being the predicted values and the second column being the truth values. If calib is a numeric vector, calib_truth must be provided.}
 
 \item{calib_truth}{A numeric vector of true values in the calibration partition. Only required if calib is a numeric vector}
 
@@ -29,14 +25,6 @@ pinterval_parametric(
 \item{pars}{List of named parameters for the distribution for each prediction. Not needed if calib is provided and the distribution is one of the default options. If a custom distribution function is provided, this list should contain the parameters needed for the quantile function, with names matching the corresponding arguments for the parameter names of the distribution function. See details for more information.}
 
 \item{alpha}{The confidence level for the prediction intervals. Must be a single numeric value between 0 and 1}
-
-\item{calibrate}{= FALSE Logical. If TRUE, the function will calibrate the predictions and intervals using the calibration set. Default is FALSE. See details for more information.}
-
-\item{calibration_method}{The method to use for calibration. Can be "glm" or "isotonic". Default is "glm". Only used if calibrate = TRUE.}
-
-\item{calibration_family}{The family used for the calibration model. Default is "gaussian". Only used if calibrate = TRUE and calibration_method = "glm".}
-
-\item{calibration_transform}{Optional transformation to apply to the predictions before calibration. Default is NULL. Only used if calibrate = TRUE and calibration_method = "glm".}
 }
 \value{
 A tibble with the predicted values and the lower and upper bounds of the prediction intervals
@@ -54,11 +42,9 @@ The calibration set (`calib` and `calib_truth`) is used to estimate error disper
 - **Negative binomial**: dispersion via `glm.nb()`
 - **Beta**: precision estimated from error variance
 
-If `pars` is supplied, it should be a list of named arguments corresponding to the distribution’s quantile function. Parameters may be scalars or vectors (one per prediction). When both `pars` and `calib` are provided, the values in `pars` are used, while `calib` is only used for optional prediction calibration (`calibrate = TRUE`).
+If `pars` is supplied, it should be a list of named arguments corresponding to the distribution’s quantile function. Parameters may be scalars or vectors (one per prediction). When both `pars` and `calib` are provided, the values in `pars` are used.
 
 Users may also specify a custom distribution by passing a quantile function directly (e.g., a function with the signature `function(p, ...)`) as the `dist` argument, in which case `pars` must be provided explicitly.
-
-Optionally, the predicted values can be calibrated in conjuncture with interval construction by setting `calibrate = TRUE`. In this case, the predictions are passed through `calibrate_predictions()` to adjust the predictions based on the calibration set. The calibration method can be specified using `calibration_method` and `calibration_family`, with "glm" being the default method. See \link[pintervals]{calibrate_predictions} for more information on calibration.
 }
 \examples{
 library(dplyr)

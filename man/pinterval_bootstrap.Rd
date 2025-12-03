@@ -14,18 +14,15 @@ pinterval_bootstrap(
   distance_weighted_bootstrap = FALSE,
   distance_features_calib = NULL,
   distance_features_pred = NULL,
+  distance_type = c("mahalanobis", "euclidean"),
   normalize_distance = TRUE,
-  weight_function = c("gaussian_kernel", "caucy_kernel", "logistic", "reciprocal_linear"),
-  calibrate = FALSE,
-  calibration_method = c("glm", "isotonic"),
-  calibration_family = "gaussian",
-  calibration_transform = NULL
+  weight_function = c("gaussian_kernel", "caucy_kernel", "logistic", "reciprocal_linear")
 )
 }
 \arguments{
 \item{pred}{Vector of predicted values}
 
-\item{calib}{A numeric vector of predicted values in the calibration partition or a 2 column tibble or matrix with the first column being the predicted values and the second column being the truth values}
+\item{calib}{A numeric vector of predicted values in the calibration partition, or a 2 column tibble or matrix with the first column being the predicted values and the second column being the truth values. If calib is a numeric vector, calib_truth must be provided.}
 
 \item{calib_truth}{A numeric vector of true values in the calibration partition. Only required if calib is a numeric vector}
 
@@ -41,7 +38,9 @@ pinterval_bootstrap(
 
 \item{distance_features_pred}{A matrix, data frame, or numeric vector of feature values for the prediction set. Must be the same features as specified in \code{distance_features_calib}. Required if \code{distance_weighted_cp = TRUE}.}
 
-\item{normalize_distance}{Logical. If \code{TRUE}, distances are normalized to the [0, 1] interval before applying the weight function. This is typically recommended to ensure consistent scaling across features. Default is \code{TRUE}.}
+\item{distance_type}{The type of distance metric to use when computing distances between calibration and prediction points. Options are 'mahalanobis' (default) and 'euclidean'.}
+
+\item{normalize_distance}{Either 'minmax', 'sd', or 'none'. Indicates if and how to normalize the distances when distance_weighted_cp is TRUE. Normalization helps ensure that distances are on a comparable scale across features. Default is 'none'.}
 
 \item{weight_function}{A character string specifying the weighting kernel to use for distance-weighted conformal prediction. Options are:
 \itemize{
@@ -51,33 +50,23 @@ pinterval_bootstrap(
   \item \code{"reciprocal_linear"}: \eqn{ w(d) = 1/(1 + d) }
 }
 The default is \code{"gaussian_kernel"}. Distances are computed as the Euclidean distance between the calibration and prediction feature vectors.}
-
-\item{calibrate}{= FALSE Logical. If TRUE, the function will calibrate the predictions and intervals using the calibration set. Default is FALSE. See details for more information.}
-
-\item{calibration_method}{The method to use for calibration. Can be "glm" or "isotonic". Default is "glm". Only used if calibrate = TRUE.}
-
-\item{calibration_family}{The family used for the calibration model. Default is "gaussian". Only used if calibrate = TRUE and calibration_method = "glm".}
-
-\item{calibration_transform}{Optional transformation to apply to the predictions before calibration. Default is NULL. Only used if calibrate = TRUE and calibration_method = "glm".
-
-#' @details
-This function estimates prediction intervals using bootstrapped prediction errors derived from a calibration set. It supports both standard and distance-weighted bootstrapping. The calibration set must consist of predicted values and corresponding true values, either provided as separate vectors or as a two-column tibble or matrix. Alternatively, users may provide a vector of precomputed prediction errors if model predictions and truths are already processed.
-
-Two types of error can be used for bootstrapping:
-- `"raw"`: bootstrapping is performed on the raw signed prediction errors (truth - prediction), allowing for asymmetric prediction intervals.
-- `"absolute"`: bootstrapping is done on the absolute errors, and random signs are applied when constructing intervals. This results in (approximately) symmetric intervals around the prediction.
-
-Distance-weighted bootstrapping (`dw_bootstrap = TRUE`) can be used to give more weight to calibration errors closer to each test prediction. Distances are calculated using the specified `distance_function`, which defaults to the absolute difference. Distance weighted bootstrapping assigns a probability of selection for each calibration error based on its distance to the predicted value, computed as \eqn{1/(1 + distance)}. The distance function can be a custom function or a character string that matches a function, which takes two arguments: a single predicted value and a vector of calibration values, returning a numeric vector of distances.
-
-The number of bootstrap samples is controlled via the `n_bootstraps` parameter. For computational efficiency, this can be reduced at the cost of interval precision.
-
-Optionally, the predicted values can be calibrated in conjuncture with interval construction by setting `calibrate = TRUE`. In this case, the predictions are passed through `calibrate_predictions()` to adjust the predictions based on the calibration set. The calibration method can be specified using `calibration_method` and `calibration_family`, with "glm" being the default method. See \link[pintervals]{calibrate_predictions} for more information on calibration.}
 }
 \value{
 A tibble with the predicted values, lower bounds, and upper bounds of the prediction intervals
 }
 \description{
 This function computes bootstrapped prediction intervals with a confidence level of 1-alpha for a vector of (continuous) predicted values using bootstrapped prediction errors. The prediction errors to bootstrap from are computed using either a calibration set with predicted and true values or a set of pre-computed prediction errors from a calibration dataset or other data which the model was not trained on (e.g. OOB errors from a model using bagging). The function returns a tibble containing the predicted values along with the lower and upper bounds of the prediction intervals.
+}
+\details{
+This function estimates prediction intervals using bootstrapped prediction errors derived from a calibration set. It supports both standard and distance-weighted bootstrapping. The calibration set must consist of predicted values and corresponding true values, either provided as separate vectors or as a two-column tibble or matrix. Alternatively, users may provide a vector of precomputed prediction errors if model predictions and truths are already processed.
+
+Two types of error can be used for bootstrapping:
+- `"raw"`: bootstrapping is performed on the raw signed prediction errors (truth - prediction), allowing for asymmetric prediction intervals.
+- `"absolute"`: bootstrapping is done on the absolute errors, and random signs are applied when constructing intervals. This results in (approximately) symmetric intervals around the prediction.
+
+Distance-weighted bootstrapping (`dw_bootstrap = TRUE`) can be used to give more weight to calibration errors closer to each test prediction. Distances are computed between the feature matrices or vectors supplied via `distance_features_calib` and `distance_features_pred`. These distances are then transformed into weights using the selected kernel in `weight_function`, with rapidly decaying kernels (e.g., Gaussian) emphasizing strong locality and slower decays (e.g., reciprocal or Cauchy) providing smoother influence. Distances can be geographic coordinates, predicted values, or any other relevant features that capture similarity in the context of the prediction task. The distance metric is specified via `distance_type`, with options for Mahalanobis or Euclidean distance. The default is Mahalanobis distance, which accounts for correlations between features. Normalization of distances can be applied using the `normalize_distance` parameter. Normalization is primarily useful for euclidean distances to ensure that features on different scales do not disproportionately influence the distance calculations.
+
+The number of bootstrap samples is controlled via the `n_bootstraps` parameter. For computational efficiency, this can be reduced at the cost of interval precision.
 }
 \examples{
 library(dplyr)

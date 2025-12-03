@@ -2,6 +2,10 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 row_euclidean_distance <- function(X, v) {
-    .Call('_pintervals_row_euclidean_distance', PACKAGE = 'pintervals', X, v)
+    .Call(`_pintervals_row_euclidean_distance`, X, v)
+}
+
+row_mahalanobis_distance <- function(X, v, S_inv) {
+    .Call(`_pintervals_row_mahalanobis_distance`, X, v, S_inv)
 }
 

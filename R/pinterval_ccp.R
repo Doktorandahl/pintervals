@@ -6,23 +6,8 @@
 #' The method supports additional features such as prediction calibration, distance-weighted conformal scores, and clustering optimization via internal validity measures (e.g., Calinski-Harabasz index or minimum cluster size heuristics).
 #'
 #'
-#' @param pred Vector of predicted values or a 2 column tibble or matrix with the first column being the predicted values and the second column being the Mondrian class labels. If pred is a numeric vector, pred_class must be provided.
-#' @param pred_class A vector of class identifiers for the predicted values. This is used for sorting the predictions into their corresponding clusters.
-#' @param calib A numeric vector of predicted values in the calibration partition or a 3 column tibble or matrix with the first column being the predicted values and the second column being the truth values and the third column being the Mondrian class labels. If calib is a numeric vector, calib_truth and calib_class must be provided.
-#' @param calib_truth A numeric vector of true values in the calibration partition
-#' @param calib_class A vector of class identifiers for the calibration set which is used for clustering the nonconformity scores. If calib is a tibble or matrix, this can be extracted from the third column.
-#' @param alpha The confidence level for the prediction intervals. Must be a single numeric value between 0 and 1
-#' @param ncs_type A string specifying the type of nonconformity score to use. Available options are:
-#' \itemize{
-#'   \item \code{"absolute_error"}: \eqn{|y - \hat{y}|}
-#'   \item \code{"relative_error"}: \eqn{|y - \hat{y}| / \hat{y}}
-#'   \item \code{"zero_adjusted_relative_error"}: \eqn{|y - \hat{y}| / (\hat{y} + 1)}
-#'   \item \code{"heterogeneous_error"}: \eqn{|y - \hat{y}| / \sigma_{\hat{y}}} absolute error divided by a measure of heteroskedasticity, computed as the predicted value from a linear model of the absolute error on the predicted values
-#'   \item \code{"raw_error"}: the signed error \eqn{y - \hat{y}}
-#' }
-#' The default is \code{"absolute_error"}.
-#' @param lower_bound Optional minimum value for the prediction intervals. If not provided, the minimum (true) value of the calibration partition will be used
-#' @param upper_bound Optional maximum value for the prediction intervals. If not provided, the maximum (true) value of the calibration partition will be used
+#' @inheritParams pinterval_conformal
+#' @inheritParams pinterval_mondrian
 #' @param n_clusters Number of clusters to use when combining Mondrian classes. Required if \code{optimize_n_clusters = FALSE}.
 #' @param cluster_method Clustering method used to group Mondrian classes. Options are \code{"kmeans"} or \code{"ks"} (Kolmogorov-Smirnov). Default is \code{"kmeans"}.
 #' @param cluster_train_fraction Fraction of the calibration data used to estimate nonconformity scores and compute clustering. Default is 1 (use all).
@@ -32,46 +17,19 @@
 #' @param min_n_clusters Minimum number of clusters to consider when optimizing.
 #' @param max_n_clusters Maximum number of clusters to consider. If \code{NULL}, the upper limit is set to the number of unique Mondrian classes minus 1.
 #'
-#' @param distance_weighted_cp Logical. If \code{TRUE}, weighted conformal prediction is performed where the non-conformity scores are weighted based on the distance between calibration and prediction points in feature space. Default is \code{FALSE}.
-#'
-#' @param distance_features_calib A matrix, data frame, or numeric vector of features from which to compute distances when \code{distance_weighted_cp = TRUE}. This should contain the feature values for the calibration set. Must have the same number of rows as the calibration set. Can be the predicted values themselves, or any other features which give a meaningful distance measure.
-#' @param distance_features_pred A matrix, data frame, or numeric vector of feature values for the prediction set. Must be the same features as specified in \code{distance_features_calib}. Required if \code{distance_weighted_cp = TRUE}.
-#' @param distance_type The type of distance metric to use when computing distances between calibration and prediction points. Options are 'mahalanobis' (default) and 'euclidean'.
-#'
-#' @param normalize_distance Either 'minmax', 'sd', or 'none'. Indicates if and how to normalize the distances when distance_weighted_cp is TRUE. Normalization helps ensure that distances are on a comparable scale across features. Default is 'minmax'.
-#'
-#' @param weight_function A character string specifying the weighting kernel to use for distance-weighted conformal prediction. Options are:
-#' \itemize{
-#'   \item \code{"gaussian_kernel"}: \eqn{ w(d) = e^{-d^2} }
-#'   \item \code{"caucy_kernel"}: \eqn{ w(d) = 1/(1 + d^2) }
-#'   \item \code{"logistic"}: \eqn{ w(d) = 1//(1 + e^{d}) }
-#'   \item \code{"reciprocal_linear"}: \eqn{ w(d) = 1/(1 + d) }
-#' }
-#' The default is \code{"gaussian_kernel"}. Distances are computed as the Euclidean distance between the calibration and prediction feature vectors.
-#'
-#' @param grid_size The number of points to use in the grid search between the lower and upper bound. Default is 10,000. Lo
-#' @param resolution The minimum step size for the grid search. Default is 0.01. See details for more information.
-#'
-##' @return A tibble with predicted values, lower and upper prediction interval bounds, class labels, and assigned cluster labels. Attributes include clustering diagnostics (e.g., cluster assignments, coverage gaps, internal validity scores).
+#' @return A tibble with predicted values, lower and upper prediction interval bounds, class labels, and assigned cluster labels. Attributes include clustering diagnostics (e.g., cluster assignments, coverage gaps, internal validity scores).
 #'
 #' @details
-#' This function implements a clustered conformal prediction approach by aggregating similar Mondrian classes into clusters based on the distribution of their nonconformity scores. Each cluster is then treated as a stratum for standard inductive conformal prediction. This improves robustness and efficiency in settings with many small or noisy groups, while still enabling conditional validity.
+#' `pinterval_ccp()` builds on [pinterval_mondrian()] by introducing a
+#' clustered conformal prediction framework. Instead of requiring a separate calibration distribution for every Mondrian class, which may lead to unstable or noisy intervals when there are many small groups, the method groups similar Mondrian classes into clusters with similar nonconformity score distributions. Classes with similar prediction-error behavior are assigned to the same cluster. Each resulting cluster is then treated as a stratum for standard inductive conformal prediction.
 #'
-#' #' Non-conformity scores are calculated using the specified `ncs_type`, which determines how the prediction error is measured. Available options include:
+#' Users may specify the number of clusters directly using the `n_clusters` argument or optimize the number of clusters using the Calinski–Harabasz index or minimum cluster size heuristics.
 #'
-#' - `"absolute_error"`: the absolute difference between predicted and true values.
-#' - `"relative_error"`: the absolute error divided by the true value.
-#' - `"za_relative_error"`: zero-adjusted relative error, which replaces small or zero true values with a small constant to avoid division by zero.
-#' - `"heterogeneous_error"`: absolute error scaled by a linear model of prediction error magnitude as a function of the predicted value.
-#' - `"raw_error"`: the signed difference between predicted and true values.
+#' Clustering can be computed using all calibration data or a subsample defined by `cluster_train_fraction`.
 #'
-#' These options provide flexibility to adapt to different patterns of prediction error across the outcome space.
+#' Clustering is based on either k-means or Kolmogorov-Smirnov distance between nonconformity score distributions of the Mondrian classes, selected via the `cluster_method` argument.
 #'
-#' Clustering is performed using the nonconformity scores of calibration data, optionally on a subsample defined by \code{cluster_train_fraction}. Users can specify the number of clusters directly, or let the function choose the optimal number based on internal criteria.
-#'
-#' If distance-weighted conformal prediction is enabled, calibration examples are weighted based on their similarity to test points, with several kernel functions available.
-#'
-#'
+#' For a detailed description of non-conformity scores, distance-weighting, and the general conformal  prediction framework, see [pinterval_conformal()], and for a description of Mondrian conformal prediction, see [pinterval_mondrian()].
 #'
 #' @seealso \code{\link[pintervals]{pinterval_conformal}}, \code{\link[pintervals]{pinterval_mondrian}}
 #'
@@ -146,6 +104,8 @@ pinterval_ccp = function(
 		'heterogeneous_error',
 		'raw_error'
 	),
+	grid_size = 10000,
+	resolution = NULL,
 	n_clusters = NULL,
 	cluster_method = c('kmeans', 'ks'),
 	cluster_train_fraction = 1,
@@ -164,9 +124,7 @@ pinterval_ccp = function(
 		'caucy_kernel',
 		'logistic',
 		'reciprocal_linear'
-	),
-	resolution = 0.01,
-	grid_size = NULL
+	)
 ) {
 	i <- NA
 

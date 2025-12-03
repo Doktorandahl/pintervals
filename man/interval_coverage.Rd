@@ -4,7 +4,14 @@
 \alias{interval_coverage}
 \title{Empirical coverage of prediction intervals}
 \usage{
-interval_coverage(truth, lower_bound, upper_bound, na.rm = FALSE)
+interval_coverage(
+  truth,
+  lower_bound = NULL,
+  upper_bound = NULL,
+  intervals = NULL,
+  return_vector = FALSE,
+  na.rm = FALSE
+)
 }
 \arguments{
 \item{truth}{A numeric vector of true outcome values.}

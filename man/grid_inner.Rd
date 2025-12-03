@@ -14,6 +14,7 @@ grid_inner(
   distance_weighted_cp,
   distance_features_calib,
   distance_features_pred,
+  distance_type,
   normalize_distance,
   weight_function
 )
@@ -37,7 +38,7 @@ grid_inner(
 
 \item{distance_features_pred}{a matrix of features for the prediction partition. Used when distance_weighted_cp is TRUE}
 
-\item{normalize_distance}{logical. If TRUE, the distances will be normalized to the range [0,1]}
+\item{normalize_distance}{Either 'minmax', 'sd', or 'none'. Indicates how to normalize the distances when distance_weighted_cp is TRUE}
 
 \item{weight_function}{a function to use for weighting the distances. Can be 'gaussian_kernel', 'caucy_kernel', 'logistic', or 'reciprocal_linear'. Default is 'gaussian_kernel'}
 }

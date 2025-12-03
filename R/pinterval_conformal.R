@@ -16,16 +16,19 @@
 #'   \item \code{"raw_error"}: the signed error \eqn{y - \hat{y}}
 #' }
 #' The default is \code{"absolute_error"}.
-#' @param lower_bound Optional minimum value for the prediction intervals. If not provided, the minimum (true) value of the calibration partition will be used.
-#' @param upper_bound Optional maximum value for the prediction intervals. If not provided, the maximum (true) value of the calibration partition will be used.
-#' @param distance_weighted_cp Logical. If \code{TRUE}, weighted conformal prediction is performed where the non-conformity scores are weighted based on the distance between calibration and prediction points in feature space. Default is \code{FALSE}.
+#' @param grid_size The number of points to use in the grid search between the lower and upper bound. Default is 10,000. A larger grid size increases the resolution of the prediction intervals but also increases computation time.
+#' @param resolution Alternatively to grid_size. The minimum step size between grid points. Useful if the a specific resolution is desired. Default is NULL.
+#'
+#' @param lower_bound Optional minimum value for the prediction intervals. If not provided, the minimum (true) value of the calibration partition will be used. Primarily useful when the possible outcome values are outside the range of values observed in the calibration set. If not provided, the minimum (true) value of the calibration partition will be used.
+#' @param upper_bound Optional maximum value for the prediction intervals. If not provided, the maximum (true) value of the calibration partition will be used. Primarily useful when the possible outcome values are outside the range of values observed in the calibration set. If not provided, the maximum (true) value of the calibration partition will be used.
+#' @param distance_weighted_cp Logical. If \code{TRUE}, weighted conformal prediction is performed where the non-conformity scores are weighted based on the distance between calibration and prediction points in feature space. Default is \code{FALSE}. See details for more information.
 #'
 #' @param distance_features_calib A matrix, data frame, or numeric vector of features from which to compute distances when \code{distance_weighted_cp = TRUE}. This should contain the feature values for the calibration set. Must have the same number of rows as the calibration set. Can be the predicted values themselves, or any other features which give a meaningful distance measure.
 #' @param distance_features_pred A matrix, data frame, or numeric vector of feature values for the prediction set. Must be the same features as specified in \code{distance_features_calib}. Required if \code{distance_weighted_cp = TRUE}.
 #'
 #' @param distance_type The type of distance metric to use when computing distances between calibration and prediction points. Options are 'mahalanobis' (default) and 'euclidean'.
 #'
-#' @param normalize_distance Either 'minmax', 'sd', or 'none'. Indicates if and how to normalize the distances when distance_weighted_cp is TRUE. Normalization helps ensure that distances are on a comparable scale across features. Default is 'minmax'.
+#' @param normalize_distance Either 'minmax', 'sd', or 'none'. Indicates if and how to normalize the distances when distance_weighted_cp is TRUE. Normalization helps ensure that distances are on a comparable scale across features. Default is 'none'.
 #'
 #' @param weight_function A character string specifying the weighting kernel to use for distance-weighted conformal prediction. Options are:
 #' \itemize{
@@ -35,9 +38,7 @@
 #'   \item \code{"reciprocal_linear"}: \eqn{ w(d) = 1/(1 + d) }
 #' }
 #' The default is \code{"gaussian_kernel"}. Distances are computed as the Euclidean distance between the calibration and prediction feature vectors.
-#' @param resolution The minimum step size for the grid search. Default is 0.01. See details for more information.
-#' @param grid_size Alternative to `resolution`, the number of points to use in the grid search between the lower and upper bound. If provided, resolution will be ignored.
-#'
+
 #' @details
 #' This function computes prediction intervals using inductive conformal prediction. The calibration set must include predicted values and true values. These can be provided either as separate vectors (`calib`and `calib_truth`) or as a two-column tibble or matrix where the first column contains the predicted values and the second column contains the true values. If `calib` is a numeric vector, `calib_truth` must also be provided.
 #'
@@ -55,11 +56,15 @@
 #'
 #' The resolution of the grid search can be controlled by either the `resolution` argument, which sets the minimum step size, or the `grid_size` argument, which sets the number of grid points. For wide prediction spaces, the grid search may be computationally intensive. In such cases, increasing the `resolution` or reducing the `grid_size` may improve performance.
 #'
+#' When `distance_weighted_cp = TRUE`, the function applies distance-weighted conformal prediction, which adjusts the influence of calibration non-conformity scores based on how similar each calibration point is to the target prediction.  This approach preserves the distribution-free nature of conformal prediction while allowing intervals to adapt to local patterns, often yielding tighter and more responsive prediction sets in heterogeneous data environments.
 #'
-#' The function returns a tibble with the predicted values and their corresponding lower and upper prediction interval bounds.
+#' Distances are computed between the feature matrices or vectors supplied via `distance_features_calib` and `distance_features_pred`. These distances are then transformed into weights using the selected kernel in `weight_function`, with rapidly decaying kernels (e.g., Gaussian) emphasizing strong locality and slower decays (e.g., reciprocal or Cauchy) providing smoother influence. Distances can be geographic coordinates, predicted values, or any other relevant features that capture similarity in the context of the prediction task. The distance metric is specified via `distance_type`, with options for Mahalanobis or Euclidean distance. The default is Mahalanobis distance, which accounts for correlations between features. Normalization of distances can be applied using the `normalize_distance` parameter. Normalization is primarily useful for euclidean distances to ensure that features on different scales do not disproportionately influence the distance calculations.
+#'
+#'
 #'
 #'
 #' @return A tibble with the predicted values and the lower and upper bounds of the prediction intervals.
+#'
 #' @export
 #'
 #' @examples
@@ -95,6 +100,7 @@
 pinterval_conformal <- function(
 	pred,
 	calib = NULL,
+	calib_truth = NULL,
 	alpha = 0.1,
 	ncs_type = c(
 		'absolute_error',
@@ -105,20 +111,19 @@ pinterval_conformal <- function(
 	),
 	lower_bound = NULL,
 	upper_bound = NULL,
+	grid_size = 10000,
+	resolution = NULL,
 	distance_weighted_cp = FALSE,
 	distance_features_calib = NULL,
 	distance_features_pred = NULL,
 	distance_type = c('mahalanobis', 'euclidean'),
-	normalize_distance = TRUE,
+	normalize_distance = 'none',
 	weight_function = c(
 		'gaussian_kernel',
 		'caucy_kernel',
 		'logistic',
 		'reciprocal_linear'
-	),
-	calib_truth = NULL,
-	resolution = 0.01,
-	grid_size = NULL
+	)
 ) {
 	if (is.numeric(calib) && is.null(calib_truth)) {
 		stop('If calib is numeric, calib_truth must be provided')

@@ -15,6 +15,8 @@ pinterval_ccp(
   alpha = 0.1,
   ncs_type = c("absolute_error", "relative_error", "za_relative_error",
     "heterogeneous_error", "raw_error"),
+  grid_size = 10000,
+  resolution = NULL,
   n_clusters = NULL,
   cluster_method = c("kmeans", "ks"),
   cluster_train_fraction = 1,
@@ -26,30 +28,25 @@ pinterval_ccp(
   distance_weighted_cp = FALSE,
   distance_features_calib = NULL,
   distance_features_pred = NULL,
+  distance_type = c("mahalanobis", "euclidean"),
   normalize_distance = TRUE,
-  weight_function = c("gaussian_kernel", "caucy_kernel", "logistic", "reciprocal_linear"),
-  calibrate = FALSE,
-  calibration_method = "glm",
-  calibration_family = NULL,
-  calibration_transform = NULL,
-  resolution = 0.01,
-  grid_size = NULL
+  weight_function = c("gaussian_kernel", "caucy_kernel", "logistic", "reciprocal_linear")
 )
 }
 \arguments{
-\item{pred}{Vector of predicted values or a 2 column tibble or matrix with the first column being the predicted values and the second column being the Mondrian class labels. If pred is a numeric vector, pred_class must be provided.}
+\item{pred}{Vector of predicted values}
 
-\item{pred_class}{A vector of class identifiers for the predicted values. This is used for sorting the predictions into their corresponding clusters.}
+\item{pred_class}{A vector of class identifiers for the predicted values. This is used to group the predictions by class for Mondrian conformal prediction.}
 
-\item{calib}{A numeric vector of predicted values in the calibration partition or a 3 column tibble or matrix with the first column being the predicted values and the second column being the truth values and the third column being the Mondrian class labels. If calib is a numeric vector, calib_truth and calib_class must be provided.}
+\item{calib}{A numeric vector of predicted values in the calibration partition, or a 2 column tibble or matrix with the first column being the predicted values and the second column being the truth values. If calib is a numeric vector, calib_truth must be provided.}
 
-\item{calib_truth}{A numeric vector of true values in the calibration partition}
+\item{calib_truth}{A numeric vector of true values in the calibration partition. Only required if calib is a numeric vector}
 
-\item{calib_class}{A vector of class identifiers for the calibration set which is used for clustering the nonconformity scores. If calib is a tibble or matrix, this can be extracted from the third column.}
+\item{calib_class}{A vector of class identifiers for the calibration set.}
 
-\item{lower_bound}{Optional minimum value for the prediction intervals. If not provided, the minimum (true) value of the calibration partition will be used}
+\item{lower_bound}{Optional minimum value for the prediction intervals. If not provided, the minimum (true) value of the calibration partition will be used. Primarily useful when the possible outcome values are outside the range of values observed in the calibration set. If not provided, the minimum (true) value of the calibration partition will be used.}
 
-\item{upper_bound}{Optional maximum value for the prediction intervals. If not provided, the maximum (true) value of the calibration partition will be used}
+\item{upper_bound}{Optional maximum value for the prediction intervals. If not provided, the maximum (true) value of the calibration partition will be used. Primarily useful when the possible outcome values are outside the range of values observed in the calibration set. If not provided, the maximum (true) value of the calibration partition will be used.}
 
 \item{alpha}{The confidence level for the prediction intervals. Must be a single numeric value between 0 and 1}
 
@@ -62,6 +59,10 @@ pinterval_ccp(
   \item \code{"raw_error"}: the signed error \eqn{y - \hat{y}}
 }
 The default is \code{"absolute_error"}.}
+
+\item{grid_size}{The number of points to use in the grid search between the lower and upper bound. Default is 10,000. A larger grid size increases the resolution of the prediction intervals but also increases computation time.}
+
+\item{resolution}{Alternatively to grid_size. The minimum step size between grid points. Useful if the a specific resolution is desired. Default is NULL.}
 
 \item{n_clusters}{Number of clusters to use when combining Mondrian classes. Required if \code{optimize_n_clusters = FALSE}.}
 
@@ -79,13 +80,15 @@ The default is \code{"absolute_error"}.}
 
 \item{max_n_clusters}{Maximum number of clusters to consider. If \code{NULL}, the upper limit is set to the number of unique Mondrian classes minus 1.}
 
-\item{distance_weighted_cp}{Logical. If \code{TRUE}, weighted conformal prediction is performed where the non-conformity scores are weighted based on the distance between calibration and prediction points in feature space. Default is \code{FALSE}.}
+\item{distance_weighted_cp}{Logical. If \code{TRUE}, weighted conformal prediction is performed where the non-conformity scores are weighted based on the distance between calibration and prediction points in feature space. Default is \code{FALSE}. See details for more information.}
 
 \item{distance_features_calib}{A matrix, data frame, or numeric vector of features from which to compute distances when \code{distance_weighted_cp = TRUE}. This should contain the feature values for the calibration set. Must have the same number of rows as the calibration set. Can be the predicted values themselves, or any other features which give a meaningful distance measure.}
 
 \item{distance_features_pred}{A matrix, data frame, or numeric vector of feature values for the prediction set. Must be the same features as specified in \code{distance_features_calib}. Required if \code{distance_weighted_cp = TRUE}.}
 
-\item{normalize_distance}{Logical. If \code{TRUE}, distances are normalized to the [0, 1] interval before applying the weight function. This is typically recommended to ensure consistent scaling across features. Default is \code{TRUE}.}
+\item{distance_type}{The type of distance metric to use when computing distances between calibration and prediction points. Options are 'mahalanobis' (default) and 'euclidean'.}
+
+\item{normalize_distance}{Either 'minmax', 'sd', or 'none'. Indicates if and how to normalize the distances when distance_weighted_cp is TRUE. Normalization helps ensure that distances are on a comparable scale across features. Default is 'none'.}
 
 \item{weight_function}{A character string specifying the weighting kernel to use for distance-weighted conformal prediction. Options are:
 \itemize{
@@ -95,18 +98,6 @@ The default is \code{"absolute_error"}.}
   \item \code{"reciprocal_linear"}: \eqn{ w(d) = 1/(1 + d) }
 }
 The default is \code{"gaussian_kernel"}. Distances are computed as the Euclidean distance between the calibration and prediction feature vectors.}
-
-\item{calibrate}{= FALSE Logical. If TRUE, the function will calibrate the predictions and intervals using the calibration set. Default is FALSE. See details for more information on calibration.}
-
-\item{calibration_method}{The method to use for calibration. Can be "glm" or "isotonic". Default is "glm". Only used if calibrate = TRUE.}
-
-\item{calibration_family}{The family used for the calibration model. Default is "gaussian". Only used if calibrate = TRUE and calibration_method = "glm".}
-
-\item{calibration_transform}{Optional transformation to apply to the predictions before calibration. Default is NULL. Only used if calibrate = TRUE and calibration_method = "glm".}
-
-\item{resolution}{The minimum step size for the grid search. Default is 0.01. See details for more information.}
-
-\item{grid_size}{Alternative to `resolution`, the number of points to use in the grid search between the lower and upper bound. If provided, resolution will be ignored.}
 }
 \value{
 A tibble with predicted values, lower and upper prediction interval bounds, class labels, and assigned cluster labels. Attributes include clustering diagnostics (e.g., cluster assignments, coverage gaps, internal validity scores).
@@ -117,23 +108,16 @@ This function computes conformal prediction intervals with a confidence level of
 The method supports additional features such as prediction calibration, distance-weighted conformal scores, and clustering optimization via internal validity measures (e.g., Calinski-Harabasz index or minimum cluster size heuristics).
 }
 \details{
-This function implements a clustered conformal prediction approach by aggregating similar Mondrian classes into clusters based on the distribution of their nonconformity scores. Each cluster is then treated as a stratum for standard inductive conformal prediction. This improves robustness and efficiency in settings with many small or noisy groups, while still enabling conditional validity.
+`pinterval_ccp()` builds on [pinterval_mondrian()] by introducing a
+clustered conformal prediction framework. Instead of requiring a separate calibration distribution for every Mondrian class, which may lead to unstable or noisy intervals when there are many small groups, the method groups similar Mondrian classes into clusters with similar nonconformity score distributions. Classes with similar prediction-error behavior are assigned to the same cluster. Each resulting cluster is then treated as a stratum for standard inductive conformal prediction.
 
-#' Non-conformity scores are calculated using the specified `ncs_type`, which determines how the prediction error is measured. Available options include:
+Users may specify the number of clusters directly using the `n_clusters` argument or optimize the number of clusters using the Calinski–Harabasz index or minimum cluster size heuristics.
 
-- `"absolute_error"`: the absolute difference between predicted and true values.
-- `"relative_error"`: the absolute error divided by the true value.
-- `"za_relative_error"`: zero-adjusted relative error, which replaces small or zero true values with a small constant to avoid division by zero.
-- `"heterogeneous_error"`: absolute error scaled by a linear model of prediction error magnitude as a function of the predicted value.
-- `"raw_error"`: the signed difference between predicted and true values.
+Clustering can be computed using all calibration data or a subsample defined by `cluster_train_fraction`.
 
-These options provide flexibility to adapt to different patterns of prediction error across the outcome space.
+Clustering is based on either k-means or Kolmogorov-Smirnov distance between nonconformity score distributions of the Mondrian classes, selected via the `cluster_method` argument.
 
-Clustering is performed using the nonconformity scores of calibration data, optionally on a subsample defined by \code{cluster_train_fraction}. Users can specify the number of clusters directly, or let the function choose the optimal number based on internal criteria.
-
-If distance-weighted conformal prediction is enabled, calibration examples are weighted based on their similarity to test points, with several kernel functions available.
-
-Optionally, the predicted values can be calibrated before interval construction by setting `calibrate = TRUE`. In this case, the predictions are passed through `calibrate_predictions()` to adjust the predictions based on the calibration set. The calibration method can be specified using `calibration_method` and `calibration_family`, with "glm" being the default method. See \link[pintervals]{calibrate_predictions} for more information on calibration.
+For a detailed description of non-conformity scores, distance-weighting, and the general conformal  prediction framework, see [pinterval_conformal()], and for a description of Mondrian conformal prediction, see [pinterval_mondrian()].
 }
 \examples{
 library(dplyr)
@@ -190,5 +174,5 @@ head(intervals)
 
 }
 \seealso{
-\code{\link[pintervals]{pinterval_conformal}}, \code{\link[pintervals]{pinterval_mondrian}}, \code{\link[pintervals]{calibrate_predictions}}
+\code{\link[pintervals]{pinterval_conformal}}, \code{\link[pintervals]{pinterval_mondrian}}
 }

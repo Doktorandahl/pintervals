@@ -4,7 +4,13 @@
 \alias{interval_width}
 \title{Mean width of prediction intervals}
 \usage{
-interval_width(lower_bound, upper_bound, na.rm = FALSE)
+interval_width(
+  lower_bound = NULL,
+  upper_bound = NULL,
+  intervals = NULL,
+  return_vector = FALSE,
+  na.rm = FALSE
+)
 }
 \arguments{
 \item{lower_bound}{A numeric vector of lower bounds of the prediction intervals.}

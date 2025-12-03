@@ -22,9 +22,23 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// row_mahalanobis_distance
+NumericVector row_mahalanobis_distance(NumericMatrix X, NumericVector v, NumericMatrix S_inv);
+RcppExport SEXP _pintervals_row_mahalanobis_distance(SEXP XSEXP, SEXP vSEXP, SEXP S_invSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type X(XSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type v(vSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type S_inv(S_invSEXP);
+    rcpp_result_gen = Rcpp::wrap(row_mahalanobis_distance(X, v, S_inv));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_pintervals_row_euclidean_distance", (DL_FUNC) &_pintervals_row_euclidean_distance, 2},
+    {"_pintervals_row_mahalanobis_distance", (DL_FUNC) &_pintervals_row_mahalanobis_distance, 3},
     {NULL, NULL, 0}
 };
 

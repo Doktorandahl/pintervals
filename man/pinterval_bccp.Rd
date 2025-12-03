@@ -10,34 +10,35 @@ pinterval_bccp(
   calib_truth = NULL,
   calib_bins = NULL,
   breaks = NULL,
+  right = TRUE,
+  contiguize = FALSE,
   alpha = 0.1,
   ncs_type = c("absolute_error", "relative_error", "za_relative_error",
     "heterogeneous_error", "raw_error"),
+  grid_size = 10000,
+  resolution = NULL,
   distance_weighted_cp = FALSE,
   distance_features_calib = NULL,
   distance_features_pred = NULL,
   normalize_distance = TRUE,
-  weight_function = c("gaussian_kernel", "caucy_kernel", "logistic", "reciprocal_linear"),
-  calibrate = FALSE,
-  calibration_method = "glm",
-  calibration_family = NULL,
-  calibration_transform = NULL,
-  resolution = 0.01,
-  grid_size = NULL,
-  right = TRUE,
-  contiguize = FALSE
+  distance_type = c("mahalanobis", "euclidean"),
+  weight_function = c("gaussian_kernel", "caucy_kernel", "logistic", "reciprocal_linear")
 )
 }
 \arguments{
 \item{pred}{Vector of predicted values}
 
-\item{calib}{A numeric vector of predicted values in the calibration partition or a 2 or 3 column tibble or matrix with the first column being the predicted values and the second column being the truth values and the third, optional, column being the bin labels. If calib is a numeric vector, calib_truth and either calib_bins or breaks must be provided.}
+\item{calib}{A numeric vector of predicted values in the calibration partition, or a 2 column tibble or matrix with the first column being the predicted values and the second column being the truth values. If calib is a numeric vector, calib_truth must be provided.}
 
-\item{calib_truth}{A numeric vector of true values in the calibration partition}
+\item{calib_truth}{A numeric vector of true values in the calibration partition. Only required if calib is a numeric vector}
 
 \item{calib_bins}{A vector of bin identifiers for the calibration set. Not used if breaks are provided.}
 
 \item{breaks}{A vector of break points for the bins to manually define the bins. If NULL, lower and upper bounds of the bins are calculated as the minimum and maximum values of each bin in the calibration set. Must be provided if calib_bins is not provided, either as a vector or as the last column of a calib tibble.}
+
+\item{right}{Logical, if TRUE the bins are right-closed (a,b] and if FALSE the bins are left-closed `[ a,b)`. Only used if breaks are provided.}
+
+\item{contiguize}{Logical indicating whether to contiguize the intervals. TRUE will consider all bins for each prediction using the lower and upper endpoints as interval limits to avoid non-contiguous intervals. FALSE will allows for non-contiguous intervals. TRUE guarantees at least appropriate coverage in each bin, but may suffer from over-coverage in certain bins. FALSE will have appropriate coverage in each bin but may have non-contiguous intervals. Default is FALSE.}
 
 \item{alpha}{The confidence level for the prediction intervals. Must be a single numeric value between 0 and 1}
 
@@ -51,13 +52,19 @@ pinterval_bccp(
 }
 The default is \code{"absolute_error"}.}
 
-\item{distance_weighted_cp}{Logical. If \code{TRUE}, weighted conformal prediction is performed where the non-conformity scores are weighted based on the distance between calibration and prediction points in feature space. Default is \code{FALSE}.}
+\item{grid_size}{The number of points to use in the grid search between the lower and upper bound. Default is 10,000. A larger grid size increases the resolution of the prediction intervals but also increases computation time.}
+
+\item{resolution}{Alternatively to grid_size. The minimum step size between grid points. Useful if the a specific resolution is desired. Default is NULL.}
+
+\item{distance_weighted_cp}{Logical. If \code{TRUE}, weighted conformal prediction is performed where the non-conformity scores are weighted based on the distance between calibration and prediction points in feature space. Default is \code{FALSE}. See details for more information.}
 
 \item{distance_features_calib}{A matrix, data frame, or numeric vector of features from which to compute distances when \code{distance_weighted_cp = TRUE}. This should contain the feature values for the calibration set. Must have the same number of rows as the calibration set. Can be the predicted values themselves, or any other features which give a meaningful distance measure.}
 
 \item{distance_features_pred}{A matrix, data frame, or numeric vector of feature values for the prediction set. Must be the same features as specified in \code{distance_features_calib}. Required if \code{distance_weighted_cp = TRUE}.}
 
-\item{normalize_distance}{Logical. If \code{TRUE}, distances are normalized to the [0, 1] interval before applying the weight function. This is typically recommended to ensure consistent scaling across features. Default is \code{TRUE}.}
+\item{normalize_distance}{Either 'minmax', 'sd', or 'none'. Indicates if and how to normalize the distances when distance_weighted_cp is TRUE. Normalization helps ensure that distances are on a comparable scale across features. Default is 'none'.}
+
+\item{distance_type}{The type of distance metric to use when computing distances between calibration and prediction points. Options are 'mahalanobis' (default) and 'euclidean'.}
 
 \item{weight_function}{A character string specifying the weighting kernel to use for distance-weighted conformal prediction. Options are:
 \itemize{
@@ -67,51 +74,23 @@ The default is \code{"absolute_error"}.}
   \item \code{"reciprocal_linear"}: \eqn{ w(d) = 1/(1 + d) }
 }
 The default is \code{"gaussian_kernel"}. Distances are computed as the Euclidean distance between the calibration and prediction feature vectors.}
-
-\item{calibrate}{= FALSE Logical. If TRUE, the function will calibrate the predictions and intervals using the calibration set. Default is FALSE. See details for more information.}
-
-\item{calibration_method}{The method to use for calibration. Can be "glm" or "isotonic". Default is "glm". Only used if calibrate = TRUE.}
-
-\item{calibration_family}{The family used for the calibration model. Default is "gaussian". Only used if calibrate = TRUE and calibration_method = "glm".}
-
-\item{calibration_transform}{Optional transformation to apply to the predictions before calibration. Default is NULL. Only used if calibrate = TRUE and calibration_method = "glm".}
-
-\item{resolution}{The minimum step size for the grid search. Default is 0.01. See details for more information.}
-
-\item{grid_size}{Alternative to `resolution`, the number of points to use in the grid search between the lower and upper bound. If provided, resolution will be ignored.}
-
-\item{right}{Logical, if TRUE the bins are right-closed (a,b] and if FALSE the bins are left-closed `[ a,b)`. Only used if breaks are provided.}
-
-\item{contiguize}{logical indicating whether to contiguize the intervals. TRUE will consider all bins for each prediction using the lower and upper endpoints as interval limits to avoid non-contiguous intervals. FALSE will allows for non-contiguous intervals. TRUE guarantees at least appropriate coverage in each bin, but may suffer from over-coverage in certain bins. FALSE will have appropriate coverage in each bin but may have non-contiguous intervals. Default is FALSE.}
 }
 \value{
-A tibble with the predicted values, the lower and upper bounds of the prediction intervals. If treat_noncontiguous is 'non_contiguous', the lower and upper bounds are set in a list variable called 'intervals' where all non-contiguous intervals are stored.
+A tibble with the predicted values and the lower and upper bounds of the prediction intervals. If contiguize = FALSE, the intervals may consist of multiple disjoint segments; in this case, the tibble will contain a list-column with all segments for each prediction.
 }
 \description{
 This function calculates bin-conditional conformal prediction intervals with a confidence level of 1-alpha for a vector of (continuous) predicted values using inductive conformal prediction on a bin-by-bin basis. The intervals are computed using a calibration set with predicted and true values and their associated bins. The function returns a tibble containing the predicted values along with the lower and upper bounds of the prediction intervals. Bin-conditional conformal prediction intervals are useful when the prediction error is not constant across the range of predicted values and ensures that the coverage is (approximately) correct for each bin under the assumption that the non-conformity scores are exchangeable within each bin.
 }
 \details{
-This function computes bin-conditional conformal prediction intervals using inductive conformal prediction applied separately within each bin of the calibration data. It is particularly useful when prediction error varies across the range of predicted values, as it enables locally valid coverage by ensuring that the coverage level \eqn{1 - \eqn{\alpha}} holds within each bin—assuming exchangeability of non-conformity scores within bins.
+`pinterval_bccp()` extends [pinterval_conformal()] to the
+bin-conditional setting, where prediction intervals are
+calibrated separately within user-specified bins. It is particularly useful when prediction error varies across the range of predicted values, as it enables locally valid coverage by ensuring that the coverage level \eqn{1 - \eqn{\alpha}} holds within each bin—assuming exchangeability of non-conformity scores within bins.
 
-The calibration set must include predicted values, true values, and corresponding bin identifiers or breaks for the bins. These can be provided either as separate vectors (`calib`, `calib_truth`, and `calib_bins` or `breaks`).
+For a detailed description of non-conformity scores, distance weighting and the general inductive conformal framework, see [pinterval_conformal()].
 
-Non-conformity scores are calculated using the specified `ncs_type`, which determines how the prediction error is measured. Available options include:
-
-- `"absolute_error"`: the absolute difference between predicted and true values.
-- `"relative_error"`: the absolute error divided by the true value.
-- `"za_relative_error"`: zero-adjusted relative error, which replaces small or zero true values with a small constant to avoid division by zero.
-- `"heterogeneous_error"`: absolute error scaled by a linear model of prediction error magnitude as a function of the predicted value.
-- `"raw_error"`: the signed difference between predicted and true values.
-
-These options provide flexibility to adapt to different patterns of prediction error across the outcome space.
+For `pinterval_bccp()`, the calibration set must include predicted values, true values, and corresponding bin identifiers or breaks for the bins. These can be provided either as separate vectors (`calib`, `calib_truth`, and `calib_bins` or `breaks`).
 
 Bins endpoints can be defined manually via the `breaks` argument or inferred from the calibration data. If `contiguize = TRUE`, the function ensures the resulting prediction intervals are contiguous across bins, potentially increasing coverage beyond the nominal level in some bins. If `contiguize = FALSE`, the function may produce non-contiguous intervals, which are more efficient but may be harder to interpret.
-
-The prediction intervals are constructed using a grid search over a user-defined range of outcome values. The resolution of the grid search can be controlled by either the `resolution` argument, which sets the minimum step size, or the `grid_size` argument, which sets the number of grid points. For wide prediction spaces, the grid search may be computationally intensive. In such cases, increasing the `resolution` or reducing the `grid_size` may improve performance.
-
-Optionally, the predicted values can be calibrated before interval construction by setting `calibrate = TRUE`. In this case, the predictions are passed through `calibrate_predictions()` to adjust the predictions based on the calibration set. The calibration method can be specified using `calibration_method` and `calibration_family`, with "glm" being the default method. See \link[pintervals]{calibrate_predictions} for more information on calibration.
-
-The function returns a tibble containing the predicted values and their corresponding lower and upper bounds. If `contiguize = FALSE` and the resulting intervals are non-contiguous, the lower and upper bounds are in list-columns.
 }
 \examples{
 
@@ -149,4 +128,7 @@ calib_truth = calib_truth,
 calib_bins = calib_bins,
 alpha = 0.1)
 
+}
+\seealso{
+\code{\link[pintervals]{pinterval_conformal}}
 }

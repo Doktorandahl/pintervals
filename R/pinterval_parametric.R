@@ -2,9 +2,7 @@
 #'
 #' This function computes parametric prediction intervals at a confidence level of \eqn{1 - \eqn{\alpha}} for a vector of continuous predictions. The intervals are based on a user-specified probability distribution and associated parameters, either estimated from calibration data or supplied directly. Supported distributions include common options like the normal, log-normal, gamma, beta, and negative binomial, as well as any user-defined distribution with a quantile function. Prediction intervals are calculated by evaluating the appropriate quantiles for each predicted value.
 #'
-#' @param pred Vector of predicted values
-#' @param calib A numeric vector of predicted values in the calibration partition or a 2 column tibble or matrix with the first column being the predicted values and the second column being the truth values
-#' @param calib_truth A numeric vector of true values in the calibration partition. Only required if calib is a numeric vector
+#' @inheritParams pinterval_conformal
 #' @param dist Distribution to use for the prediction intervals. Can be a character string matching any available distribution in R or a function representing a distribution, e.g. `qnorm`, `qgamma`, or a user defined quantile function. Default options are 'norm', 'lnorm','exp, 'pois', 'nbinom', 'chisq', 'gamma', 'logis', and 'beta' for which parameters can be computed from the calibration set. If a custom function is provided, parameters need to be provided in `pars`.
 #' @param pars List of named parameters for the distribution for each prediction. Not needed if calib is provided and the distribution is one of the default options. If a custom distribution function is provided, this list should contain the parameters needed for the quantile function, with names matching the corresponding arguments for the parameter names of the distribution function. See details for more information.
 #'
