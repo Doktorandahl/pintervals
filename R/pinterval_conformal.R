@@ -143,8 +143,21 @@ pinterval_conformal <- function(
 		stop('pred must be a numeric vector')
 	}
 
-	if (!is.numeric(resolution) || resolution <= 0 || length(resolution) != 1) {
-		stop('resolution must be a single numeric value greater than 0')
+	if (
+		is.null(grid_size) &&
+			(!is.numeric(resolution) ||
+				resolution <= 0 ||
+				length(resolution) != 1)
+	) {
+		stop(
+			'if grid_size is NULL, resolution must be a single numeric value greater than 0'
+		)
+	}
+
+	if (!is.null(grid_size) && !is.null(resolution)) {
+		warning(
+			'Both grid_size and resolution are provided. resolution will be ignored.'
+		)
 	}
 
 	ncs_type <- match.arg(

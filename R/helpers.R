@@ -138,6 +138,7 @@ grid_finder <- function(
 	distance_weighted_cp = FALSE,
 	distance_features_calib = NULL,
 	distance_features_pred = NULL,
+	distance_type = c('mahalanobis', 'euclidean'),
 	normalize_distance = c('minmax', 'sd', 'none'),
 	weight_function = gauss_kern
 ) {
