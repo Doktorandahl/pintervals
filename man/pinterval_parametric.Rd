@@ -30,7 +30,7 @@ pinterval_parametric(
 A tibble with the predicted values and the lower and upper bounds of the prediction intervals
 }
 \description{
-This function computes parametric prediction intervals at a confidence level of \eqn{1 - \eqn{\alpha}} for a vector of continuous predictions. The intervals are based on a user-specified probability distribution and associated parameters, either estimated from calibration data or supplied directly. Supported distributions include common options like the normal, log-normal, gamma, beta, and negative binomial, as well as any user-defined distribution with a quantile function. Prediction intervals are calculated by evaluating the appropriate quantiles for each predicted value.
+This function computes parametric prediction intervals at a confidence level of \eqn{1 - \alpha} for a vector of continuous predictions. The intervals are based on a user-specified probability distribution and associated parameters, either estimated from calibration data or supplied directly. Supported distributions include common options like the normal, log-normal, gamma, beta, and negative binomial, as well as any user-defined distribution with a quantile function. Prediction intervals are calculated by evaluating the appropriate quantiles for each predicted value.
 }
 \details{
 This function supports a wide range of distributions for constructing prediction intervals. Built-in support is provided for the following distributions: `"norm"`, `"lnorm"`, `"exp"`, `"pois"`, `"nbinom"`, `"chisq"`, `"gamma"`, `"logis"`, and `"beta"`. For each of these, parameters can be automatically estimated from a calibration set if not supplied directly via the `pars` argument.

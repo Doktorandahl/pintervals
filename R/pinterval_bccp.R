@@ -12,7 +12,7 @@
 #' @details
 #' `pinterval_bccp()` extends [pinterval_conformal()] to the
 #' bin-conditional setting, where prediction intervals are
-#' calibrated separately within user-specified bins. It is particularly useful when prediction error varies across the range of predicted values, as it enables locally valid coverage by ensuring that the coverage level \eqn{1 - \eqn{\alpha}} holds within each bin—assuming exchangeability of non-conformity scores within bins.
+#' calibrated separately within user-specified bins. It is particularly useful when prediction error varies across the range of predicted values, as it enables locally valid coverage by ensuring that the coverage level \eqn{1 - \alpha} holds within each bin—assuming exchangeability of non-conformity scores within bins.
 #'
 #' For a detailed description of non-conformity scores, distance weighting and the general inductive conformal framework, see [pinterval_conformal()].
 #'

@@ -29,3 +29,50 @@
 #'
 #' @source Data derived from the Varieties of Democracy (V-Dem) dataset, version 15, filtered to election years between 1946 and 2024. <https://www.v-dem.net/data/the-v-dem-dataset/>
 "elections"
+
+#' U.S. county-level turnout and demographic context (MIT Election Lab 2018 Election Analysis Dataset + additions)
+#'
+#' A county-level dataset (U.S.) with voter turnout and sociodemographic covariates.
+#'
+#' The dataset is based on the MIT Election Lab "2018 Election Analysis dataset" file, with four additions: (1) `turnout`, calculated as the number of votes cast divided by the total population, (2) `geo_group`, a coarse geographic grouping variable for the counties, (3) county centroid coordinates (`longitude`, `latitude`), and (4) `predicted_turnout`,
+#' which contains leave-one-out cross-validation (LOO-CV) predictions from a
+#' random forest model. See Details for more information on `predicted_turnout`.
+#'
+#' @format A tibble with 3,107 rows and 22 variables:
+#' \describe{
+#'   \item{state}{State name.}
+#'   \item{county}{County name.}
+#'   \item{fips}{County FIPS code.}
+#'   \item{turnout}{Observed turnout (proportion). Calculated as total votes cast divided by total population (not voting-age population).}
+#'   \item{total_population}{Total county population.}
+#'   \item{nonwhite_pct}{Percent non-white population.}
+#'   \item{foreignborn_pct}{Percent foreign-born population.}
+#'   \item{female_pct}{Percent female population.}
+#'   \item{age29andunder_pct}{Percent of population aged 29 or under.}
+#'   \item{age65andolder_pct}{Percent of population aged 65 or older.}
+#'   \item{median_hh_inc}{Median household income.}
+#'   \item{clf_unemploy_pct}{Percent unemployed in the civilian labor force.}
+#'   \item{lesscollege_pct}{Percent with less than college education.}
+#'   \item{lesshs_pct}{Percent with less than high school education.}
+#'   \item{rural_pct}{Percent rural.}
+#'   \item{ruralurban_cc}{Rural–urban continuum code.}
+#'   \item{predicted_turnout}{LOO-CV random-forest prediction of `turnout` (see Details).}
+#'   \item{division}{U.S. Census division.}
+#'   \item{region}{U.S. Census region.}
+#'   \item{geo_group}{Additional coarse geographic grouping variable (added).}
+#'   \item{longitude}{County centroid longitude (added).}
+#'   \item{latitude}{County centroid latitude (added).}
+#' }
+#'
+#' @source
+#' The base covariates originate from the MEDSL "2018 election context" file:
+#' \url{https://github.com/MEDSL/2018-elections-unoffical/blob/master/election-context-2018.md}.
+#' The variables `geo_group`, `longitude`, `latitude`, and `predicted_turnout`
+#' are additions.
+#'
+#' The variable `predicted_turnout` is generated using leave-one-out cross-validation (LOO-CV). For each county \(i = 1, \dots, n\), a random forest model is fit on the remaining \(n-1\) counties with `turnout` as the outcome and all available *non-geographic* covariates as predictors. The fitted model is then used to predict turnout for the held-out county \(i\). Geographic features are excluded from the predictor set to avoid leaking spatial information into the prediction target. Concretely, identifiers and geographic variables (e.g., `state`, `county`, `fips`, `division`, `region`, `geo_group`, `longitude`, `latitude`) are excluded from the predictor set.
+#'
+#' @usage data(county_turnout)
+#'
+#' @keywords datasets
+"county_turnout"

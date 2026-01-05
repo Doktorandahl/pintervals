@@ -79,7 +79,7 @@ The default is \code{"gaussian_kernel"}. Distances are computed as the Euclidean
 A tibble with predicted values, lower and upper prediction interval bounds, and class labels.
 }
 \description{
-This function calculates Mondrian conformal prediction intervals with a confidence level of 1-alpha for a vector of (continuous) predicted values using inductive conformal prediction on a Mondrian class-by-class basis. The intervals are computed using a calibration set with predicted and true values and their associated classes. The function returns a tibble containing the predicted values along with the lower and upper bounds of the prediction intervals. Mondrian conformal prediction intervals are useful when the prediction error is not constant across groups or classes, as they allow for locally valid coverage by ensuring that the coverage level \eqn{1 - \eqn{\alpha}} holds within each class—assuming exchangeability of non-conformity scores within classes.
+This function calculates Mondrian conformal prediction intervals with a confidence level of 1-alpha for a vector of (continuous) predicted values using inductive conformal prediction on a Mondrian class-by-class basis. The intervals are computed using a calibration set with predicted and true values and their associated classes. The function returns a tibble containing the predicted values along with the lower and upper bounds of the prediction intervals. Mondrian conformal prediction intervals are useful when the prediction error is not constant across groups or classes, as they allow for locally valid coverage by ensuring that the coverage level \eqn{1 - \alpha} holds within each class—assuming exchangeability of non-conformity scores within classes.
 }
 \details{
 `pinterval_mondrian()` extends [pinterval_conformal()] to the Mondrian
@@ -90,7 +90,7 @@ the method constructs a separate non-conformity distribution for each
 subgroup defined by a grouping variable (e.g., region, regime type, or
 income category). This allows the intervals to adapt to systematic
 differences in error magnitude or variance across groups and targets
-coverage conditional on group membership. It is especially useful when prediction error varies systematically across known categories, allowing for class-conditional validity by ensuring that the prediction intervals attain the desired coverage level \eqn{1 - \eqn{\alpha}} within each class—under the assumption of exchangeability within classes.
+coverage conditional on group membership. It is especially useful when prediction error varies systematically across known categories, allowing for class-conditional validity by ensuring that the prediction intervals attain the desired coverage level \eqn{1 - \alpha} within each class—under the assumption of exchangeability within classes.
 
 Conceptually, the underlying  inductive conformal machinery is the same as in [pinterval_conformal()], but applied within groups rather than globally. For a detailed description of non-conformity scores, distance-weighting, and the general conformal  prediction framework, see [pinterval_conformal()].
 

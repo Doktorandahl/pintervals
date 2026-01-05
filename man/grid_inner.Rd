@@ -38,6 +38,8 @@ grid_inner(
 
 \item{distance_features_pred}{a matrix of features for the prediction partition. Used when distance_weighted_cp is TRUE}
 
+\item{distance_type}{The type of distance metric to use when computing distances between calibration and prediction points. Options are 'mahalanobis' and 'euclidean'.}
+
 \item{normalize_distance}{Either 'minmax', 'sd', or 'none'. Indicates how to normalize the distances when distance_weighted_cp is TRUE}
 
 \item{weight_function}{a function to use for weighting the distances. Can be 'gaussian_kernel', 'caucy_kernel', 'logistic', or 'reciprocal_linear'. Default is 'gaussian_kernel'}

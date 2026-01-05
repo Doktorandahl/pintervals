@@ -26,6 +26,8 @@ clusterer(
 \item{method}{Clustering method to use, either 'ks' for Kolmogorov-Smirnov or 'kmeans' for K-means clustering}
 
 \item{q}{Quantiles to use for K-means clustering, default is a sequence from 0.1 to 0.9 in steps of 0.1}
+
+\item{min_class_size}{Minimum number of observations required in a class to be included in clustering}
 }
 \value{
 A vector of cluster assignments, with attributes containing the clusters, coverage gaps, method used, number of clusters, and Calibrated Clustering index

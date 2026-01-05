@@ -21,6 +21,10 @@ interval_score(
 
 \item{upper_bound}{A numeric vector of upper bounds of the prediction intervals.}
 
+\item{intervals}{Alternative input for prediction intervals as a list-column, where each element is a list with components 'lower_bound' and 'upper_bound'. Useful with non-contigous intervals, for instance constructed using the bin conditional conformal method wich can yield multiple intervals per prediction. See details.}
+
+\item{return_vector}{Logical, whether to return the interval score vector (TRUE) or the mean interval score (FALSE). Default is FALSE.}
+
 \item{alpha}{The nominal miscoverage rate (e.g., 0.1 for 90\% prediction intervals).}
 
 \item{na.rm}{Logical, whether to remove NA values before calculation. Default is FALSE.}
@@ -37,6 +41,8 @@ The mean interval score (MIS) is defined as:
 MIS = (ub - lb) + \frac{2}{\alpha}(lb - y) \cdot 1_{y < lb} + \frac{2}{\alpha}(y - ub) \cdot 1_{y > ub}
 }
 where \( y \) is the true value, and \( [lb, ub] \) is the prediction interval.
+
+If the `intervals` argument is provided, it should be a list-column where each element is a list containing 'lower_bound' and 'upper_bound' vectors. This allows for the calculation of coverage for non-contiguous intervals, such as those produced by certain conformal prediction methods such as the bin conditional conformal method. In this case, coverage is determined by checking if the true value falls within any of the specified intervals for each observation. If the user has some observations with contiguous intervals and others with non-contiguous intervals, they can provide both `lower_bound` and `upper_bound` vectors along with the `intervals` list-column. The function will compute coverage accordingly for each observation based on the available information.
 }
 \examples{
 library(dplyr)

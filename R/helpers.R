@@ -119,6 +119,7 @@ heterogeneous_error <- function(pred, truth, coefs) {
 #' @param distance_weighted_cp logical. If TRUE, the non-conformity scores will be weighted according to the distance function
 #' @param distance_features_calib a matrix of features for the calibration partition. Used when distance_weighted_cp is TRUE
 #' @param distance_features_pred a matrix of features for the prediction partition. Used when distance_weighted_cp is TRUE
+#' @param distance_type The type of distance metric to use when computing distances between calibration and prediction points. Options are 'mahalanobis' (default) and 'euclidean'.
 #' @param normalize_distance Either "none", "minmax", or "sd". Indicates how to normalize the distances when distance_weighted_cp is TRUE
 #' @param weight_function a function to use for weighting the distances. Can be 'gaussian_kernel', 'caucy_kernel', 'logistic', or 'reciprocal_linear'. Default is 'gaussian_kernel'
 #'
@@ -184,6 +185,7 @@ grid_finder <- function(
 #' @param distance_weighted_cp logical. If TRUE, the non-conformity scores will be weighted according to the distance function
 #' @param distance_features_calib a matrix of features for the calibration partition. Used when distance_weighted_cp is TRUE
 #' @param distance_features_pred a matrix of features for the prediction partition. Used when distance_weighted_cp is TRUE
+#' @param distance_type The type of distance metric to use when computing distances between calibration and prediction points. Options are 'mahalanobis' and 'euclidean'.
 #' @param normalize_distance Either 'minmax', 'sd', or 'none'. Indicates how to normalize the distances when distance_weighted_cp is TRUE
 #' @param weight_function a function to use for weighting the distances. Can be 'gaussian_kernel', 'caucy_kernel', 'logistic', or 'reciprocal_linear'. Default is 'gaussian_kernel'
 #'
@@ -231,7 +233,11 @@ grid_inner <- function(
 	}
 
 	if (is.na(y_hat)) {
-		return(c(pred = NA_real_, lower_bound = NA_real_, upper_bound = NA_real_))
+		return(c(
+			pred = NA_real_,
+			lower_bound = NA_real_,
+			upper_bound = NA_real_
+		))
 	}
 
 	if (ncs_type != 'raw_error') {
@@ -272,7 +278,11 @@ grid_inner <- function(
 					)
 			])
 
-			return(c(pred = as.numeric(y_hat), lower_bound = lb, upper_bound = ub))
+			return(c(
+				pred = as.numeric(y_hat),
+				lower_bound = lb,
+				upper_bound = ub
+			))
 		}
 	} else {
 		if (
@@ -319,7 +329,11 @@ grid_inner <- function(
 					)
 			])
 
-			return(c(pred = as.numeric(y_hat), lower_bound = lb, upper_bound = ub))
+			return(c(
+				pred = as.numeric(y_hat),
+				lower_bound = lb,
+				upper_bound = ub
+			))
 		}
 	}
 }
@@ -393,7 +407,8 @@ bootstrap_inner <- function(
 	}
 
 	if (error_type == 'absolute') {
-		boot_error <- sample(c(-1, 1), size = nboot, replace = TRUE) * boot_error
+		boot_error <- sample(c(-1, 1), size = nboot, replace = TRUE) *
+			boot_error
 	}
 
 	boot_pred <- pred + boot_error
@@ -454,12 +469,14 @@ bin_chopper <- function(x, nbins, return_breaks = FALSE) {
 				binsizes[i] <- ccs
 				cutpoints[i] <- as.numeric(names(nobs_per_value)[j])
 				if (ccs > target_num & i < nbins) {
-					binsizes[(i + 1):nbins] <- (length(x) - sum(binsizes[1:i])) /
+					binsizes[(i + 1):nbins] <- (length(x) -
+						sum(binsizes[1:i])) /
 						(nbins - i)
 					target_num <- (length(x) - sum(binsizes[1:i])) / (nbins - i)
 				}
 			}
-			binsizes[length(binsizes)] <- length(x) - sum(binsizes[1:(nbins - 1)])
+			binsizes[length(binsizes)] <- length(x) -
+				sum(binsizes[1:(nbins - 1)])
 			binsizes2 <- binsizes
 			k <- k + 1
 		}
@@ -490,7 +507,9 @@ bindividual_alpha <- function(minqs, alpha) {
 	rem_bins_old <- rem_bins + 1
 
 	while (rem_bins != rem_bins_old) {
-		if (prod(minq_to_alpha(minqs[-which.min(minqs)], a), na.rm = T) <= alpha) {
+		if (
+			prod(minq_to_alpha(minqs[-which.min(minqs)], a), na.rm = T) <= alpha
+		) {
 			minqs[which.min(minqs)] <- NA
 			rem_bins <- rem_bins - 1
 		}
@@ -664,7 +683,14 @@ optimize_clusters <- function(
 			clusterer(ncs, m, class_vec, maxit = maxit, method = 'ks')
 	} else if (method == 'kmeans') {
 		clusters_pot <- foreach::foreach(m = ms) %do%
-			clusterer(ncs, m, class_vec, maxit = maxit, method = 'kmeans', q = q)
+			clusterer(
+				ncs,
+				m,
+				class_vec,
+				maxit = maxit,
+				method = 'kmeans',
+				q = q
+			)
 	}
 
 	ch_indices <- purrr::map_dbl(clusters_pot, ~ attr(.x, 'ch_index'))
@@ -681,6 +707,7 @@ optimize_clusters <- function(
 #' @param maxit Maximum number of iterations for the clustering algorithm
 #' @param method Clustering method to use, either 'ks' for Kolmogorov-Smirnov or 'kmeans' for K-means clustering
 #' @param q Quantiles to use for K-means clustering, default is a sequence from 0.1 to 0.9 in steps of 0.1
+#' @param min_class_size Minimum number of observations required in a class to be included in clustering
 #' @return A vector of cluster assignments, with attributes containing the clusters, coverage gaps, method used, number of clusters, and Calibrated Clustering index
 clusterer <- function(
 	ncs,
@@ -800,7 +827,9 @@ ks_cluster <- function(ncs, class_vec, m, maxit = 100, nrep = 10) {
 				tmp_clusters <- clusters
 			}
 			if (i == maxit) {
-				warning('Maximum number of iterations reached without convergence')
+				warning(
+					'Maximum number of iterations reached without convergence'
+				)
 			}
 		}
 
@@ -828,10 +857,16 @@ ks_cluster_init_step <- function(ncs, class_vec, m) {
 	clusters[[1]] <- sample(class_labels, 1)
 
 	for (j in 2:m) {
-		dms <- foreach::foreach(i = 1:length(class_labels), .final = unlist) %do%
+		dms <- foreach::foreach(
+			i = 1:length(class_labels),
+			.final = unlist
+		) %do%
 			Dm_finder(ncs, class_vec, class_labels[i], clusters, return = 'min')
 
-		probs <- foreach::foreach(i = 1:length(class_labels), .final = unlist) %do%
+		probs <- foreach::foreach(
+			i = 1:length(class_labels),
+			.final = unlist
+		) %do%
 			dm_to_prob(dms[i], dms)
 
 		clusters[[j]] <- sample(class_labels, 1, prob = probs)
@@ -861,7 +896,13 @@ ks_cluster_assignment_step <- function(
 		.final = unlist
 	) %do%
 		{
-			Dm_finder(ncs, class_vec, class_labels[i], clusters, return = "which.min")
+			Dm_finder(
+				ncs,
+				class_vec,
+				class_labels[i],
+				clusters,
+				return = "which.min"
+			)
 		}
 
 	return(split(class_labels, cluster_vec))
@@ -933,7 +974,11 @@ kmeans_cluster_qecdf <- function(
 
 	class_labels <- unique(class_vec)
 	qecdfs <- foreach::foreach(i = 1:length(class_labels)) %do%
-		stats::quantile(ncs[class_vec == class_labels[i]], probs = q, na.rm = TRUE)
+		stats::quantile(
+			ncs[class_vec == class_labels[i]],
+			probs = q,
+			na.rm = TRUE
+		)
 
 	qecdfs <- do.call(rbind, qecdfs)
 
@@ -1005,7 +1050,10 @@ ch_index <- function(ncs, class_vec, clusters, q = seq(0.1, 0.9, by = 0.1)) {
 #' @return A numeric value representing the WCSS for the cluster
 wcss_compute <- function(ncs, class_vec, cluster, q = seq(0.1, 0.9, by = 0.1)) {
 	i <- NULL
-	qs <- foreach::foreach(i = 1:length(cluster), .final = dplyr::bind_rows) %do%
+	qs <- foreach::foreach(
+		i = 1:length(cluster),
+		.final = dplyr::bind_rows
+	) %do%
 		stats::quantile(ncs[class_vec == cluster[i]], probs = q, na.rm = TRUE)
 
 	mean_qs <- stats::quantile(
@@ -1030,8 +1078,15 @@ bcss_compute <- function(
 	q = seq(0.1, 0.9, by = 0.1)
 ) {
 	i <- NULL
-	qs <- foreach::foreach(i = 1:length(clusters), .final = dplyr::bind_rows) %do%
-		stats::quantile(ncs[class_vec %in% clusters[[i]]], probs = q, na.rm = TRUE)
+	qs <- foreach::foreach(
+		i = 1:length(clusters),
+		.final = dplyr::bind_rows
+	) %do%
+		stats::quantile(
+			ncs[class_vec %in% clusters[[i]]],
+			probs = q,
+			na.rm = TRUE
+		)
 
 	mean_qs <- stats::quantile(ncs, probs = q, na.rm = TRUE)
 
