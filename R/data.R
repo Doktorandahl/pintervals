@@ -32,11 +32,8 @@
 
 #' U.S. county-level turnout and demographic context (MIT Election Lab 2018 Election Analysis Dataset + additions)
 #'
+#' @description
 #' A county-level dataset (U.S.) with voter turnout and sociodemographic covariates.
-#'
-#' The dataset is based on the MIT Election Lab "2018 Election Analysis dataset" file, with four additions: (1) `turnout`, calculated as the number of votes cast divided by the total population, (2) `geo_group`, a coarse geographic grouping variable for the counties, (3) county centroid coordinates (`longitude`, `latitude`), and (4) `predicted_turnout`,
-#' which contains leave-one-out cross-validation (LOO-CV) predictions from a
-#' random forest model. See Details for more information on `predicted_turnout`.
 #'
 #' @format A tibble with 3,107 rows and 22 variables:
 #' \describe{
@@ -64,13 +61,55 @@
 #'   \item{latitude}{County centroid latitude (added).}
 #' }
 #'
+#' @details
+#' The dataset is based on the MIT Election Lab "2018 Election Analysis dataset" file, with four additions: (1) `turnout`, calculated as the number of votes cast divided by the total population, (2) `geo_group`, a coarse geographic grouping variable for the counties, (3) county centroid coordinates (`longitude`, `latitude`), and (4) `predicted_turnout`.
+#' The variable `predicted_turnout` is generated using leave-one-out
+#' cross-validation (LOO-CV). For each county a random forest
+#' model is fit on the remaining counties with `turnout` as the outcome
+#' and all available *non-geographic* covariates as predictors. The fitted model
+#' is then used to predict turnout for the held-out county. Geographic
+#' features are excluded from the predictor set to avoid leaking spatial
+#' information into the prediction target. Concretely, identifiers and geographic variables (e.g., `state`, `county`, `fips`, `division`, `region`, `geo_group`, `longitude`, `latitude`) are excluded from the predictor set.
+#'
+#' Below is example code (using `foreach`) to reproduce `predicted_turnout`. This is computationally expensive for LOO-CV; parallel execution is recommended.
+#'
+#' library(dplyr)
+#' library(ranger)
+#' library(foreach)
+#' library(pintervals)
+#'
+#' dat <- county_turnout  # replace with your object name
+#'
+#' # Choose predictors: all numeric covariates except turnout + geographic/id vars
+#' dat2 <- dat \code{|>}
+#'  select(-c(state, county, fips, division, region, geo_group, longitude, latitude))
+#'
+#' set.seed(101010) # The meaning of life in binary
+#'
+#' pred_loo <- foreach(.i = seq_len(nrow(dat)),
+#'                     .final = unlist) %do% \{
+#'
+#' train <- dat2[-.i, , drop = FALSE]
+#'   test  <- dat2[ .i, , drop = FALSE]
+#'
+#'   fit <- ranger(
+#'     formula = turnout ~ .,
+#'     data = train
+#'   )
+#'
+#'   predict(fit, data = test)$predictions[[1]]
+#'
+#' \}
+#'
+#'
+#' dat <- dat \code{|>} mutate(predicted_turnout = pred_loo)
+#'
+#'
 #' @source
 #' The base covariates originate from the MEDSL "2018 election context" file:
 #' \url{https://github.com/MEDSL/2018-elections-unoffical/blob/master/election-context-2018.md}.
 #' The variables `geo_group`, `longitude`, `latitude`, and `predicted_turnout`
 #' are additions.
-#'
-#' The variable `predicted_turnout` is generated using leave-one-out cross-validation (LOO-CV). For each county \(i = 1, \dots, n\), a random forest model is fit on the remaining \(n-1\) counties with `turnout` as the outcome and all available *non-geographic* covariates as predictors. The fitted model is then used to predict turnout for the held-out county \(i\). Geographic features are excluded from the predictor set to avoid leaking spatial information into the prediction target. Concretely, identifiers and geographic variables (e.g., `state`, `county`, `fips`, `division`, `region`, `geo_group`, `longitude`, `latitude`) are excluded from the predictor set.
 #'
 #' @usage data(county_turnout)
 #'
