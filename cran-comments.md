@@ -4,3 +4,4 @@
 
 * This is the 1.0.1
 * Updated license
+* Minor changes in vignette
