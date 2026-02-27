@@ -20,7 +20,9 @@ feat_test <- cbind(x1[201:400], x2[201:400])
 
 test_that("distance-weighted conformal runs with euclidean", {
 	result <- pinterval_conformal(
-		pred = pred_test[1:5], calib = pred_cal, calib_truth = truth_cal,
+		pred = pred_test[1:5],
+		calib = pred_cal,
+		calib_truth = truth_cal,
 		alpha = 0.1,
 		distance_weighted_cp = TRUE,
 		distance_features_calib = feat_cal,
@@ -33,7 +35,9 @@ test_that("distance-weighted conformal runs with euclidean", {
 
 test_that("distance-weighted conformal runs with mahalanobis", {
 	result <- pinterval_conformal(
-		pred = pred_test[1:5], calib = pred_cal, calib_truth = truth_cal,
+		pred = pred_test[1:5],
+		calib = pred_cal,
+		calib_truth = truth_cal,
 		alpha = 0.1,
 		distance_weighted_cp = TRUE,
 		distance_features_calib = feat_cal,
@@ -47,7 +51,9 @@ test_that("distance-weighted conformal runs with mahalanobis", {
 test_that("distance-weighted conformal errors without features", {
 	expect_error(
 		pinterval_conformal(
-			pred = pred_test[1:5], calib = pred_cal, calib_truth = truth_cal,
+			pred = pred_test[1:5],
+			calib = pred_cal,
+			calib_truth = truth_cal,
 			distance_weighted_cp = TRUE,
 			distance_features_calib = NULL,
 			distance_features_pred = feat_test[1:5, ]
@@ -59,7 +65,9 @@ test_that("distance-weighted conformal errors without features", {
 test_that("distance normalization options work", {
 	for (norm in c("none", "minmax", "sd")) {
 		result <- pinterval_conformal(
-			pred = pred_test[1:3], calib = pred_cal, calib_truth = truth_cal,
+			pred = pred_test[1:3],
+			calib = pred_cal,
+			calib_truth = truth_cal,
 			alpha = 0.1,
 			distance_weighted_cp = TRUE,
 			distance_features_calib = feat_cal,
@@ -67,14 +75,21 @@ test_that("distance normalization options work", {
 			distance_type = "euclidean",
 			normalize_distance = norm
 		)
-		expect_s3_class(result, "tbl_df", info = paste("normalize:", norm))
+		expect_s3_class(result, "tbl_df")
 	}
 })
 
 test_that("all weight functions work", {
-	for (wf in c("gaussian_kernel", "caucy_kernel", "logistic", "reciprocal_linear")) {
+	for (wf in c(
+		"gaussian_kernel",
+		"caucy_kernel",
+		"logistic",
+		"reciprocal_linear"
+	)) {
 		result <- pinterval_conformal(
-			pred = pred_test[1:3], calib = pred_cal, calib_truth = truth_cal,
+			pred = pred_test[1:3],
+			calib = pred_cal,
+			calib_truth = truth_cal,
 			alpha = 0.1,
 			distance_weighted_cp = TRUE,
 			distance_features_calib = feat_cal,
@@ -82,7 +97,7 @@ test_that("all weight functions work", {
 			distance_type = "euclidean",
 			weight_function = wf
 		)
-		expect_s3_class(result, "tbl_df", info = paste("weight_function:", wf))
+		expect_s3_class(result, "tbl_df")
 	}
 })
 
@@ -92,7 +107,9 @@ test_that("all weight functions work", {
 
 test_that("distance-weighted bootstrap runs", {
 	result <- pinterval_bootstrap(
-		pred = pred_test[1:5], calib = pred_cal, calib_truth = truth_cal,
+		pred = pred_test[1:5],
+		calib = pred_cal,
+		calib_truth = truth_cal,
 		alpha = 0.1,
 		distance_weighted_bootstrap = TRUE,
 		distance_features_calib = feat_cal,
@@ -110,10 +127,12 @@ test_that("distance-weighted bootstrap runs", {
 test_that("mismatched feature dimensions error", {
 	expect_error(
 		pinterval_conformal(
-			pred = pred_test[1:3], calib = pred_cal, calib_truth = truth_cal,
+			pred = pred_test[1:3],
+			calib = pred_cal,
+			calib_truth = truth_cal,
 			distance_weighted_cp = TRUE,
 			distance_features_calib = feat_cal,
-			distance_features_pred = feat_test[1:3, 1, drop = FALSE]  # only 1 column vs 2
+			distance_features_pred = feat_test[1:3, 1, drop = FALSE] # only 1 column vs 2
 		),
 		"same number of columns"
 	)
@@ -122,9 +141,11 @@ test_that("mismatched feature dimensions error", {
 test_that("wrong number of rows in features errors", {
 	expect_error(
 		pinterval_conformal(
-			pred = pred_test[1:3], calib = pred_cal, calib_truth = truth_cal,
+			pred = pred_test[1:3],
+			calib = pred_cal,
+			calib_truth = truth_cal,
 			distance_weighted_cp = TRUE,
-			distance_features_calib = feat_cal[1:10, ],  # 10 rows vs 200 calib
+			distance_features_calib = feat_cal[1:10, ], # 10 rows vs 200 calib
 			distance_features_pred = feat_test[1:3, ]
 		),
 		"rows.*match"

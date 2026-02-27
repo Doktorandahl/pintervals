@@ -20,6 +20,10 @@ NumericVector row_euclidean_distance(NumericMatrix X, NumericVector v) {
 		stop("Length of vector v (%d) must match number of columns in X (%d)", v.size(), p);
 	}
 
+  if (is_true(any(is_na(v)))) {
+    stop("Input contains NA values. Please handle them before calling this function.");
+  }
+
 	NumericVector dists(n);
 
 	for (int i = 0; i < n; i++) {
@@ -43,6 +47,9 @@ NumericVector row_mahalanobis_distance(NumericMatrix X,
 
   if (v.size() != p) {
     stop("Length of v must match number of columns in X.");
+  }
+  if (is_true(any(is_na(v)))) {
+    stop("Input contains NA values. Please handle them before calling this function.");
   }
   if (S_inv.nrow() != p || S_inv.ncol() != p) {
     stop("S_inv must be a square matrix with dimensions equal to ncol(X).");

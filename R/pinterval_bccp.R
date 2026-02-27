@@ -96,7 +96,10 @@ pinterval_bccp = function(
 
 	# Validate pred
 	if (!is.numeric(pred)) {
-		stop('pinterval_bccp: pred must be a numeric scalar or vector', call. = FALSE)
+		stop(
+			'pinterval_bccp: pred must be a numeric scalar or vector',
+			call. = FALSE
+		)
 	}
 	if (any(is.na(pred))) {
 		warning('pinterval_bccp: pred contains NA values', call. = FALSE)
@@ -106,12 +109,18 @@ pinterval_bccp = function(
 	if (is.null(calib)) {
 		stop('pinterval_bccp: calib must be provided (not NULL)', call. = FALSE)
 	}
-	if (is.numeric(calib) && is.null(calib_truth)) {
-		stop('pinterval_bccp: If calib is numeric, calib_truth must be provided', call. = FALSE)
+	if (is.vector(calib) && is.null(calib_truth)) {
+		stop(
+			'pinterval_bccp: If calib is numeric, calib_truth must be provided',
+			call. = FALSE
+		)
 	}
-	if (!is.numeric(calib)) {
+	if (!is.vector(calib)) {
 		if (!is.matrix(calib) && !is.data.frame(calib)) {
-			stop('pinterval_bccp: calib must be a numeric vector, matrix, or data frame', call. = FALSE)
+			stop(
+				'pinterval_bccp: calib must be a numeric vector, matrix, or data frame',
+				call. = FALSE
+			)
 		}
 		if (ncol(calib) < 2) {
 			stop(
@@ -119,6 +128,11 @@ pinterval_bccp = function(
 				call. = FALSE
 			)
 		}
+	} else if (!is.numeric(calib)) {
+		stop(
+			'pinterval_bccp: calib must be a numeric vector, matrix, or data frame',
+			call. = FALSE
+		)
 	}
 
 	if (
@@ -132,7 +146,10 @@ pinterval_bccp = function(
 	}
 
 	if (!is.numeric(alpha) || alpha <= 0 || alpha >= 1 || length(alpha) != 1) {
-		stop('pinterval_bccp: alpha must be a single numeric value between 0 and 1', call. = FALSE)
+		stop(
+			'pinterval_bccp: alpha must be a single numeric value between 0 and 1',
+			call. = FALSE
+		)
 	}
 
 	ncs_type <- match.arg(
@@ -152,7 +169,10 @@ pinterval_bccp = function(
 			stop('pinterval_bccp: breaks must be a numeric vector', call. = FALSE)
 		}
 		if (!all(diff(breaks) > 0)) {
-			stop('pinterval_bccp: breaks must be sorted in increasing order', call. = FALSE)
+			stop(
+				'pinterval_bccp: breaks must be sorted in increasing order',
+				call. = FALSE
+			)
 		}
 	} else {
 		warning(
@@ -168,11 +188,18 @@ pinterval_bccp = function(
 
 	# Validate contiguize
 	if (!is.logical(contiguize) || length(contiguize) != 1) {
-		stop('pinterval_bccp: contiguize must be a single logical value', call. = FALSE)
+		stop(
+			'pinterval_bccp: contiguize must be a single logical value',
+			call. = FALSE
+		)
 	}
 
 	if (!is.null(breaks) && !is.null(calib_bins)) {
-		warning('pinterval_bccp: If breaks are provided, calib_bins will be ignored', call. = FALSE)
+		warning(
+			'pinterval_bccp: If breaks are provided, calib_bins will be ignored',
+			call. = FALSE
+		)
+		calib_bins <- NULL
 	}
 
 	distance_type <- match.arg(distance_type, c('mahalanobis', 'euclidean'))
@@ -180,7 +207,7 @@ pinterval_bccp = function(
 	# Validate normalize_distance
 	normalize_distance <- match.arg(normalize_distance, c('none', 'minmax', 'sd'))
 
-	if (!is.numeric(calib)) {
+	if (!is.vector(calib)) {
 		calib_org <- calib
 		if (is.matrix(calib)) {
 			calib <- as.numeric(calib_org[, 1])
@@ -199,7 +226,10 @@ pinterval_bccp = function(
 
 	# Length checks for calib_truth and calib_bins
 	if (length(calib_truth) != length(calib)) {
-		stop('pinterval_bccp: calib_truth must have the same length as calib', call. = FALSE)
+		stop(
+			'pinterval_bccp: calib_truth must have the same length as calib',
+			call. = FALSE
+		)
 	}
 	if (any(is.na(calib))) {
 		warning('pinterval_bccp: calib contains NA values', call. = FALSE)
@@ -216,8 +246,10 @@ pinterval_bccp = function(
 
 	if (distance_weighted_cp) {
 		validate_distance_inputs(
-			distance_features_calib, distance_features_pred,
-			length(calib), length(pred),
+			distance_features_calib,
+			distance_features_pred,
+			length(calib),
+			length(pred),
 			fn_name = "pinterval_bccp"
 		)
 		distance_features_calib <- as.matrix(distance_features_calib)
@@ -232,11 +264,16 @@ pinterval_bccp = function(
 			labels = FALSE,
 			right = right
 		)
+		calib_bins[which(calib_truth == max(calib_truth))] <- length(breaks) - 1
+		calib_bins[which(calib_truth == min(calib_truth))] <- 1
 	}
 
 	# Length check for calib_bins
 	if (length(calib_bins) != length(calib)) {
-		stop('pinterval_bccp: calib_bins must have the same length as calib', call. = FALSE)
+		stop(
+			'pinterval_bccp: calib_bins must have the same length as calib',
+			call. = FALSE
+		)
 	}
 
 	nobs_bins <- as.numeric(table(calib_bins))

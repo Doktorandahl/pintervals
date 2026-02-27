@@ -147,7 +147,7 @@ pinterval_mondrian = function(
 		)
 	}
 
-	if (!is.numeric(calib) && ncol(calib) < 3) {
+	if (!is.vector(calib) && ncol(calib) < 3) {
 		stop(
 			'pinterval_mondrian: calib must be a numeric vector or a 3 column tibble or matrix with the first column being the predicted values, the second column being the truth values, and the third column being the class labels',
 			call. = FALSE
@@ -194,7 +194,7 @@ pinterval_mondrian = function(
 	)
 
 	# Parse calib if it's a matrix or data frame
-	if (!is.numeric(calib)) {
+	if (!is.vector(calib)) {
 		calib_org <- calib
 		if (is.matrix(calib)) {
 			calib <- as.numeric(calib_org[, 1])
@@ -252,8 +252,10 @@ pinterval_mondrian = function(
 
 	if (distance_weighted_cp) {
 		validate_distance_inputs(
-			distance_features_calib, distance_features_pred,
-			length(calib), length(pred),
+			distance_features_calib,
+			distance_features_pred,
+			length(calib),
+			length(pred),
 			fn_name = "pinterval_mondrian"
 		)
 		distance_features_calib <- as.matrix(distance_features_calib)

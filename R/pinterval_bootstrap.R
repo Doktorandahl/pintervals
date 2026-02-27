@@ -78,20 +78,35 @@ pinterval_bootstrap <- function(
 
 	# Validate pred
 	if (!is.numeric(pred)) {
-		stop('pinterval_bootstrap: pred must be a single number or a numeric vector', call. = FALSE)
+		stop(
+			'pinterval_bootstrap: pred must be a single number or a numeric vector',
+			call. = FALSE
+		)
 	}
+
 	if (any(is.na(pred))) {
 		warning('pinterval_bootstrap: pred contains NA values', call. = FALSE)
 	}
 
 	# Validate alpha
 	if (!is.numeric(alpha) || length(alpha) != 1 || alpha <= 0 || alpha >= 1) {
-		stop('pinterval_bootstrap: alpha must be a single numeric value in (0,1)', call. = FALSE)
+		stop(
+			'pinterval_bootstrap: alpha must be a single numeric value in (0,1)',
+			call. = FALSE
+		)
 	}
 
 	# Validate n_bootstraps
-	if (!is.numeric(n_bootstraps) || length(n_bootstraps) != 1 || n_bootstraps != as.integer(n_bootstraps) || n_bootstraps <= 0) {
-		stop('pinterval_bootstrap: n_bootstraps must be a single positive integer', call. = FALSE)
+	if (
+		!is.numeric(n_bootstraps) ||
+			length(n_bootstraps) != 1 ||
+			n_bootstraps != as.integer(n_bootstraps) ||
+			n_bootstraps <= 0
+	) {
+		stop(
+			'pinterval_bootstrap: n_bootstraps must be a single positive integer',
+			call. = FALSE
+		)
 	}
 
 	# Validate calib
@@ -99,22 +114,28 @@ pinterval_bootstrap <- function(
 		stop('pinterval_bootstrap: calib must be provided', call. = FALSE)
 	}
 
-	if (is.numeric(calib) && is.null(calib_truth)) {
-		stop('pinterval_bootstrap: If calib is numeric, calib_truth must be provided', call. = FALSE)
+	if (is.vector(calib) && is.null(calib_truth)) {
+		stop(
+			'pinterval_bootstrap: If calib is a vector, calib_truth must be provided',
+			call. = FALSE
+		)
 	}
 
 	if (!is.numeric(calib) && !is.matrix(calib) && !is.data.frame(calib)) {
-		stop('pinterval_bootstrap: calib must be numeric, a matrix, or a data frame', call. = FALSE)
+		stop(
+			'pinterval_bootstrap: calib must be numeric, a matrix, or a data frame',
+			call. = FALSE
+		)
 	}
 
-	if (!is.numeric(calib) && (ncol(calib) != 2)) {
+	if (!is.vector(calib) && (ncol(calib) != 2)) {
 		stop(
 			'pinterval_bootstrap: calib must be a numeric vector or a 2 column tibble or matrix with the first column being the predicted values and the second column being the truth values',
 			call. = FALSE
 		)
 	}
 
-	if (!is.numeric(calib)) {
+	if (!is.vector(calib)) {
 		calib_org <- calib
 		if (is.matrix(calib)) {
 			calib <- as.numeric(calib_org[, 1])
@@ -127,7 +148,10 @@ pinterval_bootstrap <- function(
 
 	# Length checks
 	if (length(calib) != length(calib_truth)) {
-		stop('pinterval_bootstrap: calib and calib_truth must have the same length', call. = FALSE)
+		stop(
+			'pinterval_bootstrap: calib and calib_truth must have the same length',
+			call. = FALSE
+		)
 	}
 
 	if (any(is.na(calib))) {
@@ -139,8 +163,10 @@ pinterval_bootstrap <- function(
 
 	if (distance_weighted_bootstrap) {
 		validate_distance_inputs(
-			distance_features_calib, distance_features_pred,
-			length(calib), length(pred),
+			distance_features_calib,
+			distance_features_pred,
+			length(calib),
+			length(pred),
 			fn_name = "pinterval_bootstrap"
 		)
 		distance_type <- match.arg(distance_type, c('mahalanobis', 'euclidean'))
@@ -168,7 +194,7 @@ pinterval_bootstrap <- function(
 			error_type = error_type,
 			distance_weighted_bootstrap = distance_weighted_bootstrap,
 			distance_features_calib = distance_features_calib,
-			distance_features_pred = distance_features_pred,
+			distance_features_pred = distance_features_pred[i, ],
 			distance_type = distance_type,
 			normalize_distance = normalize_distance,
 			weight_function = weight_function

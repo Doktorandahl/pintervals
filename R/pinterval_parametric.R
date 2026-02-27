@@ -98,11 +98,21 @@ pinterval_parametric <- function(
 	alpha = 0.1
 ) {
 	if (!is.numeric(pred)) {
-		stop('pinterval_parametric: pred must be a single number or a numeric vector', call. = FALSE)
+		stop(
+			'pinterval_parametric: pred must be a single number or a numeric vector',
+			call. = FALSE
+		)
+	}
+
+	if (any(is.na(pred))) {
+		warning(
+			'pinterval_parametric: pred contains NA values. Prediction intervals cannot be computed for NA predictions and will be returned as NA.',
+			call. = FALSE
+		)
 	}
 
 	if (length(dist) > 1) {
-		stop('pinterval_parametric: dist must be a single distribution', call. = FALSE)
+		dist <- match.arg(dist)
 	}
 
 	if (!is.character(dist) && !is.function(dist)) {
@@ -113,7 +123,10 @@ pinterval_parametric <- function(
 	}
 
 	if (!is.numeric(alpha) || length(alpha) != 1 || alpha <= 0 || alpha >= 1) {
-		stop('pinterval_parametric: alpha must be a single numeric value between 0 and 1', call. = FALSE)
+		stop(
+			'pinterval_parametric: alpha must be a single numeric value between 0 and 1',
+			call. = FALSE
+		)
 	}
 
 	if (is.null(calib) && (is.null(pars) || length(pars) == 0)) {
@@ -124,12 +137,18 @@ pinterval_parametric <- function(
 	}
 
 	if (!is.null(calib) && is.numeric(calib) && is.null(calib_truth)) {
-		stop('pinterval_parametric: If calib is numeric, calib_truth must be provided', call. = FALSE)
+		stop(
+			'pinterval_parametric: If calib is numeric, calib_truth must be provided',
+			call. = FALSE
+		)
 	}
 
 	if (!is.null(calib) && !is.numeric(calib)) {
 		if (!is.matrix(calib) && !is.data.frame(calib)) {
-			stop('pinterval_parametric: calib must be a numeric vector, matrix, or data frame', call. = FALSE)
+			stop(
+				'pinterval_parametric: calib must be a numeric vector, matrix, or data frame',
+				call. = FALSE
+			)
 		}
 		if (ncol(calib) != 2) {
 			stop(
@@ -142,11 +161,17 @@ pinterval_parametric <- function(
 	if (!is.null(calib)) {
 		if (is.numeric(calib)) {
 			if (length(calib) != length(calib_truth)) {
-				stop('pinterval_parametric: calib and calib_truth must have the same length', call. = FALSE)
+				stop(
+					'pinterval_parametric: calib and calib_truth must have the same length',
+					call. = FALSE
+				)
 			}
 		} else {
 			if (nrow(calib) != length(calib_truth)) {
-				stop('pinterval_parametric: calib and calib_truth must have compatible lengths', call. = FALSE)
+				stop(
+					'pinterval_parametric: calib and calib_truth must have compatible lengths',
+					call. = FALSE
+				)
 			}
 		}
 	}
@@ -200,7 +225,11 @@ pinterval_parametric <- function(
 			mle_theta <- tryCatch(
 				MASS::glm.nb(calib_truth ~ offset(log(calib))),
 				error = function(e) {
-					stop('pinterval_parametric: Error fitting negative binomial model: ', conditionMessage(e), call. = FALSE)
+					stop(
+						'pinterval_parametric: Error fitting negative binomial model: ',
+						conditionMessage(e),
+						call. = FALSE
+					)
 				}
 			)
 			pars$size <- mle_theta$theta
@@ -215,7 +244,11 @@ pinterval_parametric <- function(
 					family = stats::Gamma(link = 'log')
 				))$dispersion,
 				error = function(e) {
-					stop('pinterval_parametric: Error fitting gamma model: ', conditionMessage(e), call. = FALSE)
+					stop(
+						'pinterval_parametric: Error fitting gamma model: ',
+						conditionMessage(e),
+						call. = FALSE
+					)
 				}
 			)
 
@@ -258,7 +291,7 @@ pinterval_parametric <- function(
 			pars$shape2 <- (1 - pred) * phi_hat
 		} else {
 			stop(
-				'pinterval_parametric: The distribution is not supported. Supported distributions are: norm, lnorm, exp, pois, nbinom, gamma, chisq, logis, beta. Please provide the parameters in pars or use a custom distribution function.',
+				'pinterval_parametric: The distribution passed to `dist` is not natively supported and is not a function. Natively supported distributions are: norm, lnorm, exp, pois, nbinom, gamma, chisq, logis, beta. Please provide a custom distribution function to `dist`, with parameters provided in `pars`, or use one of the natively supported distributions.',
 				call. = FALSE
 			)
 		}

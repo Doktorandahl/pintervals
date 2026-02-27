@@ -130,6 +130,13 @@ pinterval_ccp = function(
 
 	min_class_size <- max(10, ceiling(1 / alpha))
 
+	if (any(is.na(n_clusters)) || any(n_clusters <= 0)) {
+		stop(
+			'pinterval_ccp: n_clusters be a single positive numeric value or a vector of positive numeric values to optimize over',
+			call. = FALSE
+		)
+	}
+
 	# Validate pred
 	if (!is.numeric(pred) && (!is.matrix(pred) && !is.data.frame(pred))) {
 		stop(
@@ -183,7 +190,7 @@ pinterval_ccp = function(
 	}
 
 	# Check calib column count if not numeric
-	if (!is.numeric(calib) && ncol(calib) < 3) {
+	if (!is.vector(calib) && ncol(calib) < 3) {
 		stop(
 			'pinterval_ccp: calib must be a numeric vector or a 3 column tibble or matrix with the first column being the predicted values, the second column being the truth values, and the third column being the class labels',
 			call. = FALSE
@@ -192,14 +199,14 @@ pinterval_ccp = function(
 
 	if (is.numeric(calib) && is.null(calib_truth)) {
 		stop(
-			'pinterval_ccp: If calib is numeric, calib_truth must be provided',
+			'pinterval_ccp: If calib is a vector, calib_truth must be provided',
 			call. = FALSE
 		)
 	}
 
-	if (is.numeric(calib) && is.null(calib_class)) {
+	if (is.vector(calib) && is.vector(calib_class)) {
 		stop(
-			'pinterval_ccp: If calib is numeric, calib_class must be provided',
+			'pinterval_ccp: If calib is a vector, calib_class must be provided',
 			call. = FALSE
 		)
 	}
@@ -223,7 +230,7 @@ pinterval_ccp = function(
 	)
 
 	# Parse calib into components
-	if (!is.numeric(calib)) {
+	if (!is.vector(calib)) {
 		calib_org <- calib
 		if (is.matrix(calib)) {
 			calib <- as.numeric(calib_org[, 1])

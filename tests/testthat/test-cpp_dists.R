@@ -31,7 +31,7 @@ test_that("row_euclidean_distance: errors on dimension mismatch", {
 	v <- c(1, 2, 3) # 3 elements vs 2 columns
 	expect_error(
 		row_euclidean_distance(X, v),
-		"length.*must match.*columns"
+		"Length.*must match"
 	)
 })
 
@@ -86,7 +86,7 @@ test_that("row_mahalanobis_distance: errors on v length mismatch", {
 	S_inv <- diag(2)
 	expect_error(
 		row_mahalanobis_distance(X, v, S_inv),
-		"length.*must match"
+		"Length.*must match"
 	)
 })
 

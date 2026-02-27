@@ -19,7 +19,8 @@ validate_distance_inputs <- function(
 ) {
 	if (is.null(distance_features_calib) || is.null(distance_features_pred)) {
 		stop(
-			fn_name, ": 'distance_features_calib' and 'distance_features_pred' must be provided for distance-weighted prediction.",
+			fn_name,
+			": 'distance_features_calib' and 'distance_features_pred' must be provided for distance-weighted prediction.",
 			call. = FALSE
 		)
 	}
@@ -29,7 +30,8 @@ validate_distance_inputs <- function(
 			!is.numeric(distance_features_calib)
 	) {
 		stop(
-			fn_name, ": 'distance_features_calib' must be a matrix, data frame, or numeric vector.",
+			fn_name,
+			": 'distance_features_calib' must be a matrix, data frame, or numeric vector.",
 			call. = FALSE
 		)
 	}
@@ -39,51 +41,93 @@ validate_distance_inputs <- function(
 			!is.numeric(distance_features_pred)
 	) {
 		stop(
-			fn_name, ": 'distance_features_pred' must be a matrix, data frame, or numeric vector.",
+			fn_name,
+			": 'distance_features_pred' must be a matrix, data frame, or numeric vector.",
 			call. = FALSE
 		)
 	}
 	if (
-		is.numeric(distance_features_calib) && is.numeric(distance_features_pred) &&
-			!is.matrix(distance_features_calib) && !is.matrix(distance_features_pred)
+		is.numeric(distance_features_calib) &&
+			is.numeric(distance_features_pred) &&
+			!is.matrix(distance_features_calib) &&
+			!is.matrix(distance_features_pred)
 	) {
 		if (length(distance_features_calib) != calib_length) {
 			stop(
-				fn_name, ": 'distance_features_calib' must have the same length as the calibration set (got ",
-				length(distance_features_calib), " vs ", calib_length, ").",
+				fn_name,
+				": 'distance_features_calib' must have the same length as the calibration set (got ",
+				length(distance_features_calib),
+				" vs ",
+				calib_length,
+				").",
 				call. = FALSE
 			)
 		}
 		if (length(distance_features_pred) != pred_length) {
 			stop(
-				fn_name, ": 'distance_features_pred' must have the same length as the prediction set (got ",
-				length(distance_features_pred), " vs ", pred_length, ").",
+				fn_name,
+				": 'distance_features_pred' must have the same length as the prediction set (got ",
+				length(distance_features_pred),
+				" vs ",
+				pred_length,
+				").",
 				call. = FALSE
 			)
 		}
 	} else {
-		if ((is.matrix(distance_features_calib) || is.data.frame(distance_features_calib)) &&
-				nrow(distance_features_calib) != calib_length) {
+		if (
+			(is.matrix(distance_features_calib) ||
+				is.data.frame(distance_features_calib)) &&
+				nrow(distance_features_calib) != calib_length
+		) {
 			stop(
-				fn_name, ": 'distance_features_calib' must have ", calib_length,
-				" rows to match the calibration set (got ", nrow(distance_features_calib), ").",
+				fn_name,
+				": 'distance_features_calib' must have ",
+				calib_length,
+				" rows to match the calibration set (got ",
+				nrow(distance_features_calib),
+				").",
 				call. = FALSE
 			)
 		}
-		if ((is.matrix(distance_features_pred) || is.data.frame(distance_features_pred)) &&
-				nrow(distance_features_pred) != pred_length) {
+		if (
+			(is.matrix(distance_features_pred) ||
+				is.data.frame(distance_features_pred)) &&
+				nrow(distance_features_pred) != pred_length
+		) {
 			stop(
-				fn_name, ": 'distance_features_pred' must have ", pred_length,
-				" rows to match the prediction set (got ", nrow(distance_features_pred), ").",
+				fn_name,
+				": 'distance_features_pred' must have ",
+				pred_length,
+				" rows to match the prediction set (got ",
+				nrow(distance_features_pred),
+				").",
 				call. = FALSE
 			)
 		}
-		calib_nc <- if (is.matrix(distance_features_calib) || is.data.frame(distance_features_calib)) ncol(distance_features_calib) else 1
-		pred_nc <- if (is.matrix(distance_features_pred) || is.data.frame(distance_features_pred)) ncol(distance_features_pred) else 1
+		calib_nc <- if (
+			is.matrix(distance_features_calib) ||
+				is.data.frame(distance_features_calib)
+		) {
+			ncol(distance_features_calib)
+		} else {
+			1
+		}
+		pred_nc <- if (
+			is.matrix(distance_features_pred) || is.data.frame(distance_features_pred)
+		) {
+			ncol(distance_features_pred)
+		} else {
+			1
+		}
 		if (calib_nc != pred_nc) {
 			stop(
-				fn_name, ": 'distance_features_calib' and 'distance_features_pred' must have the same number of columns (got ",
-				calib_nc, " and ", pred_nc, ").",
+				fn_name,
+				": 'distance_features_calib' and 'distance_features_pred' must have the same number of columns (got ",
+				calib_nc,
+				" and ",
+				pred_nc,
+				").",
 				call. = FALSE
 			)
 		}
@@ -136,7 +180,9 @@ ncs_compute <- function(type, pred, truth, coefs = NULL) {
 		return(heterogeneous_error(pred, truth, coefs))
 	} else {
 		stop(
-			"ncs_compute: unknown non-conformity score type '", type, "'. ",
+			"ncs_compute: unknown non-conformity score type '",
+			type,
+			"'. ",
 			"Valid options are: 'absolute_error', 'raw_error', 'relative_error', 'za_relative_error', 'heterogeneous_error'.",
 			call. = FALSE
 		)
@@ -224,7 +270,10 @@ za_rel_error <- function(pred, truth) {
 #' @param coefs a numeric vector of coefficients for the heterogeneous error model. Must be of length 2, where the first element is the intercept and the second element is the slope.
 heterogeneous_error <- function(pred, truth, coefs) {
 	if (length(coefs) != 2) {
-		stop("heterogeneous_error: 'coefs' must be a vector of length 2.", call. = FALSE)
+		stop(
+			"heterogeneous_error: 'coefs' must be a vector of length 2.",
+			call. = FALSE
+		)
 	}
 
 	est_heterogeneous_error <- coefs[1] + coefs[2] * pred
@@ -282,7 +331,8 @@ grid_finder <- function(
 		if (length(pos_vals) > 10000) {
 			warning(
 				"grid_finder: grid size with set step size is large (",
-				length(pos_vals), " points). Consider increasing 'resolution' or using 'grid_size' if the search is too slow.",
+				length(pos_vals),
+				" points). Consider increasing 'resolution' or using 'grid_size' if the search is too slow.",
 				call. = FALSE
 			)
 		}
@@ -365,7 +415,9 @@ grid_inner <- function(
 			)
 		} else {
 			stop(
-				"grid_inner: unknown 'distance_type': '", distance_type, "'. Must be 'mahalanobis' or 'euclidean'.",
+				"grid_inner: unknown 'distance_type': '",
+				distance_type,
+				"'. Must be 'mahalanobis' or 'euclidean'.",
 				call. = FALSE
 			)
 		}
@@ -518,6 +570,11 @@ bootstrap_inner <- function(
 	weight_function = gauss_kern
 ) {
 	i <- NA
+
+	if (is.na(pred)) {
+		return(c(pred = NA_real_, lower_bound = NA_real_, upper_bound = NA_real_))
+	}
+
 	if (!distance_weighted_bootstrap) {
 		boot_error <- sample(error, size = nboot, replace = TRUE)
 	} else {
@@ -545,7 +602,9 @@ bootstrap_inner <- function(
 			)
 		} else {
 			stop(
-				"bootstrap_inner: unknown 'distance_type': '", distance_type, "'. Must be 'mahalanobis' or 'euclidean'.",
+				"bootstrap_inner: unknown 'distance_type': '",
+				distance_type,
+				"'. Must be 'mahalanobis' or 'euclidean'.",
 				call. = FALSE
 			)
 		}
@@ -588,17 +647,27 @@ bin_chopper <- function(x, nbins, return_breaks = FALSE) {
 	}
 	if (nbins > length(x)) {
 		stop(
-			"bin_chopper: 'nbins' (", nbins, ") must be less than or equal to the length of 'x' (", length(x), ").",
+			"bin_chopper: 'nbins' (",
+			nbins,
+			") must be less than or equal to the length of 'x' (",
+			length(x),
+			").",
 			call. = FALSE
 		)
 	}
 	if (length(unique(x)) == 1) {
-		stop("bin_chopper: 'x' must have more than one unique value.", call. = FALSE)
+		stop(
+			"bin_chopper: 'x' must have more than one unique value.",
+			call. = FALSE
+		)
 	}
 	if (length(unique(x)) < nbins) {
 		stop(
 			"bin_chopper: 'x' must have at least as many unique values as 'nbins' (got ",
-			length(unique(x)), " unique values, ", nbins, " bins).",
+			length(unique(x)),
+			" unique values, ",
+			nbins,
+			" bins).",
 			call. = FALSE
 		)
 	}
@@ -672,9 +741,7 @@ bindividual_alpha <- function(minqs, alpha) {
 	rem_bins_old <- rem_bins + 1
 
 	while (rem_bins != rem_bins_old) {
-		if (
-			prod(minq_to_alpha(minqs[-which.min(minqs)], a), na.rm = T) <= alpha
-		) {
+		if (prod(minq_to_alpha(minqs[-which.min(minqs)], a), na.rm = T) <= alpha) {
 			minqs[which.min(minqs)] <- NA
 			rem_bins <- rem_bins - 1
 		}
@@ -901,7 +968,9 @@ clusterer <- function(
 		clusters <- kmeans_cluster_qecdf(ncs, class_vec, m = m, q = q)
 	} else {
 		stop(
-			"clusterer: unknown clustering method '", method, "'. Must be 'ks' or 'kmeans'.",
+			"clusterer: unknown clustering method '",
+			method,
+			"'. Must be 'ks' or 'kmeans'.",
 			call. = FALSE
 		)
 	}
@@ -974,8 +1043,11 @@ ks_cluster <- function(ncs, class_vec, m, maxit = 100, nrep = 10) {
 
 	if (length(class_labels) < m) {
 		stop(
-			"ks_cluster: number of unique classes (", length(class_labels),
-			") must be greater than or equal to 'm' (", m, ").",
+			"ks_cluster: number of unique classes (",
+			length(class_labels),
+			") must be greater than or equal to 'm' (",
+			m,
+			").",
 			call. = FALSE
 		)
 	}
@@ -1000,7 +1072,9 @@ ks_cluster <- function(ncs, class_vec, m, maxit = 100, nrep = 10) {
 			}
 			if (i == maxit) {
 				warning(
-					"ks_cluster: maximum number of iterations (", maxit, ") reached without convergence.",
+					"ks_cluster: maximum number of iterations (",
+					maxit,
+					") reached without convergence.",
 					call. = FALSE
 				)
 			}

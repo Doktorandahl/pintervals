@@ -63,7 +63,10 @@ interval_coverage <- function(
 ) {
 	# Check: if both lower_bound/upper_bound and intervals are all NULL
 	if (is.null(intervals) && (is.null(lower_bound) || is.null(upper_bound))) {
-		stop("interval_coverage: Either 'intervals' or both 'lower_bound' and 'upper_bound' must be provided.", call. = FALSE)
+		stop(
+			"interval_coverage: Either 'intervals' or both 'lower_bound' and 'upper_bound' must be provided.",
+			call. = FALSE
+		)
 	}
 
 	# Check: truth must be numeric
@@ -79,8 +82,14 @@ interval_coverage <- function(
 		if (!is.numeric(upper_bound)) {
 			stop("interval_coverage: 'upper_bound' must be numeric.", call. = FALSE)
 		}
-		if (length(lower_bound) != length(truth) || length(upper_bound) != length(truth)) {
-			stop("interval_coverage: 'lower_bound' and 'upper_bound' must have the same length as 'truth'.", call. = FALSE)
+		if (
+			length(lower_bound) != length(truth) ||
+				length(upper_bound) != length(truth)
+		) {
+			stop(
+				"interval_coverage: 'lower_bound' and 'upper_bound' must have the same length as 'truth'.",
+				call. = FALSE
+			)
 		}
 	}
 
@@ -203,14 +212,20 @@ interval_miscoverage <- function(
 
 	# Check: alpha must be single numeric in (0,1)
 	if (!is.numeric(alpha) || length(alpha) != 1 || alpha <= 0 || alpha >= 1) {
-		stop("interval_miscoverage: 'alpha' must be a single numeric value in (0, 1).", call. = FALSE)
+		stop(
+			"interval_miscoverage: 'alpha' must be a single numeric value in (0, 1).",
+			call. = FALSE
+		)
 	}
 
 	# Check if the lengths of the vectors are equal
 	if (
 		length(truth) != length(lower_bound) || length(truth) != length(upper_bound)
 	) {
-		stop("interval_miscoverage: All input vectors must have the same length.", call. = FALSE)
+		stop(
+			"interval_miscoverage: All input vectors must have the same length.",
+			call. = FALSE
+		)
 	}
 
 	# Calculate empirical coverage
@@ -292,7 +307,10 @@ interval_score <- function(
 ) {
 	# Check: if both lower_bound/upper_bound and intervals are all NULL
 	if (is.null(intervals) && (is.null(lower_bound) || is.null(upper_bound))) {
-		stop("interval_score: Either 'intervals' or both 'lower_bound' and 'upper_bound' must be provided.", call. = FALSE)
+		stop(
+			"interval_score: Either 'intervals' or both 'lower_bound' and 'upper_bound' must be provided.",
+			call. = FALSE
+		)
 	}
 
 	# Check: truth must be numeric
@@ -302,7 +320,10 @@ interval_score <- function(
 
 	# Check: alpha must be single numeric in (0,1)
 	if (!is.numeric(alpha) || length(alpha) != 1 || alpha <= 0 || alpha >= 1) {
-		stop("interval_score: 'alpha' must be a single numeric value in (0, 1).", call. = FALSE)
+		stop(
+			"interval_score: 'alpha' must be a single numeric value in (0, 1).",
+			call. = FALSE
+		)
 	}
 
 	# Check: when lower_bound and upper_bound are provided, they must be numeric and same length as truth
@@ -313,8 +334,14 @@ interval_score <- function(
 		if (!is.numeric(upper_bound)) {
 			stop("interval_score: 'upper_bound' must be numeric.", call. = FALSE)
 		}
-		if (length(lower_bound) != length(truth) || length(upper_bound) != length(truth)) {
-			stop("interval_score: 'lower_bound' and 'upper_bound' must have the same length as 'truth'.", call. = FALSE)
+		if (
+			length(lower_bound) != length(truth) ||
+				length(upper_bound) != length(truth)
+		) {
+			stop(
+				"interval_score: 'lower_bound' and 'upper_bound' must have the same length as 'truth'.",
+				call. = FALSE
+			)
 		}
 	}
 
@@ -433,7 +460,10 @@ interval_width <- function(
 ) {
 	# Check: if both lower_bound/upper_bound and intervals are all NULL
 	if (is.null(intervals) && (is.null(lower_bound) || is.null(upper_bound))) {
-		stop("interval_width: Either 'intervals' or both 'lower_bound' and 'upper_bound' must be provided.", call. = FALSE)
+		stop(
+			"interval_width: Either 'intervals' or both 'lower_bound' and 'upper_bound' must be provided.",
+			call. = FALSE
+		)
 	}
 
 	# Check: when lower_bound and upper_bound are provided, they must be numeric and same length
@@ -445,7 +475,10 @@ interval_width <- function(
 			stop("interval_width: 'upper_bound' must be numeric.", call. = FALSE)
 		}
 		if (length(lower_bound) != length(upper_bound)) {
-			stop("interval_width: 'lower_bound' and 'upper_bound' must have the same length.", call. = FALSE)
+			stop(
+				"interval_width: 'lower_bound' and 'upper_bound' must have the same length.",
+				call. = FALSE
+			)
 		}
 	}
 

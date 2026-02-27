@@ -1,17 +1,8 @@
 ---
 title: "pintervals: an R package for model-agnostic prediction intervals"
-author:
-  - name: David Randahl
-    affiliation: Dep. of War Studies, Swedish Defense University
-    email: david.randahl@fhs.se
-  - name: Anders Hjort
-    affiliation: Eiendomsverdi AS
-  - name: Jonathan P. Williams
-    affiliation: Dep. of Statistics, North Carolina State University
 output:
-  html_document:
+  rmarkdown::html_vignette:
     toc: true
-    toc_depth: 3
     number_sections: true
     fig_caption: true
     self_contained: true
@@ -31,13 +22,6 @@ knitr::opts_chunk$set(
   comment = "#>"
 )
 ```
-
-## Abstract
-
-The **pintervals** package aims to provide a unified framework for constructing prediction intervals and calibrating predictions in a model-agnostic setting using set-aside calibration data. It comprises routines to construct conformal as well as parametric and bootstrapped prediction intervals from any model that outputs point predictions. Several R packages and functions already exist for constructing prediction intervals, but they often focus on specific modeling frameworks or types of predictions, or require manual customization for different models or applications. By providing a consistent interface for a variety of prediction interval construction approaches (all model-agnostic), **pintervals** allows researchers to apply and compare them across different modeling frameworks and applications.
-
-**Keywords:** Prediction intervals, Conformal prediction, Bootstrapping, R.
-
 # Introduction
 
 Forecasting has in recent years become an increasingly central component of quantitative research in the social sciences. From predicting civil conflict and mass atrocities to anticipating electoral outcomes, economic downturns, and policy adoption, social scientists are increasingly engaged in producing predictive models for a range of empirical phenomena [see for instance @hegre2017introduction; @nanlohy2017policy; @lyu2021forecasting; @hegre20242023; @petropoulos2022forecasting]. This shift reflects a growing recognition that forecasting can complement traditional causal inference by providing actionable, forward-looking insights to policymakers, civil society, and researchers alike [@nanlohy2017policy].
@@ -71,7 +55,7 @@ The CP algorithm constructs a prediction interval for $y_{N+1}$ given a correspo
 In a supervised setting, we typically create a prediction model $\hat{f}$ such that $\hat{f}(x_{N+1})$ represents the model's best guess of $y_{N+1}$. In a regression setting, the canonical non-conformity score is perhaps the absolute residual, $s_i := \lvert y_i - \hat{f}(x_i)\rvert$, while in classification a standard choice is *one minus the softmax probability* assigned to the true class. In either case, the CP procedure yields a marginal prediction set
 
 $$
-C_{1-\alpha}(x_{N+1}) := \big\{ y \in \mathcal{Y} \, : \, s_{N+1}(y) \leq \hat{q}_{1-\alpha}\big\},
+C_{1-\alpha}(x_{N+1}) := \big\{ y \in Y \, : \, s_{N+1}(y) \leq \hat{q}_{1-\alpha}\big\},
 $$
 
 where $s_{N+1}(y)$ denotes the non-conformity score corresponding to $y_{N+1} = y$. This construction ensures the following finite-sample marginal coverage guarantee,
@@ -86,10 +70,10 @@ There are two main variants of the CP algorithm: the transductive (or *full CP*)
 
 ### Mondrian conformal prediction
 
-While standard CP provides valid coverage guarantees marginally, it does not account for potential heterogeneity in the data, which can lead to over- or under-coverage in certain regions of the data. To address this, Mondrian CP (MCP), or label-conditional CP, extends the conformal framework by partitioning the calibration set into groups based on covariates or other characteristics. The disjoint groups enable the construction of group-conditional prediction intervals, i.e. resulting in a CP set for each group. Supposing the feature space $\mathcal{X}$ can be partitioned into disjoint subsets $\mathcal{X}_1, \dots, \mathcal{X}_K$, MCP guarantees, for each $k \in \{1, \dots, K\}$ and $\alpha \in [0,1]$, that
+While standard CP provides valid coverage guarantees marginally, it does not account for potential heterogeneity in the data, which can lead to over- or under-coverage in certain regions of the data. To address this, Mondrian CP (MCP), or label-conditional CP, extends the conformal framework by partitioning the calibration set into groups based on covariates or other characteristics. The disjoint groups enable the construction of group-conditional prediction intervals, i.e. resulting in a CP set for each group. Supposing the feature space $X$ can be partitioned into disjoint subsets $X_1, \dots, X_K$, MCP guarantees, for each $k \in \{1, \dots, K\}$ and $\alpha \in [0,1]$, that
 
 $$
-\mathsf{P}\{Y_{N+1} \in C_{1-\alpha}(x_{N+1}) \mid x_{N+1} \in \mathcal{X}_k\} \geq 1-\alpha.
+\mathsf{P}\{Y_{N+1} \in C_{1-\alpha}(x_{N+1}) \mid x_{N+1} \in X_k\} \geq 1-\alpha.
 $$
 
 In MCP, the calibration step is performed separately per group rather than across the entire calibration data, involving the computation (for each $\alpha$) of $K$, $1-\alpha$ level quantiles $\hat{q}_{1-\alpha}^{(1)}, \dots, \hat{q}_{1-\alpha}^{(K)}$. While group-conditional validity may hold in MCP, the limiting factor for efficiency (e.g. narrow intervals) is that a sufficient number of calibration points must be available in each group. Finally, it is known [@LeiWasserman2013] that exact conditional coverage guarantees, i.e. achieving valid coverage conditional on the exact value $x_{N+1}$ rather than on a Mondrian group membership, are impossible in the context of CP.
@@ -108,7 +92,7 @@ The literature contains several variations of this, including data-driven weight
 
 ### Bin-conditional conformal prediction
 
-It is known that the standard CP methods often under-cover in lower density regions of the outcome space $\mathcal{Y}$, while over-covering in higher density regions of $\mathcal{Y}$ [@guan2023localized]. While MCP and CCP are useful for addressing under- and over-coverage for different groups in the data, these methods are not easily applicable if the outcome space has no natural or well-defined grouping structure. One example is data arising from skewed distributions. Bin-conditional conformal prediction (BCCP) addresses this issue by partitioning the calibration data into user-defined bins of the outcome space, such as low, medium, and high values [@randahl2025bin].
+It is known that the standard CP methods often under-cover in lower density regions of the outcome space $Y$, while over-covering in higher density regions of $Y$ [@guan2023localized]. While MCP and CCP are useful for addressing under- and over-coverage for different groups in the data, these methods are not easily applicable if the outcome space has no natural or well-defined grouping structure. One example is data arising from skewed distributions. Bin-conditional conformal prediction (BCCP) addresses this issue by partitioning the calibration data into user-defined bins of the outcome space, such as low, medium, and high values [@randahl2025bin].
 
 For BCCP, non-conformity scores are calculated on a calibration data set within each user-defined bin. As the true bin is not known for new test points, for a new test point, the BCCP algorithm calculates its bin-specific non-conformity score within each bin. A CP set is then constructed to include all bins for which the bin-specific conformal p-value of the test point exceeds $\alpha$. For univariate outcomes, the final prediction set is formed by either the union of disjoint intervals corresponding to each bin in the CP set, or by contiguizing the intervals using the left- and right-most endpoints across the bins in the CP set. Both formations achieve *at least* the desired coverage level, but the contiguized intervals may suffer over-coverage.
 

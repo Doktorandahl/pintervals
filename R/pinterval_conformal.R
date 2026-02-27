@@ -148,21 +148,24 @@ pinterval_conformal <- function(
 		)
 	}
 
-	if (is.numeric(calib) && is.null(calib_truth)) {
-		stop(
-			"pinterval_conformal: 'calib_truth' must be provided when 'calib' is a numeric vector.",
-			call. = FALSE
-		)
-	}
-
 	if (!is.numeric(calib) && !is.matrix(calib) && !is.data.frame(calib)) {
 		stop(
 			"pinterval_conformal: 'calib' must be a numeric vector, matrix, or data frame.",
 			call. = FALSE
 		)
 	}
+	if (is.vector(calib) && is.null(calib_truth)) {
+		stop(
+			"pinterval_conformal: 'calib_truth' must be provided when 'calib' is a numeric vector.",
+			call. = FALSE
+		)
+	}
 
-	if (!is.numeric(calib) && (is.matrix(calib) || is.data.frame(calib)) && ncol(calib) != 2) {
+	if (
+		!is.numeric(calib) &&
+			(is.matrix(calib) || is.data.frame(calib)) &&
+			ncol(calib) != 2
+	) {
 		stop(
 			"pinterval_conformal: 'calib' must be a numeric vector or a 2-column matrix/data frame with predicted values in column 1 and true values in column 2.",
 			call. = FALSE
@@ -176,7 +179,10 @@ pinterval_conformal <- function(
 		)
 	}
 
-	if (!is.null(grid_size) && (!is.numeric(grid_size) || length(grid_size) != 1 || grid_size < 1)) {
+	if (
+		!is.null(grid_size) &&
+			(!is.numeric(grid_size) || length(grid_size) != 1 || grid_size < 1)
+	) {
 		stop(
 			"pinterval_conformal: 'grid_size' must be a single positive integer.",
 			call. = FALSE
@@ -202,7 +208,9 @@ pinterval_conformal <- function(
 		)
 	}
 
-	if (!is.null(lower_bound) && !is.null(upper_bound) && lower_bound >= upper_bound) {
+	if (
+		!is.null(lower_bound) && !is.null(upper_bound) && lower_bound >= upper_bound
+	) {
 		stop(
 			"pinterval_conformal: 'lower_bound' must be strictly less than 'upper_bound'.",
 			call. = FALSE
@@ -227,7 +235,7 @@ pinterval_conformal <- function(
 		c('mahalanobis', 'euclidean')
 	)
 
-	if (!is.numeric(calib)) {
+	if (!is.vector(calib)) {
 		calib_org <- calib
 		if (is.matrix(calib)) {
 			calib <- as.numeric(calib_org[, 1])
@@ -241,7 +249,10 @@ pinterval_conformal <- function(
 	if (length(calib) != length(calib_truth)) {
 		stop(
 			"pinterval_conformal: 'calib' and 'calib_truth' must have the same length (got ",
-			length(calib), " and ", length(calib_truth), ").",
+			length(calib),
+			" and ",
+			length(calib_truth),
+			").",
 			call. = FALSE
 		)
 	}
@@ -261,8 +272,10 @@ pinterval_conformal <- function(
 
 	if (distance_weighted_cp) {
 		validate_distance_inputs(
-			distance_features_calib, distance_features_pred,
-			length(calib), length(pred),
+			distance_features_calib,
+			distance_features_pred,
+			length(calib),
+			length(pred),
 			fn_name = "pinterval_conformal"
 		)
 		distance_features_calib <- as.matrix(distance_features_calib)

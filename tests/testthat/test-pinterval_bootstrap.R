@@ -30,33 +30,63 @@ test_that("calib must be provided", {
 
 test_that("alpha must be single numeric in (0,1)", {
 	expect_error(
-		pinterval_bootstrap(pred = pred_test, calib = pred_cal, calib_truth = truth_cal, alpha = 0),
+		pinterval_bootstrap(
+			pred = pred_test,
+			calib = pred_cal,
+			calib_truth = truth_cal,
+			alpha = 0
+		),
 		"pinterval_bootstrap.*alpha"
 	)
 	expect_error(
-		pinterval_bootstrap(pred = pred_test, calib = pred_cal, calib_truth = truth_cal, alpha = 1.5),
+		pinterval_bootstrap(
+			pred = pred_test,
+			calib = pred_cal,
+			calib_truth = truth_cal,
+			alpha = 1.5
+		),
 		"pinterval_bootstrap.*alpha"
 	)
 })
 
 test_that("n_bootstraps must be a single positive integer", {
 	expect_error(
-		pinterval_bootstrap(pred = pred_test, calib = pred_cal, calib_truth = truth_cal, n_bootstraps = -1),
+		pinterval_bootstrap(
+			pred = pred_test,
+			calib = pred_cal,
+			calib_truth = truth_cal,
+			n_bootstraps = -1
+		),
 		"pinterval_bootstrap.*n_bootstraps"
 	)
 	expect_error(
-		pinterval_bootstrap(pred = pred_test, calib = pred_cal, calib_truth = truth_cal, n_bootstraps = 0),
+		pinterval_bootstrap(
+			pred = pred_test,
+			calib = pred_cal,
+			calib_truth = truth_cal,
+			n_bootstraps = 0
+		),
 		"pinterval_bootstrap.*n_bootstraps"
 	)
 	expect_error(
-		pinterval_bootstrap(pred = pred_test, calib = pred_cal, calib_truth = truth_cal, n_bootstraps = 1.5),
+		pinterval_bootstrap(
+			pred = pred_test,
+			calib = pred_cal,
+			calib_truth = truth_cal,
+			n_bootstraps = 1.5
+		),
 		"pinterval_bootstrap.*n_bootstraps"
 	)
 })
 
 test_that("error_type must be valid", {
 	expect_error(
-		pinterval_bootstrap(pred = pred_test, calib = pred_cal, calib_truth = truth_cal, error_type = "invalid"),
+		pinterval_bootstrap(
+			pred = pred_test,
+			calib = pred_cal,
+			calib_truth = truth_cal,
+			error_type = "invalid"
+		),
 		"arg"
 	)
 })
@@ -67,7 +97,10 @@ test_that("error_type must be valid", {
 
 test_that("output is a tibble with correct columns and rows", {
 	result <- pinterval_bootstrap(
-		pred = pred_test, calib = pred_cal, calib_truth = truth_cal, alpha = 0.1
+		pred = pred_test,
+		calib = pred_cal,
+		calib_truth = truth_cal,
+		alpha = 0.1
 	)
 	expect_s3_class(result, "tbl_df")
 	expect_true(all(c("pred", "lower_bound", "upper_bound") %in% names(result)))
@@ -76,7 +109,10 @@ test_that("output is a tibble with correct columns and rows", {
 
 test_that("lower_bound <= upper_bound", {
 	result <- pinterval_bootstrap(
-		pred = pred_test, calib = pred_cal, calib_truth = truth_cal, alpha = 0.1
+		pred = pred_test,
+		calib = pred_cal,
+		calib_truth = truth_cal,
+		alpha = 0.1
 	)
 	expect_true(all(result$lower_bound <= result$upper_bound, na.rm = TRUE))
 })
@@ -88,22 +124,34 @@ test_that("lower_bound <= upper_bound", {
 test_that("coverage is reasonable", {
 	set.seed(123)
 	result <- pinterval_bootstrap(
-		pred = pred_test, calib = pred_cal, calib_truth = truth_cal,
-		alpha = 0.1, n_bootstraps = 5000
+		pred = pred_test,
+		calib = pred_cal,
+		calib_truth = truth_cal,
+		alpha = 0.1,
+		n_bootstraps = 5000
 	)
-	coverage <- mean(truth_test >= result$lower_bound & truth_test <= result$upper_bound, na.rm = TRUE)
+	coverage <- mean(
+		truth_test >= result$lower_bound & truth_test <= result$upper_bound,
+		na.rm = TRUE
+	)
 	# Bootstrap doesn't have formal coverage guarantee, but should be roughly close
-	expect_true(coverage >= 0.80 && coverage <= 1.0, info = paste("Coverage was", coverage))
+	expect_true(coverage >= 0.80 && coverage <= 1.0)
 })
 
 test_that("wider intervals with lower alpha", {
 	result_90 <- pinterval_bootstrap(
-		pred = pred_test[1:10], calib = pred_cal, calib_truth = truth_cal,
-		alpha = 0.1, n_bootstraps = 2000
+		pred = pred_test[1:10],
+		calib = pred_cal,
+		calib_truth = truth_cal,
+		alpha = 0.1,
+		n_bootstraps = 2000
 	)
 	result_50 <- pinterval_bootstrap(
-		pred = pred_test[1:10], calib = pred_cal, calib_truth = truth_cal,
-		alpha = 0.5, n_bootstraps = 2000
+		pred = pred_test[1:10],
+		calib = pred_cal,
+		calib_truth = truth_cal,
+		alpha = 0.5,
+		n_bootstraps = 2000
 	)
 	width_90 <- mean(result_90$upper_bound - result_90$lower_bound, na.rm = TRUE)
 	width_50 <- mean(result_50$upper_bound - result_50$lower_bound, na.rm = TRUE)
@@ -117,10 +165,13 @@ test_that("wider intervals with lower alpha", {
 test_that("raw and absolute error types both produce valid output", {
 	for (et in c("raw", "absolute")) {
 		result <- pinterval_bootstrap(
-			pred = pred_test[1:5], calib = pred_cal, calib_truth = truth_cal,
-			error_type = et, alpha = 0.1
+			pred = pred_test[1:5],
+			calib = pred_cal,
+			calib_truth = truth_cal,
+			error_type = et,
+			alpha = 0.1
 		)
-		expect_s3_class(result, "tbl_df", info = paste("error_type:", et))
+		expect_s3_class(result, "tbl_df")
 	}
 })
 
@@ -130,13 +181,21 @@ test_that("raw and absolute error types both produce valid output", {
 
 test_that("calib as 2-column tibble works", {
 	calib_tib <- tibble::tibble(pred = pred_cal, truth = truth_cal)
-	result <- pinterval_bootstrap(pred = pred_test[1:5], calib = calib_tib, alpha = 0.1)
+	result <- pinterval_bootstrap(
+		pred = pred_test[1:5],
+		calib = calib_tib,
+		alpha = 0.1
+	)
 	expect_s3_class(result, "tbl_df")
 })
 
 test_that("calib as 2-column matrix works", {
 	calib_mat <- cbind(pred_cal, truth_cal)
-	result <- pinterval_bootstrap(pred = pred_test[1:5], calib = calib_mat, alpha = 0.1)
+	result <- pinterval_bootstrap(
+		pred = pred_test[1:5],
+		calib = calib_mat,
+		alpha = 0.1
+	)
 	expect_s3_class(result, "tbl_df")
 })
 
@@ -146,14 +205,21 @@ test_that("calib as 2-column matrix works", {
 
 test_that("single prediction works", {
 	result <- pinterval_bootstrap(
-		pred = 1.0, calib = pred_cal, calib_truth = truth_cal, alpha = 0.1
+		pred = 1.0,
+		calib = pred_cal,
+		calib_truth = truth_cal,
+		alpha = 0.1
 	)
 	expect_equal(nrow(result), 1)
 })
 
 test_that("warns when pred contains NA", {
 	expect_warning(
-		pinterval_bootstrap(pred = c(NA_real_, 1), calib = pred_cal, calib_truth = truth_cal),
+		pinterval_bootstrap(
+			pred = c(NA_real_, 1),
+			calib = pred_cal,
+			calib_truth = truth_cal
+		),
 		"pred.*NA"
 	)
 })
