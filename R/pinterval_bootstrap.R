@@ -66,7 +66,7 @@ pinterval_bootstrap <- function(
 	distance_features_calib = NULL,
 	distance_features_pred = NULL,
 	distance_type = c('mahalanobis', 'euclidean'),
-	normalize_distance = TRUE,
+	normalize_distance = 'none',
 	weight_function = c(
 		'gaussian_kernel',
 		'caucy_kernel',
@@ -75,17 +75,42 @@ pinterval_bootstrap <- function(
 	)
 ) {
 	i <- NA
+
+	# Validate pred
 	if (!is.numeric(pred)) {
-		stop('pred must be a single number or a numeric vector')
+		stop('pinterval_bootstrap: pred must be a single number or a numeric vector', call. = FALSE)
+	}
+	if (any(is.na(pred))) {
+		warning('pinterval_bootstrap: pred contains NA values', call. = FALSE)
 	}
 
-	if (is.numeric(calib) & (is.null(calib_truth))) {
-		stop('If calib is numeric, calib_truth must be provided')
+	# Validate alpha
+	if (!is.numeric(alpha) || length(alpha) != 1 || alpha <= 0 || alpha >= 1) {
+		stop('pinterval_bootstrap: alpha must be a single numeric value in (0,1)', call. = FALSE)
 	}
 
-	if (!is.numeric(calib) && ncol(calib) != 2) {
+	# Validate n_bootstraps
+	if (!is.numeric(n_bootstraps) || length(n_bootstraps) != 1 || n_bootstraps != as.integer(n_bootstraps) || n_bootstraps <= 0) {
+		stop('pinterval_bootstrap: n_bootstraps must be a single positive integer', call. = FALSE)
+	}
+
+	# Validate calib
+	if (is.null(calib)) {
+		stop('pinterval_bootstrap: calib must be provided', call. = FALSE)
+	}
+
+	if (is.numeric(calib) && is.null(calib_truth)) {
+		stop('pinterval_bootstrap: If calib is numeric, calib_truth must be provided', call. = FALSE)
+	}
+
+	if (!is.numeric(calib) && !is.matrix(calib) && !is.data.frame(calib)) {
+		stop('pinterval_bootstrap: calib must be numeric, a matrix, or a data frame', call. = FALSE)
+	}
+
+	if (!is.numeric(calib) && (ncol(calib) != 2)) {
 		stop(
-			'calib must be a numeric vector or a 2 column tibble or matrix with the first column being the predicted values and the second column being the truth values'
+			'pinterval_bootstrap: calib must be a numeric vector or a 2 column tibble or matrix with the first column being the predicted values and the second column being the truth values',
+			call. = FALSE
 		)
 	}
 
@@ -100,82 +125,31 @@ pinterval_bootstrap <- function(
 		}
 	}
 
-	if (distance_weighted_bootstrap) {
-		if (is.null(distance_features_calib) || is.null(distance_features_pred)) {
-			stop(
-				'If distance_weighted_cp is TRUE, distance_features_calib and distance_features_pred must be provided'
-			)
-		}
-		if (
-			!is.matrix(distance_features_calib) &&
-				!is.data.frame(distance_features_calib) &&
-				!is.numeric(distance_features_calib)
-		) {
-			stop(
-				'distance_features_calib must be a matrix, data frame, or numeric vector'
-			)
-		}
-		if (
-			!is.matrix(distance_features_pred) &&
-				!is.data.frame(distance_features_pred) &&
-				!is.numeric(distance_features_pred)
-		) {
-			stop(
-				'distance_features_pred must be a matrix, data frame, or numeric vector'
-			)
-		}
-		if (
-			is.numeric(distance_features_calib) && is.numeric(distance_features_pred)
-		) {
-			if (
-				length(distance_features_calib) != length(calib) ||
-					length(distance_features_pred) != length(pred)
-			) {
-				stop(
-					'If distance_features_calib and distance_features_pred are numeric vectors, they must have the same length as calib and pred, respectively'
-				)
-			}
-		} else if (
-			is.matrix(distance_features_calib) ||
-				is.data.frame(distance_features_calib)
-		) {
-			if (nrow(distance_features_calib) != length(calib)) {
-				stop(
-					'If distance_features_calib is a matrix or data frame, it must have the same number of rows as calib'
-				)
-			}
-			if (ncol(distance_features_calib) != ncol(distance_features_pred)) {
-				stop(
-					'distance_features_calib and distance_features_pred must have the same number of columns'
-				)
-			}
-			if (nrow(distance_features_pred) != length(pred)) {
-				stop(
-					'If distance_features_pred is a matrix or data frame, it must have the same number of rows as pred'
-				)
-			}
-		}
-
-		distance_type <- match.arg(distance_type, c('mahalanobis', 'euclidean'))
-
-		distance_features_calib <- as.matrix(distance_features_calib)
-		distance_features_pred <- as.matrix(distance_features_pred)
-
-		if (!is.function(weight_function)) {
-			weight_function <- match.arg(
-				weight_function,
-				c('gaussian_kernel', 'caucy_kernel', 'logistic', 'reciprocal_linear')
-			)
-			weight_function <- switch(
-				weight_function,
-				'gaussian_kernel' = function(d) exp(-d^2),
-				'caucy_kernel' = function(d) 1 / (1 + d^2),
-				'logistic' = function(d) 1 / (1 + exp(d)),
-				'reciprocal_linear' = function(d) 1 / (1 + d)
-			)
-		}
+	# Length checks
+	if (length(calib) != length(calib_truth)) {
+		stop('pinterval_bootstrap: calib and calib_truth must have the same length', call. = FALSE)
 	}
 
+	if (any(is.na(calib))) {
+		warning('pinterval_bootstrap: calib contains NA values', call. = FALSE)
+	}
+
+	# Validate normalize_distance
+	normalize_distance <- match.arg(normalize_distance, c('none', 'minmax', 'sd'))
+
+	if (distance_weighted_bootstrap) {
+		validate_distance_inputs(
+			distance_features_calib, distance_features_pred,
+			length(calib), length(pred),
+			fn_name = "pinterval_bootstrap"
+		)
+		distance_type <- match.arg(distance_type, c('mahalanobis', 'euclidean'))
+		distance_features_calib <- as.matrix(distance_features_calib)
+		distance_features_pred <- as.matrix(distance_features_pred)
+		weight_function <- resolve_weight_function(weight_function)
+	}
+
+	# Validate and set error_type
 	error_type <- match.arg(error_type, c('raw', 'absolute'))
 
 	if (error_type == 'raw') {

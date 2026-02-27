@@ -10,7 +10,7 @@
 #' @inheritParams pinterval_mondrian
 #' @param n_clusters Number of clusters to use when combining Mondrian classes. Required if \code{optimize_n_clusters = FALSE}.
 #' @param cluster_method Clustering method used to group Mondrian classes. Options are \code{"kmeans"} or \code{"ks"} (Kolmogorov-Smirnov). Default is \code{"kmeans"}.
-#' @param cluster_train_fraction Fraction of the calibration data used to estimate nonconformity scores and compute clustering. Default is 1 (use all).
+#' @param cluster_train_fraction Fraction of the calibration data used to estimate nonconformity scores and compute clustering. Default is 0.5. Setting to 1 uses the entire calibration set for both clustering and interval estimation, which may lead to overfitting.
 #' @param optimize_n_clusters Logical. If \code{TRUE}, the number of clusters is chosen automatically based on internal clustering criteria.
 #' @param optimize_n_clusters_method Method used for cluster optimization. One of \code{"calinhara"} (Calinski-Harabasz index) or \code{"min_cluster_size"}. Default is \code{"calinhara"}.
 #' @param min_cluster_size Minimum number of calibration points per cluster. Used only when \code{optimize_n_clusters_method = "min_cluster_size"}.
@@ -108,7 +108,7 @@ pinterval_ccp = function(
 	resolution = NULL,
 	n_clusters = NULL,
 	cluster_method = c('kmeans', 'ks'),
-	cluster_train_fraction = 1,
+	cluster_train_fraction = 0.5,
 	optimize_n_clusters = TRUE,
 	optimize_n_clusters_method = c('calinhara', 'min_cluster_size'),
 	min_cluster_size = 150,
@@ -118,7 +118,7 @@ pinterval_ccp = function(
 	distance_features_calib = NULL,
 	distance_features_pred = NULL,
 	distance_type = c('mahalanobis', 'euclidean'),
-	normalize_distance = TRUE,
+	normalize_distance = 'none',
 	weight_function = c(
 		'gaussian_kernel',
 		'caucy_kernel',
@@ -130,20 +130,23 @@ pinterval_ccp = function(
 
 	min_class_size <- max(10, ceiling(1 / alpha))
 
-	if (setdiff(unique(pred_class), unique(calib_class)) %>% length() > 0) {
-		warning(
-			'Some classes in pred_class are not present in calib_class. These will result in NA prediction intervals for those classes.'
+	# Validate pred
+	if (!is.numeric(pred) && (!is.matrix(pred) && !is.data.frame(pred))) {
+		stop(
+			'pinterval_ccp: pred must be a numeric scalar or vector or a 2 column tibble or matrix with the first column being the predicted values and the second column being the class labels',
+			call. = FALSE
 		)
 	}
 
 	if (!is.numeric(pred) && ncol(pred) != 2) {
 		stop(
-			'pred must be a numeric scalar or vector or a 2 column tibble or matrix with the first column being the predicted values and the second column being the class labels'
+			'pinterval_ccp: pred must be a numeric scalar or vector or a 2 column tibble or matrix with the first column being the predicted values and the second column being the class labels',
+			call. = FALSE
 		)
 	}
 
 	if (is.numeric(pred) && is.null(pred_class)) {
-		stop('If pred is numeric, pred_class must be provided')
+		stop('pinterval_ccp: If pred is numeric, pred_class must be provided', call. = FALSE)
 	}
 
 	if (!is.numeric(pred)) {
@@ -151,21 +154,46 @@ pinterval_ccp = function(
 		pred <- as.numeric(pred[[1]])
 	}
 
-	if (is.numeric(calib) & is.null(calib_truth)) {
-		stop('If calib is numeric, calib_truth must be provided')
+	# Check for NAs in pred
+	if (any(is.na(pred))) {
+		warning('pinterval_ccp: pred contains NA values', call. = FALSE)
 	}
 
-	if (is.numeric(calib) & is.null(calib_class)) {
-		stop('If calib is numeric, calib_class must be provided')
+	# Validate pred_class length
+	if (length(pred_class) != length(pred)) {
+		stop('pinterval_ccp: pred_class must have the same length as pred', call. = FALSE)
 	}
-	if (!is.numeric(calib) && ncol(calib) < 3) {
+
+	# Validate calib - NULL check and type check
+	if (is.null(calib)) {
+		stop('pinterval_ccp: calib must be provided', call. = FALSE)
+	}
+
+	if (!is.numeric(calib) && !is.matrix(calib) && !is.data.frame(calib)) {
 		stop(
-			'calib must be a numeric vector or a 3 column tibble or matrix with the first column being the predicted values, the second column being the truth values, and the third column being the class labels'
+			'pinterval_ccp: calib must be a numeric vector or a 3 column tibble or matrix with the first column being the predicted values, the second column being the truth values, and the third column being the class labels',
+			call. = FALSE
 		)
 	}
 
+	# Check calib column count if not numeric
+	if (!is.numeric(calib) && ncol(calib) < 3) {
+		stop(
+			'pinterval_ccp: calib must be a numeric vector or a 3 column tibble or matrix with the first column being the predicted values, the second column being the truth values, and the third column being the class labels',
+			call. = FALSE
+		)
+	}
+
+	if (is.numeric(calib) && is.null(calib_truth)) {
+		stop('pinterval_ccp: If calib is numeric, calib_truth must be provided', call. = FALSE)
+	}
+
+	if (is.numeric(calib) && is.null(calib_class)) {
+		stop('pinterval_ccp: If calib is numeric, calib_class must be provided', call. = FALSE)
+	}
+
 	if (!is.numeric(alpha) || alpha <= 0 || alpha >= 1 || length(alpha) != 1) {
-		stop('alpha must be a single numeric value between 0 and 1')
+		stop('pinterval_ccp: alpha must be a single numeric value between 0 and 1', call. = FALSE)
 	}
 
 	ncs_type <- match.arg(
@@ -179,6 +207,7 @@ pinterval_ccp = function(
 		)
 	)
 
+	# Parse calib into components
 	if (!is.numeric(calib)) {
 		calib_org <- calib
 		if (is.matrix(calib)) {
@@ -196,95 +225,61 @@ pinterval_ccp = function(
 		}
 	}
 
+	# Check for NAs in calib and calib_truth
+	if (any(is.na(calib))) {
+		warning('pinterval_ccp: calib contains NA values', call. = FALSE)
+	}
+	if (any(is.na(calib_truth))) {
+		warning('pinterval_ccp: calib_truth contains NA values', call. = FALSE)
+	}
+
+	# Validate calib_class and calib_truth length
+	if (length(calib_class) != length(calib)) {
+		stop('pinterval_ccp: calib_class must have the same length as calib', call. = FALSE)
+	}
+	if (length(calib_truth) != length(calib)) {
+		stop('pinterval_ccp: calib_truth must have the same length as calib', call. = FALSE)
+	}
+
+	# Check setdiff warning AFTER calib_class and pred_class have been validated/parsed
+	if (setdiff(unique(pred_class), unique(calib_class)) %>% length() > 0) {
+		warning(
+			'pinterval_ccp: Some classes in pred_class are not present in calib_class. These will result in NA prediction intervals for those classes.',
+			call. = FALSE
+		)
+	}
+
 	if (ncs_type == 'heterogeneous_error') {
 		coefs <- stats::coef(stats::lm(abs(calib - calib_truth) ~ calib))
 	} else {
 		coefs <- NULL
 	}
 
-	if (distance_weighted_cp) {
-		if (is.null(distance_features_calib) || is.null(distance_features_pred)) {
-			stop(
-				'If distance_weighted_cp is TRUE, distance_features_calib and distance_features_pred must be provided'
-			)
-		}
-		if (
-			!is.matrix(distance_features_calib) &&
-				!is.data.frame(distance_features_calib) &&
-				!is.numeric(distance_features_calib)
-		) {
-			stop(
-				'distance_features_calib must be a matrix, data frame, or numeric vector'
-			)
-		}
-		if (
-			!is.matrix(distance_features_pred) &&
-				!is.data.frame(distance_features_pred) &&
-				!is.numeric(distance_features_pred)
-		) {
-			stop(
-				'distance_features_pred must be a matrix, data frame, or numeric vector'
-			)
-		}
-		if (
-			is.numeric(distance_features_calib) && is.numeric(distance_features_pred)
-		) {
-			if (
-				length(distance_features_calib) != length(calib) ||
-					length(distance_features_pred) != length(pred)
-			) {
-				stop(
-					'If distance_features_calib and distance_features_pred are numeric vectors, they must have the same length as calib and pred, respectively'
-				)
-			}
-		} else if (
-			is.matrix(distance_features_calib) ||
-				is.data.frame(distance_features_calib)
-		) {
-			if (nrow(distance_features_calib) != length(calib)) {
-				stop(
-					'If distance_features_calib is a matrix or data frame, it must have the same number of rows as calib'
-				)
-			}
-			if (ncol(distance_features_calib) != ncol(distance_features_pred)) {
-				stop(
-					'distance_features_calib and distance_features_pred must have the same number of columns'
-				)
-			}
-			if (nrow(distance_features_pred) != length(pred)) {
-				stop(
-					'If distance_features_pred is a matrix or data frame, it must have the same number of rows as pred'
-				)
-			}
-		}
+	# Validate normalize_distance
+	normalize_distance <- match.arg(normalize_distance, c('none', 'minmax', 'sd'))
 
+	if (distance_weighted_cp) {
+		validate_distance_inputs(
+			distance_features_calib, distance_features_pred,
+			length(calib), length(pred),
+			fn_name = "pinterval_ccp"
+		)
 		distance_features_calib <- as.matrix(distance_features_calib)
 		distance_features_pred <- as.matrix(distance_features_pred)
 		distance_type <- match.arg(distance_type, c('mahalanobis', 'euclidean'))
-		if (!is.function(weight_function)) {
-			weight_function <- match.arg(
-				weight_function,
-				c('gaussian_kernel', 'caucy_kernel', 'logistic', 'reciprocal_linear')
-			)
-			weight_function <- switch(
-				weight_function,
-				'gaussian_kernel' = function(d) exp(-d^2),
-				'caucy_kernel' = function(d) 1 / (1 + d^2),
-				'logistic' = function(d) 1 / (1 + exp(d)),
-				'reciprocal_linear' = function(d) 1 / (1 + d)
-			)
-		}
+		weight_function <- resolve_weight_function(weight_function)
 	}
 
 	class_labels <- sort(unique(calib_class))
 	if (length(class_labels) < 2) {
 		stop(
-			'Calibration set must have at least two classes For continuous prediction intervals without classes, use pinterval_conformal() instead of pinterval_mondrian()'
+			"pinterval_ccp: calibration set must have at least two classes. For continuous prediction intervals without classes, use pinterval_conformal() instead.",
+			call. = FALSE
 		)
 	}
 
 	if (!optimize_n_clusters && is.null(n_clusters)) {
-		stop('If optimize_n_clusters is FALSE, n_clusters must be provided')
+		stop('pinterval_ccp: If optimize_n_clusters is FALSE, n_clusters must be provided', call. = FALSE)
 	}
 
 	optimize_n_clusters_method <- match.arg(
@@ -293,17 +288,23 @@ pinterval_ccp = function(
 	)
 	cluster_method <- match.arg(cluster_method, c('kmeans', 'ks'))
 
+	if (!is.numeric(cluster_train_fraction) || length(cluster_train_fraction) != 1 ||
+			cluster_train_fraction <= 0 || cluster_train_fraction > 1) {
+		stop(
+			"pinterval_ccp: 'cluster_train_fraction' must be a single numeric value in (0, 1].",
+			call. = FALSE
+		)
+	}
+
 	if (cluster_train_fraction == 1) {
 		warning(
-			'cluster_train_fraction is set to 1, which means the entire calibration set will be used for clustering. This may lead to overfitting.'
+			"pinterval_ccp: 'cluster_train_fraction' is set to 1, meaning the entire calibration set is used for both clustering and interval estimation. This may lead to overfitting. Consider setting a value < 1 (e.g., 0.5).",
+			call. = FALSE
 		)
 		calib_cluster <- calib
 		calib_cluster_class <- calib_class
 		calib_cluster_truth <- calib_truth
 	} else {
-		if (cluster_train_fraction <= 0 || cluster_train_fraction >= 1) {
-			stop('cluster_train_fraction must be a numeric value between 0 and 1')
-		}
 		calib_cluster_ids <- sample(
 			1:length(calib),
 			size = floor(length(calib) * cluster_train_fraction),
@@ -332,7 +333,8 @@ pinterval_ccp = function(
 				min_cluster_size <= 0
 		) {
 			stop(
-				'If optimize_n_clusters_method is "min_cluster_size", min_cluster_size must be a single positive numeric value'
+				'pinterval_ccp: If optimize_n_clusters_method is "min_cluster_size", min_cluster_size must be a single positive numeric value',
+				call. = FALSE
 			)
 		}
 		ntilde <- max(1 / alpha - 1, min(table(calib_class)))
@@ -350,25 +352,27 @@ pinterval_ccp = function(
 		)
 	} else if (optimize_n_clusters && optimize_n_clusters_method == 'calinhara') {
 		# if(is.null(n_clusters) && is.null(min_n_clusters) && is.null(max_n_clusters)){
-		# 	stop('If optimize_n_clusters_method is "calinhara", min_n_clusters, and max_n_clusters must be provided, or n_clusters must be provided as a vector of n_clusters to optimize over')
+		# 	stop('pinterval_ccp: If optimize_n_clusters_method is "calinhara", min_n_clusters, and max_n_clusters must be provided, or n_clusters must be provided as a vector of n_clusters to optimize over', call. = FALSE)
 		# }
 
 		if (is.null(max_n_clusters)) {
 			max_n_clusters <- length(unique(calib_cluster_class)) - 1
 			warning(
-				'max_n_clusters is not provided, setting to number of unique Mondrian classes minus 1: ',
-				max_n_clusters
+				'pinterval_ccp: max_n_clusters is not provided, setting to number of unique Mondrian classes minus 1: ',
+				max_n_clusters,
+				call. = FALSE
 			)
 		}
 
 		if (
 			!is.null(n_clusters) &&
-				length(n_clusters == 1) &&
+				length(n_clusters) == 1 &&
 				is.numeric(min_n_clusters) &&
 				is.numeric(max_n_clusters)
 		) {
 			warning(
-				'Optimize clusters is set to TRUE, but n_clusters is provided as a single value. This will be ignored and the number of clusters will be optimized using the Calinhara method with the min_n_clusters and max_n_clusters parameters.'
+				'pinterval_ccp: Optimize clusters is set to TRUE, but n_clusters is provided as a single value. This will be ignored and the number of clusters will be optimized using the Calinhara method with the min_n_clusters and max_n_clusters parameters.',
+				call. = FALSE
 			)
 		}
 
@@ -382,13 +386,15 @@ pinterval_ccp = function(
 				is.null(n_clusters)
 		) {
 			stop(
-				'If optimize_n_clusters_method is "calinhara", min_n_clusters and max_n_clusters must be single positive numeric values with max_n_clusters > min_n_clusters, or n_clusters must be provided as a vector of n_clusters to optimize over'
+				'pinterval_ccp: If optimize_n_clusters_method is "calinhara", min_n_clusters and max_n_clusters must be single positive numeric values with max_n_clusters > min_n_clusters, or n_clusters must be provided as a vector of n_clusters to optimize over',
+				call. = FALSE
 			)
 		}
 		if (is.numeric(n_clusters) && length(n_clusters) > 1) {
 			if (!is.null(min_n_clusters) || !is.null(max_n_clusters)) {
 				warning(
-					'n_clusters is provided as a vector, so min_n_clusters and max_n_clusters will be ignored'
+					'pinterval_ccp: n_clusters is provided as a vector, so min_n_clusters and max_n_clusters will be ignored',
+					call. = FALSE
 				)
 			}
 			ms <- n_clusters
@@ -410,9 +416,19 @@ pinterval_ccp = function(
 				n_clusters <= 0
 		) {
 			stop(
-				'If optimize_n_clusters is FALSE, n_clusters must be a single positive numeric value'
+				'pinterval_ccp: If optimize_n_clusters is FALSE, n_clusters must be a single positive numeric value',
+				call. = FALSE
 			)
 		}
+
+		# Warn if n_clusters is not an integer
+		if (!is.integer(n_clusters) && (n_clusters %% 1 != 0)) {
+			warning(
+				'pinterval_ccp: n_clusters should be an integer value',
+				call. = FALSE
+			)
+		}
+
 		calib_cluster_vec <- clusterer(
 			ncs_calib_cluster,
 			n_clusters,
@@ -424,9 +440,10 @@ pinterval_ccp = function(
 
 	if (any(table(calib_cluster_class) < min_class_size)) {
 		warning(
-			'Some classes in in the cluster calibration set have less than ',
+			'pinterval_ccp: Some classes in in the cluster calibration set have less than ',
 			min_class_size,
-			' calibration points. These classes are assigned to the NULL cluster and will utilize the full calibration set for prediction intervals, rather than cluster-specific intervals.'
+			' calibration points. These classes are assigned to the NULL cluster and will utilize the full calibration set for prediction intervals, rather than cluster-specific intervals.',
+			call. = FALSE
 		)
 	}
 

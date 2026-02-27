@@ -1,5 +1,119 @@
+#' Validate distance weighting inputs
+#'
+#' Internal helper to validate distance-related arguments used across
+#' conformal, bootstrap, mondrian, ccp, and bccp functions.
+#'
+#' @param distance_features_calib Features for calibration set
+#' @param distance_features_pred Features for prediction set
+#' @param calib_length Expected number of calibration observations
+#' @param pred_length Expected number of prediction observations
+#' @param fn_name Name of the calling function, used in error messages
+#' @return NULL (called for side effects: stops on invalid input)
+#' @keywords internal
+validate_distance_inputs <- function(
+	distance_features_calib,
+	distance_features_pred,
+	calib_length,
+	pred_length,
+	fn_name = "pinterval"
+) {
+	if (is.null(distance_features_calib) || is.null(distance_features_pred)) {
+		stop(
+			fn_name, ": 'distance_features_calib' and 'distance_features_pred' must be provided for distance-weighted prediction.",
+			call. = FALSE
+		)
+	}
+	if (
+		!is.matrix(distance_features_calib) &&
+			!is.data.frame(distance_features_calib) &&
+			!is.numeric(distance_features_calib)
+	) {
+		stop(
+			fn_name, ": 'distance_features_calib' must be a matrix, data frame, or numeric vector.",
+			call. = FALSE
+		)
+	}
+	if (
+		!is.matrix(distance_features_pred) &&
+			!is.data.frame(distance_features_pred) &&
+			!is.numeric(distance_features_pred)
+	) {
+		stop(
+			fn_name, ": 'distance_features_pred' must be a matrix, data frame, or numeric vector.",
+			call. = FALSE
+		)
+	}
+	if (
+		is.numeric(distance_features_calib) && is.numeric(distance_features_pred) &&
+			!is.matrix(distance_features_calib) && !is.matrix(distance_features_pred)
+	) {
+		if (length(distance_features_calib) != calib_length) {
+			stop(
+				fn_name, ": 'distance_features_calib' must have the same length as the calibration set (got ",
+				length(distance_features_calib), " vs ", calib_length, ").",
+				call. = FALSE
+			)
+		}
+		if (length(distance_features_pred) != pred_length) {
+			stop(
+				fn_name, ": 'distance_features_pred' must have the same length as the prediction set (got ",
+				length(distance_features_pred), " vs ", pred_length, ").",
+				call. = FALSE
+			)
+		}
+	} else {
+		if ((is.matrix(distance_features_calib) || is.data.frame(distance_features_calib)) &&
+				nrow(distance_features_calib) != calib_length) {
+			stop(
+				fn_name, ": 'distance_features_calib' must have ", calib_length,
+				" rows to match the calibration set (got ", nrow(distance_features_calib), ").",
+				call. = FALSE
+			)
+		}
+		if ((is.matrix(distance_features_pred) || is.data.frame(distance_features_pred)) &&
+				nrow(distance_features_pred) != pred_length) {
+			stop(
+				fn_name, ": 'distance_features_pred' must have ", pred_length,
+				" rows to match the prediction set (got ", nrow(distance_features_pred), ").",
+				call. = FALSE
+			)
+		}
+		calib_nc <- if (is.matrix(distance_features_calib) || is.data.frame(distance_features_calib)) ncol(distance_features_calib) else 1
+		pred_nc <- if (is.matrix(distance_features_pred) || is.data.frame(distance_features_pred)) ncol(distance_features_pred) else 1
+		if (calib_nc != pred_nc) {
+			stop(
+				fn_name, ": 'distance_features_calib' and 'distance_features_pred' must have the same number of columns (got ",
+				calib_nc, " and ", pred_nc, ").",
+				call. = FALSE
+			)
+		}
+	}
+	invisible(NULL)
+}
+
+#' Resolve weight function from string or function
+#' @param weight_function A character string or function
+#' @return A weight function
+#' @keywords internal
+resolve_weight_function <- function(weight_function) {
+	if (is.function(weight_function)) {
+		return(weight_function)
+	}
+	weight_function <- match.arg(
+		weight_function,
+		c('gaussian_kernel', 'caucy_kernel', 'logistic', 'reciprocal_linear')
+	)
+	switch(
+		weight_function,
+		'gaussian_kernel' = function(d) exp(-d^2),
+		'caucy_kernel' = function(d) 1 / (1 + d^2),
+		'logistic' = function(d) 1 / (1 + exp(d)),
+		'reciprocal_linear' = function(d) 1 / (1 + d)
+	)
+}
+
 #' Non-Conformity Score Computation Function
-#' @param type Type of non-conformity score to compute. Options include 'absolute_error', 'raw_error', 'relative_error', 'relative_error2', and 'heterogeneous_error'.
+#' @param type Type of non-conformity score to compute. Options include 'absolute_error', 'raw_error', 'relative_error', 'za_relative_error', and 'heterogeneous_error'.
 #' @param pred a numeric vector of predicted values
 #' @param truth a numeric vector of true values
 #' @param coefs a numeric vector of coefficients for the heterogeneous error model. Must be of length 2, where the first element is the intercept and the second element is the slope.
@@ -14,11 +128,18 @@ ncs_compute <- function(type, pred, truth, coefs = NULL) {
 		return(za_rel_error(pred, truth))
 	} else if (type == 'heterogeneous_error') {
 		if (is.null(coefs)) {
-			stop('coefs must be provided for heterogeneous error')
+			stop(
+				"ncs_compute: 'coefs' must be provided for 'heterogeneous_error'.",
+				call. = FALSE
+			)
 		}
 		return(heterogeneous_error(pred, truth, coefs))
 	} else {
-		stop('Unknown non-conformity score type')
+		stop(
+			"ncs_compute: unknown non-conformity score type '", type, "'. ",
+			"Valid options are: 'absolute_error', 'raw_error', 'relative_error', 'za_relative_error', 'heterogeneous_error'.",
+			call. = FALSE
+		)
 	}
 }
 
@@ -79,6 +200,12 @@ raw_error <- function(pred, truth) {
 #' @return a numeric vector of relative errors
 #'
 rel_error <- function(pred, truth) {
+	if (any(pred == 0)) {
+		warning(
+			"rel_error: 'pred' contains zero values, which will produce Inf in relative error scores. Consider using 'za_relative_error' instead.",
+			call. = FALSE
+		)
+	}
 	return(abs((pred - truth) / pred))
 }
 
@@ -97,10 +224,16 @@ za_rel_error <- function(pred, truth) {
 #' @param coefs a numeric vector of coefficients for the heterogeneous error model. Must be of length 2, where the first element is the intercept and the second element is the slope.
 heterogeneous_error <- function(pred, truth, coefs) {
 	if (length(coefs) != 2) {
-		stop('coefs must be a vector of length 2')
+		stop("heterogeneous_error: 'coefs' must be a vector of length 2.", call. = FALSE)
 	}
 
 	est_heterogeneous_error <- coefs[1] + coefs[2] * pred
+	if (any(est_heterogeneous_error <= 0)) {
+		warning(
+			"heterogeneous_error: estimated error scaling contains non-positive values, which may produce invalid non-conformity scores. Consider using a different 'ncs_type'.",
+			call. = FALSE
+		)
+	}
 	return(abs(pred - truth) / est_heterogeneous_error)
 }
 
@@ -148,7 +281,9 @@ grid_finder <- function(
 		pos_vals <- seq(from = y_min, to = y_max, by = min_step)
 		if (length(pos_vals) > 10000) {
 			warning(
-				'Grid size with set step size is large, consider adjusting min_step or using grid_size instead of min_step if the search is too slow'
+				"grid_finder: grid size with set step size is large (",
+				length(pos_vals), " points). Consider increasing 'resolution' or using 'grid_size' if the search is too slow.",
+				call. = FALSE
 			)
 		}
 	} else {
@@ -212,13 +347,27 @@ grid_inner <- function(
 				as.numeric(distance_features_pred)
 			)
 		} else if (distance_type == 'mahalanobis') {
+			cov_mat <- cov(distance_features_calib)
+			S_inv <- tryCatch(
+				solve(cov_mat),
+				error = function(e) {
+					stop(
+						"grid_inner: covariance matrix of 'distance_features_calib' is singular and cannot be inverted. ",
+						"Consider using 'distance_type = \"euclidean\"' or reducing feature dimensionality.",
+						call. = FALSE
+					)
+				}
+			)
 			distances <- row_mahalanobis_distance(
 				as.matrix(distance_features_calib),
 				as.numeric(distance_features_pred),
-				solve(cov(distance_features_calib))
+				S_inv
 			)
 		} else {
-			stop('Unknown distance type')
+			stop(
+				"grid_inner: unknown 'distance_type': '", distance_type, "'. Must be 'mahalanobis' or 'euclidean'.",
+				call. = FALSE
+			)
 		}
 
 		if (normalize_distance == 'minmax') {
@@ -341,15 +490,12 @@ grid_inner <- function(
 #' Bootstrap function for bootstrapping the prediction intervals
 #'
 #' @param pred predicted value
+#' @param calib a vector of predicted values for the calibration partition
 #' @param error vector of errors
 #' @param nboot number of bootstrap samples
 #' @param alpha confidence level
-#' @param error vector of errors.
-#' @param dw_bootstrap logical. If TRUE, the bootstrap samples will be weighted according to the distance function
-#' @param calib a vector of true values of the calibration partition. Used when weighted_bootstrap is TRUE
 #' @param error_type The type of error to use for the prediction intervals. Can be 'raw' or 'absolute'. If 'raw', bootstrapping will be done on the raw prediction errors. If 'absolute', bootstrapping will be done on the absolute prediction errors with random signs. Default is 'raw'
 #' @param distance_weighted_bootstrap logical. If TRUE, the bootstrap samples will be weighted according to the distance function
-#' @param distance_function a function that takes two numeric vectors and returns a numeric vector of distances. Default is NULL, in which case the absolute error will be used
 #' @param distance_features_calib a matrix of features for the calibration partition. Used when distance_weighted_bootstrap is TRUE
 #' @param distance_features_pred a matrix of features for the prediction partition. Used when distance_weighted_bootstrap is TRUE
 #' @param distance_type The type of distance metric to use when computing distances between calibration and prediction points. Options are 'mahalanobis' (default) and 'euclidean'.
@@ -363,8 +509,6 @@ bootstrap_inner <- function(
 	error,
 	nboot,
 	alpha,
-	dw_bootstrap = FALSE,
-	distance_function = NULL,
 	error_type = c('raw', 'absolute'),
 	distance_weighted_bootstrap = FALSE,
 	distance_features_calib = NULL,
@@ -383,13 +527,27 @@ bootstrap_inner <- function(
 				as.numeric(distance_features_pred)
 			)
 		} else if (distance_type == 'mahalanobis') {
+			cov_mat <- cov(distance_features_calib)
+			S_inv <- tryCatch(
+				solve(cov_mat),
+				error = function(e) {
+					stop(
+						"bootstrap_inner: covariance matrix of 'distance_features_calib' is singular and cannot be inverted. ",
+						"Consider using 'distance_type = \"euclidean\"' or reducing feature dimensionality.",
+						call. = FALSE
+					)
+				}
+			)
 			distances <- row_mahalanobis_distance(
 				as.matrix(distance_features_calib),
 				as.numeric(distance_features_pred),
-				solve(cov(distance_features_calib))
+				S_inv
 			)
 		} else {
-			stop('Unknown distance type')
+			stop(
+				"bootstrap_inner: unknown 'distance_type': '", distance_type, "'. Must be 'mahalanobis' or 'euclidean'.",
+				call. = FALSE
+			)
 		}
 
 		if (normalize_distance == 'minmax') {
@@ -426,16 +584,23 @@ bootstrap_inner <- function(
 #' @param return_breaks logical indicating whether to return the bin breaks
 bin_chopper <- function(x, nbins, return_breaks = FALSE) {
 	if (nbins < 2) {
-		stop('nbins must be greater than 1')
+		stop("bin_chopper: 'nbins' must be greater than 1.", call. = FALSE)
 	}
 	if (nbins > length(x)) {
-		stop('nbins must be less than or equal to the length of x')
+		stop(
+			"bin_chopper: 'nbins' (", nbins, ") must be less than or equal to the length of 'x' (", length(x), ").",
+			call. = FALSE
+		)
 	}
 	if (length(unique(x)) == 1) {
-		stop('x must have more than one unique value')
+		stop("bin_chopper: 'x' must have more than one unique value.", call. = FALSE)
 	}
 	if (length(unique(x)) < nbins) {
-		stop('x must have more unique values than nbins')
+		stop(
+			"bin_chopper: 'x' must have at least as many unique values as 'nbins' (got ",
+			length(unique(x)), " unique values, ", nbins, " bins).",
+			call. = FALSE
+		)
 	}
 
 	target_num <- ceiling(length(x) / nbins)
@@ -735,7 +900,10 @@ clusterer <- function(
 	} else if (method == 'kmeans') {
 		clusters <- kmeans_cluster_qecdf(ncs, class_vec, m = m, q = q)
 	} else {
-		stop('Unknown clustering method')
+		stop(
+			"clusterer: unknown clustering method '", method, "'. Must be 'ks' or 'kmeans'.",
+			call. = FALSE
+		)
 	}
 
 	coverage_gaps <- foreach::foreach(
@@ -801,11 +969,15 @@ ks_cluster <- function(ncs, class_vec, m, maxit = 100, nrep = 10) {
 	class_labels <- unique(class_vec)
 
 	if (m < 2) {
-		stop('m must be greater than or equal to 2')
+		stop("ks_cluster: 'm' must be greater than or equal to 2.", call. = FALSE)
 	}
 
 	if (length(class_labels) < m) {
-		stop('Number of classes must be greater than or equal to m')
+		stop(
+			"ks_cluster: number of unique classes (", length(class_labels),
+			") must be greater than or equal to 'm' (", m, ").",
+			call. = FALSE
+		)
 	}
 
 	ch_score <- 0
@@ -828,7 +1000,8 @@ ks_cluster <- function(ncs, class_vec, m, maxit = 100, nrep = 10) {
 			}
 			if (i == maxit) {
 				warning(
-					'Maximum number of iterations reached without convergence'
+					"ks_cluster: maximum number of iterations (", maxit, ") reached without convergence.",
+					call. = FALSE
 				)
 			}
 		}

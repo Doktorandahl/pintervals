@@ -83,7 +83,7 @@ pinterval_bccp = function(
 	distance_weighted_cp = FALSE,
 	distance_features_calib = NULL,
 	distance_features_pred = NULL,
-	normalize_distance = TRUE,
+	normalize_distance = 'none',
 	distance_type = c('mahalanobis', 'euclidean'),
 	weight_function = c(
 		'gaussian_kernel',
@@ -94,17 +94,31 @@ pinterval_bccp = function(
 ) {
 	i <- NA
 
+	# Validate pred
 	if (!is.numeric(pred)) {
-		stop('pred must be a numeric scalar or vector')
+		stop('pinterval_bccp: pred must be a numeric scalar or vector', call. = FALSE)
+	}
+	if (any(is.na(pred))) {
+		warning('pinterval_bccp: pred contains NA values', call. = FALSE)
 	}
 
-	if (is.numeric(calib) & is.null(calib_truth)) {
-		stop('If calib is numeric, calib_truth must be provided')
+	# Validate calib (NULL check + type check)
+	if (is.null(calib)) {
+		stop('pinterval_bccp: calib must be provided (not NULL)', call. = FALSE)
 	}
-	if (!is.numeric(calib) && ncol(calib) < 2) {
-		stop(
-			'calib must be a numeric vector or a 2 or 3 column tibble or matrix with the first column being the predicted values, the second column being the truth values, and (optionally) the third column being the bin values if bin structure is not provided in argument bins'
-		)
+	if (is.numeric(calib) && is.null(calib_truth)) {
+		stop('pinterval_bccp: If calib is numeric, calib_truth must be provided', call. = FALSE)
+	}
+	if (!is.numeric(calib)) {
+		if (!is.matrix(calib) && !is.data.frame(calib)) {
+			stop('pinterval_bccp: calib must be a numeric vector, matrix, or data frame', call. = FALSE)
+		}
+		if (ncol(calib) < 2) {
+			stop(
+				'pinterval_bccp: calib must be a numeric vector or a 2 or 3 column tibble or matrix with the first column being the predicted values, the second column being the truth values, and (optionally) the third column being the bin values if bin structure is not provided in argument bins',
+				call. = FALSE
+			)
+		}
 	}
 
 	if (
@@ -112,12 +126,13 @@ pinterval_bccp = function(
 			(is.null(calib_bins) || (!is.numeric(calib) && ncol(calib) != 3))
 	) {
 		stop(
-			'If breaks are not provided, bins for the calibration set must be provided as a vector or a as the last column of the calib if calib is a tibble or matrix'
+			'pinterval_bccp: If breaks are not provided, bins for the calibration set must be provided as a vector or a as the last column of the calib if calib is a tibble or matrix',
+			call. = FALSE
 		)
 	}
 
 	if (!is.numeric(alpha) || alpha <= 0 || alpha >= 1 || length(alpha) != 1) {
-		stop('alpha must be a single numeric value between 0 and 1')
+		stop('pinterval_bccp: alpha must be a single numeric value between 0 and 1', call. = FALSE)
 	}
 
 	ncs_type <- match.arg(
@@ -131,17 +146,39 @@ pinterval_bccp = function(
 		)
 	)
 
-	if ((is.null(breaks))) {
+	# Validate breaks
+	if (!is.null(breaks)) {
+		if (!is.numeric(breaks)) {
+			stop('pinterval_bccp: breaks must be a numeric vector', call. = FALSE)
+		}
+		if (!all(diff(breaks) > 0)) {
+			stop('pinterval_bccp: breaks must be sorted in increasing order', call. = FALSE)
+		}
+	} else {
 		warning(
-			'No explicit bin structure provided, breaks are calculated as the minimum and maximum values for each bin in the calibration set'
+			'pinterval_bccp: No explicit bin structure provided, breaks are calculated as the minimum and maximum values for each bin in the calibration set',
+			call. = FALSE
 		)
 	}
 
-	if (!is.null(breaks) & !is.null(calib_bins)) {
-		warning("If breaks are provided, calib_bins will be ignored")
+	# Validate right
+	if (!is.logical(right) || length(right) != 1) {
+		stop('pinterval_bccp: right must be a single logical value', call. = FALSE)
+	}
+
+	# Validate contiguize
+	if (!is.logical(contiguize) || length(contiguize) != 1) {
+		stop('pinterval_bccp: contiguize must be a single logical value', call. = FALSE)
+	}
+
+	if (!is.null(breaks) && !is.null(calib_bins)) {
+		warning('pinterval_bccp: If breaks are provided, calib_bins will be ignored', call. = FALSE)
 	}
 
 	distance_type <- match.arg(distance_type, c('mahalanobis', 'euclidean'))
+
+	# Validate normalize_distance
+	normalize_distance <- match.arg(normalize_distance, c('none', 'minmax', 'sd'))
 
 	if (!is.numeric(calib)) {
 		calib_org <- calib
@@ -160,6 +197,17 @@ pinterval_bccp = function(
 		}
 	}
 
+	# Length checks for calib_truth and calib_bins
+	if (length(calib_truth) != length(calib)) {
+		stop('pinterval_bccp: calib_truth must have the same length as calib', call. = FALSE)
+	}
+	if (any(is.na(calib))) {
+		warning('pinterval_bccp: calib contains NA values', call. = FALSE)
+	}
+	if (any(is.na(calib_truth))) {
+		warning('pinterval_bccp: calib_truth contains NA values', call. = FALSE)
+	}
+
 	if (ncs_type == 'heterogeneous_error') {
 		coefs <- stats::coef(stats::lm(abs(calib - calib_truth) ~ calib))
 	} else {
@@ -167,77 +215,14 @@ pinterval_bccp = function(
 	}
 
 	if (distance_weighted_cp) {
-		if (is.null(distance_features_calib) || is.null(distance_features_pred)) {
-			stop(
-				'If distance_weighted_cp is TRUE, distance_features_calib and distance_features_pred must be provided'
-			)
-		}
-		if (
-			!is.matrix(distance_features_calib) &&
-				!is.data.frame(distance_features_calib) &&
-				!is.numeric(distance_features_calib)
-		) {
-			stop(
-				'distance_features_calib must be a matrix, data frame, or numeric vector'
-			)
-		}
-		if (
-			!is.matrix(distance_features_pred) &&
-				!is.data.frame(distance_features_pred) &&
-				!is.numeric(distance_features_pred)
-		) {
-			stop(
-				'distance_features_pred must be a matrix, data frame, or numeric vector'
-			)
-		}
-		if (
-			is.numeric(distance_features_calib) && is.numeric(distance_features_pred)
-		) {
-			if (
-				length(distance_features_calib) != length(calib) ||
-					length(distance_features_pred) != length(pred)
-			) {
-				stop(
-					'If distance_features_calib and distance_features_pred are numeric vectors, they must have the same length as calib and pred, respectively'
-				)
-			}
-		} else if (
-			is.matrix(distance_features_calib) ||
-				is.data.frame(distance_features_calib)
-		) {
-			if (nrow(distance_features_calib) != length(calib)) {
-				stop(
-					'If distance_features_calib is a matrix or data frame, it must have the same number of rows as calib'
-				)
-			}
-			if (ncol(distance_features_calib) != ncol(distance_features_pred)) {
-				stop(
-					'distance_features_calib and distance_features_pred must have the same number of columns'
-				)
-			}
-			if (nrow(distance_features_pred) != length(pred)) {
-				stop(
-					'If distance_features_pred is a matrix or data frame, it must have the same number of rows as pred'
-				)
-			}
-		}
-
+		validate_distance_inputs(
+			distance_features_calib, distance_features_pred,
+			length(calib), length(pred),
+			fn_name = "pinterval_bccp"
+		)
 		distance_features_calib <- as.matrix(distance_features_calib)
 		distance_features_pred <- as.matrix(distance_features_pred)
-
-		if (!is.function(weight_function)) {
-			weight_function <- match.arg(
-				weight_function,
-				c('gaussian_kernel', 'caucy_kernel', 'logistic', 'reciprocal_linear')
-			)
-			weight_function <- switch(
-				weight_function,
-				'gaussian_kernel' = function(d) exp(-d^2),
-				'caucy_kernel' = function(d) 1 / (1 + d^2),
-				'logistic' = function(d) 1 / (1 + exp(d)),
-				'reciprocal_linear' = function(d) 1 / (1 + d)
-			)
-		}
+		weight_function <- resolve_weight_function(weight_function)
 	}
 
 	if (is.null(calib_bins)) {
@@ -249,18 +234,25 @@ pinterval_bccp = function(
 		)
 	}
 
+	# Length check for calib_bins
+	if (length(calib_bins) != length(calib)) {
+		stop('pinterval_bccp: calib_bins must have the same length as calib', call. = FALSE)
+	}
+
 	nobs_bins <- as.numeric(table(calib_bins))
 
 	if (any(nobs_bins * alpha / 2 < 1)) {
 		warning(
-			'Some bins have too few observations to calculate prediction intervals at the specified alpha level. Consider using a larger calibration set or a higher alpha level'
+			'pinterval_bccp: Some bins have too few observations to calculate prediction intervals at the specified alpha level. Consider using a larger calibration set or a higher alpha level',
+			call. = FALSE
 		)
 	}
 
 	bin_labels <- sort(unique(calib_bins))
 	if (length(bin_labels) < 2) {
 		stop(
-			'Calibration set must have at least two bins. For continuous prediction intervals without bins, use pinterval_conformal() instead of pinterval_bccp()'
+			'pinterval_bccp: Calibration set must have at least two bins. For continuous prediction intervals without bins, use pinterval_conformal() instead of pinterval_bccp()',
+			call. = FALSE
 		)
 	}
 

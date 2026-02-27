@@ -125,22 +125,62 @@ pinterval_conformal <- function(
 		'reciprocal_linear'
 	)
 ) {
-	if (is.numeric(calib) && is.null(calib_truth)) {
-		stop('If calib is numeric, calib_truth must be provided')
-	}
+	# --- Input validation ---
 
-	if (!is.numeric(calib) && ncol(calib) != 2) {
+	if (!is.numeric(pred)) {
 		stop(
-			'calib must be a numeric vector or a 2 column tibble or matrix with the first column being the predicted values and the second column being the truth values'
+			"pinterval_conformal: 'pred' must be a numeric vector.",
+			call. = FALSE
 		)
 	}
 
-	if (!is.numeric(alpha) || alpha <= 0 || alpha >= 1 || length(alpha) != 1) {
-		stop('alpha must be a single numeric value between 0 and 1')
+	if (any(is.na(pred))) {
+		warning(
+			"pinterval_conformal: 'pred' contains NA values. Corresponding intervals will be NA.",
+			call. = FALSE
+		)
 	}
 
-	if (!is.numeric(pred)) {
-		stop('pred must be a numeric vector')
+	if (is.null(calib)) {
+		stop(
+			"pinterval_conformal: 'calib' must be provided.",
+			call. = FALSE
+		)
+	}
+
+	if (is.numeric(calib) && is.null(calib_truth)) {
+		stop(
+			"pinterval_conformal: 'calib_truth' must be provided when 'calib' is a numeric vector.",
+			call. = FALSE
+		)
+	}
+
+	if (!is.numeric(calib) && !is.matrix(calib) && !is.data.frame(calib)) {
+		stop(
+			"pinterval_conformal: 'calib' must be a numeric vector, matrix, or data frame.",
+			call. = FALSE
+		)
+	}
+
+	if (!is.numeric(calib) && (is.matrix(calib) || is.data.frame(calib)) && ncol(calib) != 2) {
+		stop(
+			"pinterval_conformal: 'calib' must be a numeric vector or a 2-column matrix/data frame with predicted values in column 1 and true values in column 2.",
+			call. = FALSE
+		)
+	}
+
+	if (!is.numeric(alpha) || length(alpha) != 1 || alpha <= 0 || alpha >= 1) {
+		stop(
+			"pinterval_conformal: 'alpha' must be a single numeric value between 0 and 1 (exclusive).",
+			call. = FALSE
+		)
+	}
+
+	if (!is.null(grid_size) && (!is.numeric(grid_size) || length(grid_size) != 1 || grid_size < 1)) {
+		stop(
+			"pinterval_conformal: 'grid_size' must be a single positive integer.",
+			call. = FALSE
+		)
 	}
 
 	if (
@@ -150,15 +190,26 @@ pinterval_conformal <- function(
 				length(resolution) != 1)
 	) {
 		stop(
-			'if grid_size is NULL, resolution must be a single numeric value greater than 0'
+			"pinterval_conformal: when 'grid_size' is NULL, 'resolution' must be a single positive numeric value.",
+			call. = FALSE
 		)
 	}
 
 	if (!is.null(grid_size) && !is.null(resolution)) {
 		warning(
-			'Both grid_size and resolution are provided. resolution will be ignored.'
+			"pinterval_conformal: both 'grid_size' and 'resolution' are provided; 'resolution' will be ignored.",
+			call. = FALSE
 		)
 	}
+
+	if (!is.null(lower_bound) && !is.null(upper_bound) && lower_bound >= upper_bound) {
+		stop(
+			"pinterval_conformal: 'lower_bound' must be strictly less than 'upper_bound'.",
+			call. = FALSE
+		)
+	}
+
+	normalize_distance <- match.arg(normalize_distance, c('none', 'minmax', 'sd'))
 
 	ncs_type <- match.arg(
 		ncs_type,
@@ -187,6 +238,21 @@ pinterval_conformal <- function(
 		}
 	}
 
+	if (length(calib) != length(calib_truth)) {
+		stop(
+			"pinterval_conformal: 'calib' and 'calib_truth' must have the same length (got ",
+			length(calib), " and ", length(calib_truth), ").",
+			call. = FALSE
+		)
+	}
+
+	if (any(is.na(calib)) || any(is.na(calib_truth))) {
+		warning(
+			"pinterval_conformal: 'calib' or 'calib_truth' contains NA values. This may affect interval estimation.",
+			call. = FALSE
+		)
+	}
+
 	if (ncs_type == 'heterogeneous_error') {
 		coefs <- stats::coef(stats::lm(abs(calib - calib_truth) ~ calib))
 	} else {
@@ -194,77 +260,14 @@ pinterval_conformal <- function(
 	}
 
 	if (distance_weighted_cp) {
-		if (is.null(distance_features_calib) || is.null(distance_features_pred)) {
-			stop(
-				'If distance_weighted_cp is TRUE, distance_features_calib and distance_features_pred must be provided'
-			)
-		}
-		if (
-			!is.matrix(distance_features_calib) &&
-				!is.data.frame(distance_features_calib) &&
-				!is.numeric(distance_features_calib)
-		) {
-			stop(
-				'distance_features_calib must be a matrix, data frame, or numeric vector'
-			)
-		}
-		if (
-			!is.matrix(distance_features_pred) &&
-				!is.data.frame(distance_features_pred) &&
-				!is.numeric(distance_features_pred)
-		) {
-			stop(
-				'distance_features_pred must be a matrix, data frame, or numeric vector'
-			)
-		}
-		if (
-			is.numeric(distance_features_calib) && is.numeric(distance_features_pred)
-		) {
-			if (
-				length(distance_features_calib) != length(calib) ||
-					length(distance_features_pred) != length(pred)
-			) {
-				stop(
-					'If distance_features_calib and distance_features_pred are numeric vectors, they must have the same length as calib and pred, respectively'
-				)
-			}
-		} else if (
-			is.matrix(distance_features_calib) ||
-				is.data.frame(distance_features_calib)
-		) {
-			if (nrow(distance_features_calib) != length(calib)) {
-				stop(
-					'If distance_features_calib is a matrix or data frame, it must have the same number of rows as calib'
-				)
-			}
-			if (ncol(distance_features_calib) != ncol(distance_features_pred)) {
-				stop(
-					'distance_features_calib and distance_features_pred must have the same number of columns'
-				)
-			}
-			if (nrow(distance_features_pred) != length(pred)) {
-				stop(
-					'If distance_features_pred is a matrix or data frame, it must have the same number of rows as pred'
-				)
-			}
-		}
-
+		validate_distance_inputs(
+			distance_features_calib, distance_features_pred,
+			length(calib), length(pred),
+			fn_name = "pinterval_conformal"
+		)
 		distance_features_calib <- as.matrix(distance_features_calib)
 		distance_features_pred <- as.matrix(distance_features_pred)
-
-		if (!is.function(weight_function)) {
-			weight_function <- match.arg(
-				weight_function,
-				c('gaussian_kernel', 'caucy_kernel', 'logistic', 'reciprocal_linear')
-			)
-			weight_function <- switch(
-				weight_function,
-				'gaussian_kernel' = function(d) exp(-d^2),
-				'caucy_kernel' = function(d) 1 / (1 + d^2),
-				'logistic' = function(d) 1 / (1 + exp(d)),
-				'reciprocal_linear' = function(d) 1 / (1 + d)
-			)
-		}
+		weight_function <- resolve_weight_function(weight_function)
 	}
 
 	ncs <- ncs_compute(type = ncs_type, calib, calib_truth, coefs = coefs)

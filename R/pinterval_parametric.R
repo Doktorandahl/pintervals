@@ -98,42 +98,70 @@ pinterval_parametric <- function(
 	alpha = 0.1
 ) {
 	if (!is.numeric(pred)) {
-		stop('pred must be a single number or a numeric vector')
+		stop('pinterval_parametric: pred must be a single number or a numeric vector', call. = FALSE)
 	}
 
 	if (length(dist) > 1) {
-		stop('dist must be a single distribution')
+		stop('pinterval_parametric: dist must be a single distribution', call. = FALSE)
 	}
 
-	if (!is.character(dist) & !is.function(dist)) {
+	if (!is.character(dist) && !is.function(dist)) {
 		stop(
-			'dist must be a character string matching a distribution or a function representing a distribution'
+			'pinterval_parametric: dist must be a character string matching a distribution or a function representing a distribution',
+			call. = FALSE
 		)
 	}
 
-	if (is.null(calib) && is.null(pars) && length(pars) == 0) {
-		stop('Either calib or pars must be provided.')
+	if (!is.numeric(alpha) || length(alpha) != 1 || alpha <= 0 || alpha >= 1) {
+		stop('pinterval_parametric: alpha must be a single numeric value between 0 and 1', call. = FALSE)
+	}
+
+	if (is.null(calib) && (is.null(pars) || length(pars) == 0)) {
+		stop(
+			"pinterval_parametric: either 'calib' (and 'calib_truth') or 'pars' must be provided.",
+			call. = FALSE
+		)
 	}
 
 	if (!is.null(calib) && is.numeric(calib) && is.null(calib_truth)) {
-		stop('If calib is numeric, calib_truth must be provided')
+		stop('pinterval_parametric: If calib is numeric, calib_truth must be provided', call. = FALSE)
 	}
 
-	if (!is.null(calib) && !is.numeric(calib) && ncol(calib) != 2) {
-		stop(
-			'calib must be a numeric vector or a 2 column tibble or matrix with the first column being the predicted values and the second column being the truth values'
-		)
+	if (!is.null(calib) && !is.numeric(calib)) {
+		if (!is.matrix(calib) && !is.data.frame(calib)) {
+			stop('pinterval_parametric: calib must be a numeric vector, matrix, or data frame', call. = FALSE)
+		}
+		if (ncol(calib) != 2) {
+			stop(
+				'pinterval_parametric: calib must be a numeric vector or a 2 column tibble or matrix with the first column being the predicted values and the second column being the truth values',
+				call. = FALSE
+			)
+		}
+	}
+
+	if (!is.null(calib)) {
+		if (is.numeric(calib)) {
+			if (length(calib) != length(calib_truth)) {
+				stop('pinterval_parametric: calib and calib_truth must have the same length', call. = FALSE)
+			}
+		} else {
+			if (nrow(calib) != length(calib_truth)) {
+				stop('pinterval_parametric: calib and calib_truth must have compatible lengths', call. = FALSE)
+			}
+		}
 	}
 
 	if (length(pars) != 0 && !is.list(pars)) {
 		stop(
-			'pars must be a list of parameters for the distribution for each prediction'
+			'pinterval_parametric: pars must be a list of parameters for the distribution for each prediction',
+			call. = FALSE
 		)
 	}
 
 	if (length(pars) != 0 && !is.null(calib)) {
 		warning(
-			'pars is provided, but calib is also provided. The provided parameters will be used for the prediction intervals and calib for the calibration of the predictions.'
+			'pinterval_parametric: pars is provided, but calib is also provided. The provided parameters will be used for the prediction intervals and calib for the calibration of the predictions.',
+			call. = FALSE
 		)
 	}
 
@@ -148,26 +176,48 @@ pinterval_parametric <- function(
 			message(
 				'The distribution is a log-normal distribution. The standard deviation parameters will be estimated from the calibration data.'
 			)
+			if (any(calib <= 0) || any(calib_truth <= 0) || any(pred <= 0)) {
+				warning(
+					'pinterval_parametric: The log-normal distribution requires positive values. calib, calib_truth, or pred contain non-positive values.',
+					call. = FALSE
+				)
+			}
 			pars$meanlog <- log(pred)
 			pars$sdlog <- sqrt(var((log(calib) - log(calib_truth))))
 		} else if (dist %in% c('pois', 'qpois')) {
+			if (any(pred < 0)) {
+				warning(
+					'pinterval_parametric: The Poisson distribution requires non-negative predictions. pred contains negative values.',
+					call. = FALSE
+				)
+			}
 			pars$lambda <- pred
 		} else if (dist %in% c('nbinom', 'qnbinom')) {
 			message(
 				'The distribution is a negative binomial distribution. The size (dispersion) parameter will be estimated from the calibration data. The dispersion parameter is assumed to be constant across predictions.'
 			)
 			pars$mu <- pred
-			mle_theta <- MASS::glm.nb(calib_truth ~ offset(log(calib)))
+			mle_theta <- tryCatch(
+				MASS::glm.nb(calib_truth ~ offset(log(calib))),
+				error = function(e) {
+					stop('pinterval_parametric: Error fitting negative binomial model: ', conditionMessage(e), call. = FALSE)
+				}
+			)
 			pars$size <- mle_theta$theta
 		} else if (dist %in% c('gamma', 'qgamma')) {
 			message(
 				'The distribution is a gamma distribution. The rate (dispersion) parameter will be estimated from the calibration data. The dispersion parameter is assumed to be constant across predictions.'
 			)
 
-			dispersion <- summary(stats::glm(
-				calib_truth ~ offset(log(calib)),
-				family = stats::Gamma(link = 'log')
-			))$dispersion
+			dispersion <- tryCatch(
+				summary(stats::glm(
+					calib_truth ~ offset(log(calib)),
+					family = stats::Gamma(link = 'log')
+				))$dispersion,
+				error = function(e) {
+					stop('pinterval_parametric: Error fitting gamma model: ', conditionMessage(e), call. = FALSE)
+				}
+			)
 
 			pars$shape <- pred / dispersion
 			pars$rate <- dispersion
@@ -183,10 +233,13 @@ pinterval_parametric <- function(
 				any(calib > 1) ||
 					any(calib < 0) ||
 					any(calib_truth > 1) ||
-					any(calib_truth < 0)
+					any(calib_truth < 0) ||
+					any(pred > 1) ||
+					any(pred < 0)
 			) {
 				stop(
-					'The beta distribution requires values between 0 and 1. Please ensure that calib is between 0 and 1.'
+					'pinterval_parametric: The beta distribution requires values between 0 and 1. Please ensure that calib, calib_truth, and pred are all between 0 and 1.',
+					call. = FALSE
 				)
 			}
 			message(
@@ -197,14 +250,16 @@ pinterval_parametric <- function(
 			phi_hat <- (mean(calib) * (1 - mean(calib))) / var_hat - 1
 			if (phi_hat <= 0) {
 				stop(
-					'The estimated precision parameter is non-positive. Please check the calibration data.'
+					'pinterval_parametric: The estimated precision parameter is non-positive. Please check the calibration data.',
+					call. = FALSE
 				)
 			}
 			pars$shape1 <- pred * phi_hat
 			pars$shape2 <- (1 - pred) * phi_hat
 		} else {
 			stop(
-				'The distribution is not supported or not implemented yet. Please provide the parameters in pars.'
+				'pinterval_parametric: The distribution is not supported. Supported distributions are: norm, lnorm, exp, pois, nbinom, gamma, chisq, logis, beta. Please provide the parameters in pars or use a custom distribution function.',
+				call. = FALSE
 			)
 		}
 	}

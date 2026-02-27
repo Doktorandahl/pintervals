@@ -88,7 +88,7 @@ pinterval_mondrian = function(
 	distance_features_calib = NULL,
 	distance_features_pred = NULL,
 	distance_type = c('mahalanobis', 'euclidean'),
-	normalize_distance = TRUE,
+	normalize_distance = 'none',
 	weight_function = c(
 		'gaussian_kernel',
 		'caucy_kernel',
@@ -98,20 +98,33 @@ pinterval_mondrian = function(
 ) {
 	i <- NA
 
-	if (setdiff(unique(pred_class), unique(calib_class)) %>% length() > 0) {
-		warning(
-			'Some classes in pred_class are not present in calib_class. These will result in NA prediction intervals for those classes.'
+	# Validate pred
+	if (!is.numeric(pred) && !is.matrix(pred) && !is.data.frame(pred)) {
+		stop(
+			'pinterval_mondrian: pred must be a numeric scalar or vector or a 2 column tibble or matrix with the first column being the predicted values and the second column being the class labels',
+			call. = FALSE
 		)
 	}
 
 	if (!is.numeric(pred) && ncol(pred) != 2) {
 		stop(
-			'pred must be a numeric scalar or vector or a 2 column tibble or matrix with the first column being the predicted values and the second column being the class labels'
+			'pinterval_mondrian: pred must be a numeric scalar or vector or a 2 column tibble or matrix with the first column being the predicted values and the second column being the class labels',
+			call. = FALSE
+		)
+	}
+
+	if (any(is.na(pred))) {
+		warning(
+			'pinterval_mondrian: pred contains NA values',
+			call. = FALSE
 		)
 	}
 
 	if (is.numeric(pred) && is.null(pred_class)) {
-		stop('If pred is numeric, pred_class must be provided')
+		stop(
+			'pinterval_mondrian: If pred is numeric, pred_class must be provided',
+			call. = FALSE
+		)
 	}
 
 	if (!is.numeric(pred)) {
@@ -119,21 +132,54 @@ pinterval_mondrian = function(
 		pred <- as.numeric(pred[[1]])
 	}
 
-	if (is.numeric(calib) & is.null(calib_truth)) {
-		stop('If calib is numeric, calib_truth must be provided')
+	# Validate calib
+	if (is.null(calib)) {
+		stop(
+			'pinterval_mondrian: calib must be provided',
+			call. = FALSE
+		)
 	}
 
-	if (is.numeric(calib) & is.null(calib_class)) {
-		stop('If calib is numeric, calib_class must be provided')
+	if (!is.numeric(calib) && !is.matrix(calib) && !is.data.frame(calib)) {
+		stop(
+			'pinterval_mondrian: calib must be a numeric vector or a 3 column tibble or matrix with the first column being the predicted values, the second column being the truth values, and the third column being the class labels',
+			call. = FALSE
+		)
 	}
+
 	if (!is.numeric(calib) && ncol(calib) < 3) {
 		stop(
-			'calib must be a numeric vector or a 3 column tibble or matrix with the first column being the predicted values, the second column being the truth values, and the third column being the class labels'
+			'pinterval_mondrian: calib must be a numeric vector or a 3 column tibble or matrix with the first column being the predicted values, the second column being the truth values, and the third column being the class labels',
+			call. = FALSE
+		)
+	}
+
+	if (any(is.na(calib))) {
+		warning(
+			'pinterval_mondrian: calib contains NA values',
+			call. = FALSE
+		)
+	}
+
+	if (is.numeric(calib) && is.null(calib_truth)) {
+		stop(
+			'pinterval_mondrian: If calib is numeric, calib_truth must be provided',
+			call. = FALSE
+		)
+	}
+
+	if (is.numeric(calib) && is.null(calib_class)) {
+		stop(
+			'pinterval_mondrian: If calib is numeric, calib_class must be provided',
+			call. = FALSE
 		)
 	}
 
 	if (!is.numeric(alpha) || alpha <= 0 || alpha >= 1 || length(alpha) != 1) {
-		stop('alpha must be a single numeric value between 0 and 1')
+		stop(
+			'pinterval_mondrian: alpha must be a single numeric value between 0 and 1',
+			call. = FALSE
+		)
 	}
 
 	ncs_type <- match.arg(
@@ -147,6 +193,7 @@ pinterval_mondrian = function(
 		)
 	)
 
+	# Parse calib if it's a matrix or data frame
 	if (!is.numeric(calib)) {
 		calib_org <- calib
 		if (is.matrix(calib)) {
@@ -164,99 +211,72 @@ pinterval_mondrian = function(
 		}
 	}
 
+	# Validate lengths after parsing
+	if (length(pred_class) != length(pred)) {
+		stop(
+			'pinterval_mondrian: pred_class must have the same length as pred',
+			call. = FALSE
+		)
+	}
+
+	if (length(calib_class) != length(calib)) {
+		stop(
+			'pinterval_mondrian: calib_class must have the same length as calib',
+			call. = FALSE
+		)
+	}
+
+	if (length(calib_truth) != length(calib)) {
+		stop(
+			'pinterval_mondrian: calib_truth must have the same length as calib',
+			call. = FALSE
+		)
+	}
+
+	# Check for classes in pred that are not in calib (AFTER validation)
+	if (setdiff(unique(pred_class), unique(calib_class)) %>% length() > 0) {
+		warning(
+			'pinterval_mondrian: Some classes in pred_class are not present in calib_class. These will result in NA prediction intervals for those classes.',
+			call. = FALSE
+		)
+	}
+
 	if (ncs_type == 'heterogeneous_error') {
 		coefs <- stats::coef(stats::lm(abs(calib - calib_truth) ~ calib))
 	} else {
 		coefs <- NULL
 	}
 
-	if (distance_weighted_cp) {
-		if (is.null(distance_features_calib) || is.null(distance_features_pred)) {
-			stop(
-				'If distance_weighted_cp is TRUE, distance_features_calib and distance_features_pred must be provided'
-			)
-		}
-		if (
-			!is.matrix(distance_features_calib) &&
-				!is.data.frame(distance_features_calib) &&
-				!is.numeric(distance_features_calib)
-		) {
-			stop(
-				'distance_features_calib must be a matrix, data frame, or numeric vector'
-			)
-		}
-		if (
-			!is.matrix(distance_features_pred) &&
-				!is.data.frame(distance_features_pred) &&
-				!is.numeric(distance_features_pred)
-		) {
-			stop(
-				'distance_features_pred must be a matrix, data frame, or numeric vector'
-			)
-		}
-		if (
-			is.numeric(distance_features_calib) && is.numeric(distance_features_pred)
-		) {
-			if (
-				length(distance_features_calib) != length(calib) ||
-					length(distance_features_pred) != length(pred)
-			) {
-				stop(
-					'If distance_features_calib and distance_features_pred are numeric vectors, they must have the same length as calib and pred, respectively'
-				)
-			}
-		} else if (
-			is.matrix(distance_features_calib) ||
-				is.data.frame(distance_features_calib)
-		) {
-			if (nrow(distance_features_calib) != length(calib)) {
-				stop(
-					'If distance_features_calib is a matrix or data frame, it must have the same number of rows as calib'
-				)
-			}
-			if (ncol(distance_features_calib) != ncol(distance_features_pred)) {
-				stop(
-					'distance_features_calib and distance_features_pred must have the same number of columns'
-				)
-			}
-			if (nrow(distance_features_pred) != length(pred)) {
-				stop(
-					'If distance_features_pred is a matrix or data frame, it must have the same number of rows as pred'
-				)
-			}
-		}
+	# Validate and normalize distance parameters
+	normalize_distance <- match.arg(normalize_distance, c('none', 'minmax', 'sd'))
 
+	if (distance_weighted_cp) {
+		validate_distance_inputs(
+			distance_features_calib, distance_features_pred,
+			length(calib), length(pred),
+			fn_name = "pinterval_mondrian"
+		)
 		distance_features_calib <- as.matrix(distance_features_calib)
 		distance_features_pred <- as.matrix(distance_features_pred)
 		distance_type <- match.arg(distance_type, c('mahalanobis', 'euclidean'))
-
-		if (!is.function(weight_function)) {
-			weight_function <- match.arg(
-				weight_function,
-				c('gaussian_kernel', 'caucy_kernel', 'logistic', 'reciprocal_linear')
-			)
-			weight_function <- switch(
-				weight_function,
-				'gaussian_kernel' = function(d) exp(-d^2),
-				'caucy_kernel' = function(d) 1 / (1 + d^2),
-				'logistic' = function(d) 1 / (1 + exp(d)),
-				'reciprocal_linear' = function(d) 1 / (1 + d)
-			)
-		}
+		weight_function <- resolve_weight_function(weight_function)
 	}
 
 	nobs_class <- as.numeric(table(calib_class))
 
 	if (any(nobs_class * alpha / 2 < 1)) {
 		warning(
-			'Some classes have too few observations to calculate prediction intervals at the specified alpha level. Consider using a larger calibration set or a higher alpha level'
+			'pinterval_mondrian: Some classes have too few observations to calculate prediction intervals at the specified alpha level. Consider using a larger calibration set or a higher alpha level',
+			call. = FALSE
 		)
 	}
 
 	class_labels <- sort(unique(pred_class))
-	if (length(class_labels) < 2) {
+	class_labels_calib <- sort(unique(calib_class))
+	if (length(class_labels) < 2 || length(class_labels_calib) < 2) {
 		stop(
-			'Calibration set must have at least two classes For continuous prediction intervals without classes, use pinterval_conformal() instead of pinterval_mondrian()'
+			"pinterval_mondrian: calibration set must have at least two classes. For continuous prediction intervals without classes, use pinterval_conformal() instead.",
+			call. = FALSE
 		)
 	}
 
