@@ -211,7 +211,7 @@ cauchy_kern <- function(d) {
 #' @return a numeric vector of logistic kernel values
 #' @keywords internal
 logistic_kern <- function(d) {
-	return(plogis(d, lower.tail = FALSE))
+	return(stats::plogis(d, lower.tail = FALSE))
 }
 
 #' Reciprocal Linear Kernel Function
