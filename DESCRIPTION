@@ -28,5 +28,6 @@ LinkingTo:
 Suggests:
     knitr,
     rmarkdown,
-    testthat
+    testthat,
+    tidyr
 VignetteBuilder: knitr
