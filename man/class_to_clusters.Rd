@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{class_to_clusters}
 \alias{class_to_clusters}
-\title{Function to convert class vector to cluster vector based on calibrated clusters}
+\title{Function to Convert Class Vector to Cluster Vector Based on Calibrated Clusters}
 \usage{
 class_to_clusters(class_vec, cluster_vec_calib)
 }
@@ -15,5 +15,6 @@ class_to_clusters(class_vec, cluster_vec_calib)
 A vector of cluster assignments, with attributes containing the clusters, method used, number of clusters, Calibrated Clustering index, and coverage gaps
 }
 \description{
-Function to convert class vector to cluster vector based on calibrated clusters
+Function to Convert Class Vector to Cluster Vector Based on Calibrated Clusters
 }
+\keyword{internal}

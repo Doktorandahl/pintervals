@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{clusterer}
 \alias{clusterer}
-\title{Function to cluster non-conformity scores using either Kolmogorov-Smirnov or K-means clustering}
+\title{Function to Cluster Non-Conformity Scores Using Either Kolmogorov-Smirnov or K-Means Clustering}
 \usage{
 clusterer(
   ncs,
@@ -33,5 +33,6 @@ clusterer(
 A vector of cluster assignments, with attributes containing the clusters, coverage gaps, method used, number of clusters, and Calibrated Clustering index
 }
 \description{
-Function to cluster non-conformity scores using either Kolmogorov-Smirnov or K-means clustering
+Function to Cluster Non-Conformity Scores Using Either Kolmogorov-Smirnov or K-Means Clustering
 }
+\keyword{internal}

@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{flatten_cp_bin_intervals}
 \alias{flatten_cp_bin_intervals}
-\title{Flatten binned conformal prediction intervals to contiguous intervals}
+\title{Flatten Binned Conformal Prediction Intervals to Contiguous Intervals}
 \usage{
 flatten_cp_bin_intervals(lst, contiguize = FALSE)
 }
@@ -12,5 +12,6 @@ flatten_cp_bin_intervals(lst, contiguize = FALSE)
 \item{contiguize}{logical indicating whether to contiguize the intervals}
 }
 \description{
-Flatten binned conformal prediction intervals to contiguous intervals
+Flatten Binned Conformal Prediction Intervals to Contiguous Intervals
 }
+\keyword{internal}

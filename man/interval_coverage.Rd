@@ -2,7 +2,7 @@
 % Please edit documentation in R/metrics.R
 \name{interval_coverage}
 \alias{interval_coverage}
-\title{Empirical coverage of prediction intervals}
+\title{Empirical Coverage of Prediction Intervals}
 \usage{
 interval_coverage(
   truth,

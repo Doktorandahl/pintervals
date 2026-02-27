@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{ks_cluster_assignment_step}
 \alias{ks_cluster_assignment_step}
-\title{Function to assign classes to clusters based on Kolmogorov-Smirnov clustering}
+\title{Function to Assign Classes to Clusters Based on Kolmogorov-Smirnov Clustering}
 \usage{
 ks_cluster_assignment_step(ncs, class_vec, class_labels, clusters, m)
 }
@@ -21,5 +21,6 @@ ks_cluster_assignment_step(ncs, class_vec, class_labels, clusters, m)
 A list of clusters, where each element is a vector of class labels assigned to that cluster
 }
 \description{
-Function to assign classes to clusters based on Kolmogorov-Smirnov clustering
+Function to Assign Classes to Clusters Based on Kolmogorov-Smirnov Clustering
 }
+\keyword{internal}

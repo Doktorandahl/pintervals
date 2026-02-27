@@ -2,7 +2,7 @@
 % Please edit documentation in R/metrics.R
 \name{interval_score}
 \alias{interval_score}
-\title{Mean interval score (MIS) for prediction intervals}
+\title{Mean Interval Score (MIS) for Prediction Intervals}
 \usage{
 interval_score(
   truth,

@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{bootstrap_inner}
 \alias{bootstrap_inner}
-\title{Bootstrap function for bootstrapping the prediction intervals}
+\title{Bootstrap Function for Bootstrapping the Prediction Intervals}
 \usage{
 bootstrap_inner(
   pred,
@@ -48,5 +48,6 @@ bootstrap_inner(
 a numeric vector with the predicted value and the lower and upper bounds of the prediction interval
 }
 \description{
-Bootstrap function for bootstrapping the prediction intervals
+Bootstrap Function for Bootstrapping the Prediction Intervals
 }
+\keyword{internal}

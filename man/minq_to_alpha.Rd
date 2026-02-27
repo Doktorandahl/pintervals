@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{minq_to_alpha}
 \alias{minq_to_alpha}
-\title{Helper for minimum quantile to alpha function}
+\title{Helper for Minimum Quantile to Alpha Function}
 \usage{
 minq_to_alpha(minq, alpha)
 }
@@ -12,5 +12,6 @@ minq_to_alpha(minq, alpha)
 \item{alpha}{alpha level}
 }
 \description{
-Helper for minimum quantile to alpha function
+Helper for Minimum Quantile to Alpha Function
 }
+\keyword{internal}

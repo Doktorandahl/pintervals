@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{bin_chopper}
 \alias{bin_chopper}
-\title{Bin chopper function for binned bootstrapping}
+\title{Bin Chopper Function for Binned Bootstrapping}
 \usage{
 bin_chopper(x, nbins, return_breaks = FALSE)
 }
@@ -14,5 +14,6 @@ bin_chopper(x, nbins, return_breaks = FALSE)
 \item{return_breaks}{logical indicating whether to return the bin breaks}
 }
 \description{
-Bin chopper function for binned bootstrapping
+Bin Chopper Function for Binned Bootstrapping
 }
+\keyword{internal}

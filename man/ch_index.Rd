@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{ch_index}
 \alias{ch_index}
-\title{Function to compute the Calinski-Harabasz index for a set of clusters}
+\title{Function to Compute the Calinski-Harabasz Index for a Set of Clusters}
 \usage{
 ch_index(ncs, class_vec, clusters, q = seq(0.1, 0.9, by = 0.1))
 }
@@ -19,5 +19,6 @@ ch_index(ncs, class_vec, clusters, q = seq(0.1, 0.9, by = 0.1))
 A numeric value representing the Calinski-Harabasz index for the clusters
 }
 \description{
-Function to compute the Calinski-Harabasz index for a set of clusters
+Function to Compute the Calinski-Harabasz Index for a Set of Clusters
 }
+\keyword{internal}

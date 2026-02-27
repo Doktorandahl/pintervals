@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{rel_error}
 \alias{rel_error}
-\title{Relative Error Function for Non-Conformity Scores by predicted Values}
+\title{Relative Error Function for Non-Conformity Scores by Predicted Values}
 \usage{
 rel_error(pred, truth)
 }
@@ -15,5 +15,6 @@ rel_error(pred, truth)
 a numeric vector of relative errors
 }
 \description{
-Relative Error Function for Non-Conformity Scores by predicted Values
+Relative Error Function for Non-Conformity Scores by Predicted Values
 }
+\keyword{internal}

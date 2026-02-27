@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{coverage_gap_finder}
 \alias{coverage_gap_finder}
-\title{Function to find the coverage gap for a set of clusters}
+\title{Function to Find the Coverage Gap for a Set of Clusters}
 \usage{
 coverage_gap_finder(ncs, class_vec, cluster)
 }
@@ -17,5 +17,6 @@ coverage_gap_finder(ncs, class_vec, cluster)
 A numeric value representing the maximum coverage gap between the clusters
 }
 \description{
-Function to find the coverage gap for a set of clusters
+Function to Find the Coverage Gap for a Set of Clusters
 }
+\keyword{internal}

@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{optimize_clusters}
 \alias{optimize_clusters}
-\title{Function to optimize clusters based on the Calinski-Harabasz index}
+\title{Function to Optimize Clusters Based on the Calinski-Harabasz Index}
 \usage{
 optimize_clusters(
   ncs,
@@ -36,5 +36,6 @@ optimize_clusters(
 A vector of cluster assignments, with attributes containing the clusters, coverage gaps, method used, number of clusters, and the Calinski-Harabasz index
 }
 \description{
-Function to optimize clusters based on the Calinski-Harabasz index
+Function to Optimize Clusters Based on the Calinski-Harabasz Index
 }
+\keyword{internal}

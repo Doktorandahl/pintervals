@@ -15,3 +15,4 @@ a numeric vector of logistic kernel values
 \description{
 Logistic Kernel Function
 }
+\keyword{internal}

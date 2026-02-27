@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{wcss_compute}
 \alias{wcss_compute}
-\title{Function to compute the within-cluster sum of squares (WCSS) for a set of clusters}
+\title{Function to Compute the Within-Cluster Sum of Squares (WCSS) for a Set of Clusters}
 \usage{
 wcss_compute(ncs, class_vec, cluster, q = seq(0.1, 0.9, by = 0.1))
 }
@@ -19,5 +19,6 @@ wcss_compute(ncs, class_vec, cluster, q = seq(0.1, 0.9, by = 0.1))
 A numeric value representing the WCSS for the cluster
 }
 \description{
-Function to compute the within-cluster sum of squares (WCSS) for a set of clusters
+Function to Compute the Within-Cluster Sum of Squares (WCSS) for a Set of Clusters
 }
+\keyword{internal}

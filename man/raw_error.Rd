@@ -17,3 +17,4 @@ a numeric vector of raw errors
 \description{
 Raw Error Function for Non-Conformity Scores
 }
+\keyword{internal}

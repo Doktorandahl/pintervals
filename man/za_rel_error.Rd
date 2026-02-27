@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{za_rel_error}
 \alias{za_rel_error}
-\title{Zero-adjusted Relative Error Function for Non-Conformity Scores by predicted Values with a small adjustment}
+\title{Zero-Adjusted Relative Error Function for Non-Conformity Scores by Predicted Values with a Small Adjustment}
 \usage{
 za_rel_error(pred, truth)
 }
@@ -15,5 +15,6 @@ za_rel_error(pred, truth)
 a numeric vector of zero-adjusted relative errors
 }
 \description{
-Zero-adjusted Relative Error Function for Non-Conformity Scores by predicted Values with a small adjustment
+Zero-Adjusted Relative Error Function for Non-Conformity Scores by Predicted Values with a Small Adjustment
 }
+\keyword{internal}

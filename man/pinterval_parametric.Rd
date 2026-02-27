@@ -2,7 +2,7 @@
 % Please edit documentation in R/pinterval_parametric.R
 \name{pinterval_parametric}
 \alias{pinterval_parametric}
-\title{#' Parametric prediction intervals for continuous predictions}
+\title{Parametric Prediction Intervals for Continuous Predictions}
 \usage{
 pinterval_parametric(
   pred,

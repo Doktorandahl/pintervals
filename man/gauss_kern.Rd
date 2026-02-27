@@ -15,3 +15,4 @@ a numeric vector of Gaussian kernel values
 \description{
 Gaussian Kernel Function
 }
+\keyword{internal}

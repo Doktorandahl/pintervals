@@ -1,4 +1,4 @@
-#' Empirical coverage of prediction intervals
+#' Empirical Coverage of Prediction Intervals
 #'
 #' @description Calculates the mean empirical coverage rate of prediction intervals, i.e., the proportion of true values that fall within their corresponding prediction intervals.
 #'
@@ -134,7 +134,7 @@ cover <- function(truth, intervals) {
 	return(max(covered))
 }
 
-#' Empirical miscoverage of prediction intervals
+#' Empirical Miscoverage of Prediction Intervals
 #'
 #' @description Calculates the empirical miscoverage rate of prediction intervals, i.e., the difference between proportion of true values that fall within their corresponding prediction intervals and the nominal coverage rate (1 - alpha).
 #'
@@ -235,7 +235,7 @@ interval_miscoverage <- function(
 	return(mean(covered, na.rm = na.rm) - (1 - alpha))
 }
 
-#' Mean interval score (MIS) for prediction intervals
+#' Mean Interval Score (MIS) for Prediction Intervals
 #'
 #' @description Computes the mean interval score, a proper scoring rule that penalizes both the width of prediction intervals and any lack of coverage. Lower values indicate better interval quality.
 #' @param truth A numeric vector of true outcome values.
@@ -396,7 +396,7 @@ interval_score_interval <- function(intervals, truth, alpha, na.rm = FALSE) {
 }
 
 
-#' Mean width of prediction intervals
+#' Mean Width of Prediction Intervals
 #' @description Computes the mean width of prediction intervals, defined as the average difference between upper and lower bounds.
 #' @param lower_bound A numeric vector of lower bounds of the prediction intervals.
 #' @param upper_bound A numeric vector of upper bounds of the prediction intervals.

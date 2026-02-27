@@ -1,4 +1,4 @@
-#' Clustered conformal prediction intervals for continuous predictions
+#' Clustered Conformal Prediction Intervals for Continuous Predictions
 #'
 #' @description
 #' This function computes conformal prediction intervals with a confidence level of \eqn{1 - \alpha} by first grouping Mondrian classes into data-driven clusters based on the distribution of their nonconformity scores. The resulting clusters are used as strata for computing class-conditional (Mondrian-style) conformal prediction intervals. This approach improves local validity and statistical efficiency when there are many small or similar classes with overlapping prediction behavior. The coverage level \eqn{1 - \alpha} is approximate within each cluster, assuming exchangeability of nonconformity scores within clusters.

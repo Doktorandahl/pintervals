@@ -2,7 +2,7 @@
 % Please edit documentation in R/metrics.R
 \name{interval_width}
 \alias{interval_width}
-\title{Mean width of prediction intervals}
+\title{Mean Width of Prediction Intervals}
 \usage{
 interval_width(
   lower_bound = NULL,

@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{contiguize_intervals}
 \alias{contiguize_intervals}
-\title{Contiguize non-contiguous intervals}
+\title{Contiguize Non-Contiguous Intervals}
 \usage{
 contiguize_intervals(
   pot_lower_bounds,
@@ -24,5 +24,6 @@ contiguize_intervals(
 \item{return_all}{Return all intervals or just contiguous intervals}
 }
 \description{
-Contiguize non-contiguous intervals
+Contiguize Non-Contiguous Intervals
 }
+\keyword{internal}

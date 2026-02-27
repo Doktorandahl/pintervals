@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{bcss_compute}
 \alias{bcss_compute}
-\title{Function to compute the between-cluster sum of squares (BCSS) for a set of clusters}
+\title{Function to Compute the Between-Cluster Sum of Squares (BCSS) for a Set of Clusters}
 \usage{
 bcss_compute(ncs, class_vec, clusters, q = seq(0.1, 0.9, by = 0.1))
 }
@@ -19,5 +19,6 @@ bcss_compute(ncs, class_vec, clusters, q = seq(0.1, 0.9, by = 0.1))
 A numeric value representing the BCSS for the clusters
 }
 \description{
-Function to compute the between-cluster sum of squares (BCSS) for a set of clusters
+Function to Compute the Between-Cluster Sum of Squares (BCSS) for a Set of Clusters
 }
+\keyword{internal}

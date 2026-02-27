@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{ks_cluster_init_step}
 \alias{ks_cluster_init_step}
-\title{Function to initialize clusters for Kolmogorov-Smirnov clustering}
+\title{Function to Initialize Clusters for Kolmogorov-Smirnov Clustering}
 \usage{
 ks_cluster_init_step(ncs, class_vec, m)
 }
@@ -14,5 +14,6 @@ ks_cluster_init_step(ncs, class_vec, m)
 \item{m}{Number of clusters to form}
 }
 \description{
-Function to initialize clusters for Kolmogorov-Smirnov clustering
+Function to Initialize Clusters for Kolmogorov-Smirnov Clustering
 }
+\keyword{internal}

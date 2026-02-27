@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{Dm_finder}
 \alias{Dm_finder}
-\title{Function to find the minimum distance between a class and a set of clusters}
+\title{Function to Find the Minimum Distance Between a Class and a Set of Clusters}
 \usage{
 Dm_finder(
   ncs,
@@ -27,5 +27,6 @@ Dm_finder(
 A numeric value or vector depending on the value of the `return` parameter. If `return` is 'min', returns the minimum distance. If `return` is 'which.min', returns the index of the cluster with the minimum distance. If `return` is 'vec', returns a vector of distances to each cluster.
 }
 \description{
-Function to find the minimum distance between a class and a set of clusters
+Function to Find the Minimum Distance Between a Class and a Set of Clusters
 }
+\keyword{internal}

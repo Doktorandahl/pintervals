@@ -1,4 +1,4 @@
-#' #' Parametric prediction intervals for continuous predictions
+#' Parametric Prediction Intervals for Continuous Predictions
 #'
 #' This function computes parametric prediction intervals at a confidence level of \eqn{1 - \alpha} for a vector of continuous predictions. The intervals are based on a user-specified probability distribution and associated parameters, either estimated from calibration data or supplied directly. Supported distributions include common options like the normal, log-normal, gamma, beta, and negative binomial, as well as any user-defined distribution with a quantile function. Prediction intervals are calculated by evaluating the appropriate quantiles for each predicted value.
 #'

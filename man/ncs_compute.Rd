@@ -18,3 +18,4 @@ ncs_compute(type, pred, truth, coefs = NULL)
 \description{
 Non-Conformity Score Computation Function
 }
+\keyword{internal}

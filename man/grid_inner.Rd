@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{grid_inner}
 \alias{grid_inner}
-\title{Inner function for grid search}
+\title{Inner Function for Grid Search}
 \usage{
 grid_inner(
   hyp_ncs,
@@ -48,5 +48,6 @@ grid_inner(
 a numeric vector with the predicted value and the lower and upper bounds of the prediction interval
 }
 \description{
-Inner function for grid search
+Inner Function for Grid Search
 }
+\keyword{internal}

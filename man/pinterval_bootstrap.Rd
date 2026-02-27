@@ -2,7 +2,7 @@
 % Please edit documentation in R/pinterval_bootstrap.R
 \name{pinterval_bootstrap}
 \alias{pinterval_bootstrap}
-\title{Bootstrap prediction intervals}
+\title{Bootstrap Prediction Intervals}
 \usage{
 pinterval_bootstrap(
   pred,

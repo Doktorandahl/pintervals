@@ -161,6 +161,7 @@ resolve_weight_function <- function(weight_function) {
 #' @param pred a numeric vector of predicted values
 #' @param truth a numeric vector of true values
 #' @param coefs a numeric vector of coefficients for the heterogeneous error model. Must be of length 2, where the first element is the intercept and the second element is the slope.
+#' @keywords internal
 ncs_compute <- function(type, pred, truth, coefs = NULL) {
 	if (type == 'absolute_error') {
 		return(abs_error(pred, truth))
@@ -192,6 +193,7 @@ ncs_compute <- function(type, pred, truth, coefs = NULL) {
 #' Gaussian Kernel Function
 #' @param d a numeric vector of distances
 #' @return a numeric vector of Gaussian kernel values
+#' @keywords internal
 gauss_kern <- function(d) {
 	return(exp(-d^2 / 2))
 }
@@ -199,6 +201,7 @@ gauss_kern <- function(d) {
 #' Cauchy Kernel Function
 #' @param d a numeric vector of distances
 #' @return a numeric vector of Cauchy kernel values
+#' @keywords internal
 cauchy_kern <- function(d) {
 	return(1 / (1 + d^2))
 }
@@ -206,6 +209,7 @@ cauchy_kern <- function(d) {
 #' Logistic Kernel Function
 #' @param d a numeric vector of distances
 #' @return a numeric vector of logistic kernel values
+#' @keywords internal
 logistic_kern <- function(d) {
 	return(1 / (1 + exp(d)))
 }
@@ -213,6 +217,7 @@ logistic_kern <- function(d) {
 #' Reciprocal Linear Kernel Function
 #' @param d a numeric vector of distances
 #' @return a numeric vector of reciprocal linear kernel values
+#' @keywords internal
 reciprocal_linear_kern <- function(d) {
 	return(1 / (1 + d))
 }
@@ -225,6 +230,7 @@ reciprocal_linear_kern <- function(d) {
 #'
 #' @return a numeric vector of absolute errors
 #'
+#' @keywords internal
 abs_error <- function(pred, truth) {
 	return(abs(pred - truth))
 }
@@ -234,17 +240,19 @@ abs_error <- function(pred, truth) {
 #' @param pred a numeric vector of predicted values
 #' @param truth a numeric vector of true values
 #' @return a numeric vector of raw errors
+#' @keywords internal
 raw_error <- function(pred, truth) {
 	return(truth - pred)
 }
 
-#' Relative Error Function for Non-Conformity Scores by predicted Values
+#' Relative Error Function for Non-Conformity Scores by Predicted Values
 #'
 #' @param pred a numeric vector of predicted values
 #' @param truth a numeric vector of true values
 #'
 #' @return a numeric vector of relative errors
 #'
+#' @keywords internal
 rel_error <- function(pred, truth) {
 	if (any(pred == 0)) {
 		warning(
@@ -255,10 +263,11 @@ rel_error <- function(pred, truth) {
 	return(abs((pred - truth) / pred))
 }
 
-#' Zero-adjusted Relative Error Function for Non-Conformity Scores by predicted Values with a small adjustment
+#' Zero-Adjusted Relative Error Function for Non-Conformity Scores by Predicted Values with a Small Adjustment
 #' @param pred a numeric vector of predicted values
 #' @param truth a numeric vector of true values
 #' @return a numeric vector of zero-adjusted relative errors
+#' @keywords internal
 za_rel_error <- function(pred, truth) {
 	return(abs((pred - truth) / (1 + pred)))
 }
@@ -268,6 +277,7 @@ za_rel_error <- function(pred, truth) {
 #' @param pred a numeric vector of predicted values
 #' @param truth a numeric vector of true values
 #' @param coefs a numeric vector of coefficients for the heterogeneous error model. Must be of length 2, where the first element is the intercept and the second element is the slope.
+#' @keywords internal
 heterogeneous_error <- function(pred, truth, coefs) {
 	if (length(coefs) != 2) {
 		stop(
@@ -286,7 +296,7 @@ heterogeneous_error <- function(pred, truth, coefs) {
 	return(abs(pred - truth) / est_heterogeneous_error)
 }
 
-#' Grid search for lower and upper bounds of continuous conformal prediction intervals
+#' Grid Search for Lower and Upper Bounds of Continuous Conformal Prediction Intervals
 #'
 #' @param y_min minimum value to search
 #' @param y_max maximum value to search
@@ -307,6 +317,7 @@ heterogeneous_error <- function(pred, truth, coefs) {
 #'
 #' @return a tibble with the predicted values and the lower and upper bounds of the prediction intervals
 #'
+#' @keywords internal
 grid_finder <- function(
 	y_min,
 	y_max,
@@ -359,7 +370,7 @@ grid_finder <- function(
 	return(dplyr::bind_rows(out))
 }
 
-#' Inner function for grid search
+#' Inner Function for Grid Search
 #'
 #' @param hyp_ncs vector of hypothetical non-conformity scores
 #' @param y_hat predicted value
@@ -375,6 +386,7 @@ grid_finder <- function(
 #' @param weight_function a function to use for weighting the distances. Can be 'gaussian_kernel', 'caucy_kernel', 'logistic', or 'reciprocal_linear'. Default is 'gaussian_kernel'
 #'
 #' @return a numeric vector with the predicted value and the lower and upper bounds of the prediction interval
+#' @keywords internal
 grid_inner <- function(
 	hyp_ncs,
 	y_hat,
@@ -539,7 +551,7 @@ grid_inner <- function(
 	}
 }
 
-#' Bootstrap function for bootstrapping the prediction intervals
+#' Bootstrap Function for Bootstrapping the Prediction Intervals
 #'
 #' @param pred predicted value
 #' @param calib a vector of predicted values for the calibration partition
@@ -555,6 +567,7 @@ grid_inner <- function(
 #' @param weight_function a function to use for weighting the distances. Can be 'gaussian_kernel', 'caucy_kernel', 'logistic', or 'reciprocal_linear'. Default is 'gaussian_kernel'
 #'
 #' @return a numeric vector with the predicted value and the lower and upper bounds of the prediction interval
+#' @keywords internal
 bootstrap_inner <- function(
 	pred,
 	calib,
@@ -636,11 +649,12 @@ bootstrap_inner <- function(
 }
 
 
-#' Bin chopper function for binned bootstrapping
+#' Bin Chopper Function for Binned Bootstrapping
 #'
 #' @param x vector of values to be binned
 #' @param nbins number of bins
 #' @param return_breaks logical indicating whether to return the bin breaks
+#' @keywords internal
 bin_chopper <- function(x, nbins, return_breaks = FALSE) {
 	if (nbins < 2) {
 		stop("bin_chopper: 'nbins' must be greater than 1.", call. = FALSE)
@@ -724,10 +738,11 @@ bin_chopper <- function(x, nbins, return_breaks = FALSE) {
 }
 
 
-#' Bin-individual alpha function for conformal prediction
+#' Bin-Individual Alpha Function for Conformal Prediction
 #'
 #' @param minqs Minimum quantiles
 #' @param alpha alpha level
+#' @keywords internal
 bindividual_alpha <- function(minqs, alpha) {
 	a <- alpha
 	rem_bins <- sum(minqs >= a, na.rm = T)
@@ -757,19 +772,21 @@ bindividual_alpha <- function(minqs, alpha) {
 	return(list(power = rem_bins, bins = !is.na(minqs)))
 }
 
-#' Helper for minimum quantile to alpha function
+#' Helper for Minimum Quantile to Alpha Function
 #'
 #' @param minq minimum quantile
 #' @param alpha alpha level
+#' @keywords internal
 minq_to_alpha <- function(minq, alpha) {
 	minq[which(minq > alpha)] <- alpha
 	return(minq)
 }
 
-#' Flatten binned conformal prediction intervals to contiguous intervals
+#' Flatten Binned Conformal Prediction Intervals to Contiguous Intervals
 #'
 #' @param lst list of binned conformal prediction intervals
 #' @param contiguize logical indicating whether to contiguize the intervals
+#' @keywords internal
 flatten_cp_bin_intervals <- function(lst, contiguize = FALSE) {
 	i <- 'tmp'
 
@@ -819,13 +836,14 @@ flatten_cp_bin_intervals <- function(lst, contiguize = FALSE) {
 	}
 }
 
-#' Contiguize non-contiguous intervals
+#' Contiguize Non-Contiguous Intervals
 #'
 #' @param pot_lower_bounds Potential non-contiguous lower bounds
 #' @param pot_upper_bounds Potential non-contiguous upper bounds
 #' @param empirical_lower_bounds Observed lower bounds
 #' @param empirical_upper_bounds Observed upper bounds
 #' @param return_all Return all intervals or just contiguous intervals
+#' @keywords internal
 contiguize_intervals <- function(
 	pot_lower_bounds,
 	pot_upper_bounds,
@@ -880,7 +898,7 @@ contiguize_intervals <- function(
 	}
 }
 
-#' Function to optimize clusters based on the Calinski-Harabasz index
+#' Function to Optimize Clusters Based on the Calinski-Harabasz Index
 #' @param ncs Vector of non-conformity scores
 #' @param class_vec Vector of class labels
 #' @param method Clustering method to use, either 'ks' for Kolmogorov-Smirnov or 'kmeans' for K-means clustering
@@ -890,6 +908,7 @@ contiguize_intervals <- function(
 #' @param maxit Maximum number of iterations for the clustering algorithm
 #' @param q Quantiles to use for K-means clustering, default is a sequence from 0.1 to 0.9 in steps of 0.1
 #' @return A vector of cluster assignments, with attributes containing the clusters, coverage gaps, method used, number of clusters, and the Calinski-Harabasz index
+#' @keywords internal
 optimize_clusters <- function(
 	ncs,
 	class_vec,
@@ -932,7 +951,7 @@ optimize_clusters <- function(
 	return(clusters)
 }
 
-#' Function to cluster non-conformity scores using either Kolmogorov-Smirnov or K-means clustering
+#' Function to Cluster Non-Conformity Scores Using Either Kolmogorov-Smirnov or K-Means Clustering
 #' @param ncs Vector of non-conformity scores
 #' @param m Number of clusters to form
 #' @param class_vec Vector of class labels
@@ -941,6 +960,7 @@ optimize_clusters <- function(
 #' @param q Quantiles to use for K-means clustering, default is a sequence from 0.1 to 0.9 in steps of 0.1
 #' @param min_class_size Minimum number of observations required in a class to be included in clustering
 #' @return A vector of cluster assignments, with attributes containing the clusters, coverage gaps, method used, number of clusters, and Calibrated Clustering index
+#' @keywords internal
 clusterer <- function(
 	ncs,
 	m,
@@ -1002,10 +1022,11 @@ clusterer <- function(
 }
 
 
-#' Function to convert class vector to cluster vector based on calibrated clusters
+#' Function to Convert Class Vector to Cluster Vector Based on Calibrated Clusters
 #' @param class_vec Vector of class labels
 #' @param cluster_vec_calib Vector of calibrated clusters
 #' @return A vector of cluster assignments, with attributes containing the clusters, method used, number of clusters, Calibrated Clustering index, and coverage gaps
+#' @keywords internal
 class_to_clusters <- function(class_vec, cluster_vec_calib) {
 	i <- NULL
 
@@ -1026,13 +1047,14 @@ class_to_clusters <- function(class_vec, cluster_vec_calib) {
 	return(cluster_vec)
 }
 
-#' Function to perform Kolmogorov-Smirnov clustering on non-conformity scores
+#' Function to Perform Kolmogorov-Smirnov Clustering on Non-Conformity Scores
 #' @param ncs Vector of non-conformity scores
 #' @param class_vec Vector of class labels
 #' @param m Number of clusters to form
 #' @param maxit Maximum number of iterations for the clustering algorithm
 #' @param nrep Number of repetitions for the clustering algorithm
 #' @return A vector of cluster assignments, with attributes containing the clusters, coverage gaps, method used, number of clusters, and Calibrated Clustering index
+#' @keywords internal
 ks_cluster <- function(ncs, class_vec, m, maxit = 100, nrep = 10) {
 	r <- NULL
 	class_labels <- unique(class_vec)
@@ -1091,10 +1113,11 @@ ks_cluster <- function(ncs, class_vec, m, maxit = 100, nrep = 10) {
 }
 
 
-#' Function to initialize clusters for Kolmogorov-Smirnov clustering
+#' Function to Initialize Clusters for Kolmogorov-Smirnov Clustering
 #' @param ncs Vector of non-conformity scores
 #' @param class_vec Vector of class labels
 #' @param m Number of clusters to form
+#' @keywords internal
 ks_cluster_init_step <- function(ncs, class_vec, m) {
 	j <- i <- NULL
 
@@ -1122,13 +1145,14 @@ ks_cluster_init_step <- function(ncs, class_vec, m) {
 	return(clusters)
 }
 
-#' Function to assign classes to clusters based on Kolmogorov-Smirnov clustering
+#' Function to Assign Classes to Clusters Based on Kolmogorov-Smirnov Clustering
 #' @param ncs Vector of non-conformity scores
 #' @param class_vec Vector of class labels
 #' @param class_labels Vector of unique class labels
 #' @param clusters List of clusters
 #' @param m Number of clusters
 #' @return A list of clusters, where each element is a vector of class labels assigned to that cluster
+#' @keywords internal
 ks_cluster_assignment_step <- function(
 	ncs,
 	class_vec,
@@ -1155,13 +1179,14 @@ ks_cluster_assignment_step <- function(
 	return(split(class_labels, cluster_vec))
 }
 
-#' Function to find the minimum distance between a class and a set of clusters
+#' Function to Find the Minimum Distance Between a Class and a Set of Clusters
 #' @param ncs Vector of non-conformity scores
 #' @param class_vec Vector of class labels
 #' @param class Class label to compare against the clusters
 #' @param clusters List of clusters
 #' @param return Character string indicating what to return. Options are 'min' for the minimum distance, 'which.min' for the index of the cluster with the minimum distance, or 'vec' for a vector of distances to each cluster.
 #' @return A numeric value or vector depending on the value of the `return` parameter. If `return` is 'min', returns the minimum distance. If `return` is 'which.min', returns the index of the cluster with the minimum distance. If `return` is 'vec', returns a vector of distances to each cluster.
+#' @keywords internal
 Dm_finder <- function(
 	ncs,
 	class_vec,
@@ -1196,21 +1221,23 @@ Dm_finder <- function(
 	}
 }
 
-#' Function to convert distance measure to probability
+#' Function to Convert Distance Measure to Probability
 #' @param dm Distance measure
 #' @param dms Vector of distance measures for all clusters
 #' @return A numeric value representing the probability of the distance measure relative to the sum of all distance measures
+#' @keywords internal
 dm_to_prob <- function(dm, dms) {
 	dm / sum(dms)
 }
 
 
-#' Function to perform K-means clustering on quantile empirical cumulative distribution functions (qECDFs) of non-conformity scores
+#' Function to Perform K-Means Clustering on Quantile Empirical Cumulative Distribution Functions (qECDFs) of Non-Conformity Scores
 #' @param ncs Vector of non-conformity scores
 #' @param class_vec Vector of class labels
 #' @param q Quantiles to use for the qECDFs, default is a sequence from 0.1 to 0.9 in steps of 0.1
 #' @param m Number of clusters to form
 #' @return A list of clusters, where each element is a vector of class labels assigned to that cluster
+#' @keywords internal
 kmeans_cluster_qecdf <- function(
 	ncs,
 	class_vec,
@@ -1234,11 +1261,12 @@ kmeans_cluster_qecdf <- function(
 	return(split(class_labels, clusters_kmeans))
 }
 
-#' Function to find the coverage gap for a set of clusters
+#' Function to Find the Coverage Gap for a Set of Clusters
 #' @param ncs Vector of non-conformity scores
 #' @param class_vec Vector of class labels
 #' @param cluster Vector of cluster labels
 #' @return A numeric value representing the maximum coverage gap between the clusters
+#' @keywords internal
 coverage_gap_finder <- function(ncs, class_vec, cluster) {
 	if (length(cluster) == 1) {
 		return(0)
@@ -1259,12 +1287,13 @@ coverage_gap_finder <- function(ncs, class_vec, cluster) {
 	}
 }
 
-#' Function to compute the Calinski-Harabasz index for a set of clusters
+#' Function to Compute the Calinski-Harabasz Index for a Set of Clusters
 #' @param ncs Vector of non-conformity scores
 #' @param class_vec Vector of class labels
 #' @param clusters List of clusters, where each element is a vector of class labels assigned to that cluster
 #' @param q Quantiles to use for the qECDFs, default is a sequence from 0.1 to 0.9 in steps of 0.1
 #' @return A numeric value representing the Calinski-Harabasz index for the clusters
+#' @keywords internal
 ch_index <- function(ncs, class_vec, clusters, q = seq(0.1, 0.9, by = 0.1)) {
 	if (length(clusters) == 1) {
 		return(0)
@@ -1289,12 +1318,13 @@ ch_index <- function(ncs, class_vec, clusters, q = seq(0.1, 0.9, by = 0.1)) {
 }
 
 
-#' Function to compute the within-cluster sum of squares (WCSS) for a set of clusters
+#' Function to Compute the Within-Cluster Sum of Squares (WCSS) for a Set of Clusters
 #' @param ncs Vector of non-conformity scores
 #' @param class_vec Vector of class labels
 #' @param cluster Vector of cluster labels
 #' @param q Quantiles to use for the qECDFs, default is a sequence from 0.1 to 0.9 in steps of 0.1
 #' @return A numeric value representing the WCSS for the cluster
+#' @keywords internal
 wcss_compute <- function(ncs, class_vec, cluster, q = seq(0.1, 0.9, by = 0.1)) {
 	i <- NULL
 	qs <- foreach::foreach(
@@ -1312,12 +1342,13 @@ wcss_compute <- function(ncs, class_vec, cluster, q = seq(0.1, 0.9, by = 0.1)) {
 	return(sum((t(qs) - mean_qs)^2, na.rm = TRUE))
 }
 
-#' Function to compute the between-cluster sum of squares (BCSS) for a set of clusters
+#' Function to Compute the Between-Cluster Sum of Squares (BCSS) for a Set of Clusters
 #' @param ncs Vector of non-conformity scores
 #' @param class_vec Vector of class labels
 #' @param clusters List of clusters, where each element is a vector of class labels assigned to that cluster
 #' @param q Quantiles to use for the qECDFs, default is a sequence from 0.1 to 0.9 in steps of 0.1
 #' @return A numeric value representing the BCSS for the clusters
+#' @keywords internal
 bcss_compute <- function(
 	ncs,
 	class_vec,

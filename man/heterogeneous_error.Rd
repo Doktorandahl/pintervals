@@ -16,3 +16,4 @@ heterogeneous_error(pred, truth, coefs)
 \description{
 Heterogeneous Error Function for Non-Conformity Scores
 }
+\keyword{internal}

@@ -2,7 +2,7 @@
 % Please edit documentation in R/pinterval_mondrian.R
 \name{pinterval_mondrian}
 \alias{pinterval_mondrian}
-\title{Mondrian conformal prediction intervals for continuous predictions}
+\title{Mondrian Conformal Prediction Intervals for Continuous Predictions}
 \usage{
 pinterval_mondrian(
   pred,

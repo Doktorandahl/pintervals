@@ -17,3 +17,4 @@ a numeric vector of absolute errors
 \description{
 Absolute Error Function for Non-Conformity Scores
 }
+\keyword{internal}

@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{ks_cluster}
 \alias{ks_cluster}
-\title{Function to perform Kolmogorov-Smirnov clustering on non-conformity scores}
+\title{Function to Perform Kolmogorov-Smirnov Clustering on Non-Conformity Scores}
 \usage{
 ks_cluster(ncs, class_vec, m, maxit = 100, nrep = 10)
 }
@@ -21,5 +21,6 @@ ks_cluster(ncs, class_vec, m, maxit = 100, nrep = 10)
 A vector of cluster assignments, with attributes containing the clusters, coverage gaps, method used, number of clusters, and Calibrated Clustering index
 }
 \description{
-Function to perform Kolmogorov-Smirnov clustering on non-conformity scores
+Function to Perform Kolmogorov-Smirnov Clustering on Non-Conformity Scores
 }
+\keyword{internal}

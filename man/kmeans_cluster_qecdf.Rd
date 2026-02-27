@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{kmeans_cluster_qecdf}
 \alias{kmeans_cluster_qecdf}
-\title{Function to perform K-means clustering on quantile empirical cumulative distribution functions (qECDFs) of non-conformity scores}
+\title{Function to Perform K-Means Clustering on Quantile Empirical Cumulative Distribution Functions (qECDFs) of Non-Conformity Scores}
 \usage{
 kmeans_cluster_qecdf(ncs, class_vec, q = seq(0.1, 0.9, by = 0.1), m)
 }
@@ -19,5 +19,6 @@ kmeans_cluster_qecdf(ncs, class_vec, q = seq(0.1, 0.9, by = 0.1), m)
 A list of clusters, where each element is a vector of class labels assigned to that cluster
 }
 \description{
-Function to perform K-means clustering on quantile empirical cumulative distribution functions (qECDFs) of non-conformity scores
+Function to Perform K-Means Clustering on Quantile Empirical Cumulative Distribution Functions (qECDFs) of Non-Conformity Scores
 }
+\keyword{internal}

@@ -15,3 +15,4 @@ a numeric vector of Cauchy kernel values
 \description{
 Cauchy Kernel Function
 }
+\keyword{internal}

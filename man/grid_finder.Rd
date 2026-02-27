@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{grid_finder}
 \alias{grid_finder}
-\title{Grid search for lower and upper bounds of continuous conformal prediction intervals}
+\title{Grid Search for Lower and Upper Bounds of Continuous Conformal Prediction Intervals}
 \usage{
 grid_finder(
   y_min,
@@ -60,5 +60,6 @@ grid_finder(
 a tibble with the predicted values and the lower and upper bounds of the prediction intervals
 }
 \description{
-Grid search for lower and upper bounds of continuous conformal prediction intervals
+Grid Search for Lower and Upper Bounds of Continuous Conformal Prediction Intervals
 }
+\keyword{internal}

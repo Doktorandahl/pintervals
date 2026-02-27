@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{dm_to_prob}
 \alias{dm_to_prob}
-\title{Function to convert distance measure to probability}
+\title{Function to Convert Distance Measure to Probability}
 \usage{
 dm_to_prob(dm, dms)
 }
@@ -15,5 +15,6 @@ dm_to_prob(dm, dms)
 A numeric value representing the probability of the distance measure relative to the sum of all distance measures
 }
 \description{
-Function to convert distance measure to probability
+Function to Convert Distance Measure to Probability
 }
+\keyword{internal}

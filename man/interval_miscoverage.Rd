@@ -2,7 +2,7 @@
 % Please edit documentation in R/metrics.R
 \name{interval_miscoverage}
 \alias{interval_miscoverage}
-\title{Empirical miscoverage of prediction intervals}
+\title{Empirical Miscoverage of Prediction Intervals}
 \usage{
 interval_miscoverage(truth, lower_bound, upper_bound, alpha, na.rm = FALSE)
 }

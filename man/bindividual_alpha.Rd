@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{bindividual_alpha}
 \alias{bindividual_alpha}
-\title{Bin-individual alpha function for conformal prediction}
+\title{Bin-Individual Alpha Function for Conformal Prediction}
 \usage{
 bindividual_alpha(minqs, alpha)
 }
@@ -12,5 +12,6 @@ bindividual_alpha(minqs, alpha)
 \item{alpha}{alpha level}
 }
 \description{
-Bin-individual alpha function for conformal prediction
+Bin-Individual Alpha Function for Conformal Prediction
 }
+\keyword{internal}

@@ -15,3 +15,4 @@ a numeric vector of reciprocal linear kernel values
 \description{
 Reciprocal Linear Kernel Function
 }
+\keyword{internal}

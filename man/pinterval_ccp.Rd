@@ -2,7 +2,7 @@
 % Please edit documentation in R/pinterval_ccp.R
 \name{pinterval_ccp}
 \alias{pinterval_ccp}
-\title{Clustered conformal prediction intervals for continuous predictions}
+\title{Clustered Conformal Prediction Intervals for Continuous Predictions}
 \usage{
 pinterval_ccp(
   pred,
