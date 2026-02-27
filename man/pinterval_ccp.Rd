@@ -19,7 +19,7 @@ pinterval_ccp(
   resolution = NULL,
   n_clusters = NULL,
   cluster_method = c("kmeans", "ks"),
-  cluster_train_fraction = 1,
+  cluster_train_fraction = 0.5,
   optimize_n_clusters = TRUE,
   optimize_n_clusters_method = c("calinhara", "min_cluster_size"),
   min_cluster_size = 150,
@@ -29,7 +29,7 @@ pinterval_ccp(
   distance_features_calib = NULL,
   distance_features_pred = NULL,
   distance_type = c("mahalanobis", "euclidean"),
-  normalize_distance = TRUE,
+  normalize_distance = "none",
   weight_function = c("gaussian_kernel", "caucy_kernel", "logistic", "reciprocal_linear")
 )
 }
@@ -68,7 +68,7 @@ The default is \code{"absolute_error"}.}
 
 \item{cluster_method}{Clustering method used to group Mondrian classes. Options are \code{"kmeans"} or \code{"ks"} (Kolmogorov-Smirnov). Default is \code{"kmeans"}.}
 
-\item{cluster_train_fraction}{Fraction of the calibration data used to estimate nonconformity scores and compute clustering. Default is 1 (use all).}
+\item{cluster_train_fraction}{Fraction of the calibration data used to estimate nonconformity scores and compute clustering. Default is 1, which uses the entire calibration set for both clustering and interval estimation. See details for more discussion.}
 
 \item{optimize_n_clusters}{Logical. If \code{TRUE}, the number of clusters is chosen automatically based on internal clustering criteria.}
 
@@ -113,7 +113,7 @@ clustered conformal prediction framework. Instead of requiring a separate calibr
 
 Users may specify the number of clusters directly using the `n_clusters` argument or optimize the number of clusters using the Calinski–Harabasz index or minimum cluster size heuristics.
 
-Clustering can be computed using all calibration data or a subsample defined by `cluster_train_fraction`.
+Clustering can be computed using all calibration data or a subsample defined by `cluster_train_fraction`. By default, the entire calibration set is used for both clustering and interval estimation, which may lead to overfitting. Setting `cluster_train_fraction` to a value less than 1 (e.g., 0.5) can help mitigate this risk by using separate data for clustering and interval estimation, at the cost of potentially less stable cluster assignments with smaller calibration subsets. If data is limited, using the full calibration set for clustering may still be preferable, but users should be aware of the potential for overfitting and optimistic coverage estimates in this case.
 
 Clustering is based on either k-means or Kolmogorov-Smirnov distance between nonconformity score distributions of the Mondrian classes, selected via the `cluster_method` argument.
 

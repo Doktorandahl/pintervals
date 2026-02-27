@@ -21,7 +21,7 @@ pinterval_mondrian(
   distance_features_calib = NULL,
   distance_features_pred = NULL,
   distance_type = c("mahalanobis", "euclidean"),
-  normalize_distance = TRUE,
+  normalize_distance = "none",
   weight_function = c("gaussian_kernel", "caucy_kernel", "logistic", "reciprocal_linear")
 )
 }

@@ -10,7 +10,7 @@
 #' @inheritParams pinterval_mondrian
 #' @param n_clusters Number of clusters to use when combining Mondrian classes. Required if \code{optimize_n_clusters = FALSE}.
 #' @param cluster_method Clustering method used to group Mondrian classes. Options are \code{"kmeans"} or \code{"ks"} (Kolmogorov-Smirnov). Default is \code{"kmeans"}.
-#' @param cluster_train_fraction Fraction of the calibration data used to estimate nonconformity scores and compute clustering. Default is 0.5. Setting to 1 uses the entire calibration set for both clustering and interval estimation, which may lead to overfitting.
+#' @param cluster_train_fraction Fraction of the calibration data used to estimate nonconformity scores and compute clustering. Default is 1, which uses the entire calibration set for both clustering and interval estimation. See details for more discussion.
 #' @param optimize_n_clusters Logical. If \code{TRUE}, the number of clusters is chosen automatically based on internal clustering criteria.
 #' @param optimize_n_clusters_method Method used for cluster optimization. One of \code{"calinhara"} (Calinski-Harabasz index) or \code{"min_cluster_size"}. Default is \code{"calinhara"}.
 #' @param min_cluster_size Minimum number of calibration points per cluster. Used only when \code{optimize_n_clusters_method = "min_cluster_size"}.
@@ -25,7 +25,7 @@
 #'
 #' Users may specify the number of clusters directly using the `n_clusters` argument or optimize the number of clusters using the Calinski–Harabasz index or minimum cluster size heuristics.
 #'
-#' Clustering can be computed using all calibration data or a subsample defined by `cluster_train_fraction`.
+#' Clustering can be computed using all calibration data or a subsample defined by `cluster_train_fraction`. By default, the entire calibration set is used for both clustering and interval estimation, which may lead to overfitting. Setting `cluster_train_fraction` to a value less than 1 (e.g., 0.5) can help mitigate this risk by using separate data for clustering and interval estimation, at the cost of potentially less stable cluster assignments with smaller calibration subsets. If data is limited, using the full calibration set for clustering may still be preferable, but users should be aware of the potential for overfitting and optimistic coverage estimates in this case.
 #'
 #' Clustering is based on either k-means or Kolmogorov-Smirnov distance between nonconformity score distributions of the Mondrian classes, selected via the `cluster_method` argument.
 #'
@@ -146,7 +146,10 @@ pinterval_ccp = function(
 	}
 
 	if (is.numeric(pred) && is.null(pred_class)) {
-		stop('pinterval_ccp: If pred is numeric, pred_class must be provided', call. = FALSE)
+		stop(
+			'pinterval_ccp: If pred is numeric, pred_class must be provided',
+			call. = FALSE
+		)
 	}
 
 	if (!is.numeric(pred)) {
@@ -161,7 +164,10 @@ pinterval_ccp = function(
 
 	# Validate pred_class length
 	if (length(pred_class) != length(pred)) {
-		stop('pinterval_ccp: pred_class must have the same length as pred', call. = FALSE)
+		stop(
+			'pinterval_ccp: pred_class must have the same length as pred',
+			call. = FALSE
+		)
 	}
 
 	# Validate calib - NULL check and type check
@@ -185,15 +191,24 @@ pinterval_ccp = function(
 	}
 
 	if (is.numeric(calib) && is.null(calib_truth)) {
-		stop('pinterval_ccp: If calib is numeric, calib_truth must be provided', call. = FALSE)
+		stop(
+			'pinterval_ccp: If calib is numeric, calib_truth must be provided',
+			call. = FALSE
+		)
 	}
 
 	if (is.numeric(calib) && is.null(calib_class)) {
-		stop('pinterval_ccp: If calib is numeric, calib_class must be provided', call. = FALSE)
+		stop(
+			'pinterval_ccp: If calib is numeric, calib_class must be provided',
+			call. = FALSE
+		)
 	}
 
 	if (!is.numeric(alpha) || alpha <= 0 || alpha >= 1 || length(alpha) != 1) {
-		stop('pinterval_ccp: alpha must be a single numeric value between 0 and 1', call. = FALSE)
+		stop(
+			'pinterval_ccp: alpha must be a single numeric value between 0 and 1',
+			call. = FALSE
+		)
 	}
 
 	ncs_type <- match.arg(
@@ -235,10 +250,16 @@ pinterval_ccp = function(
 
 	# Validate calib_class and calib_truth length
 	if (length(calib_class) != length(calib)) {
-		stop('pinterval_ccp: calib_class must have the same length as calib', call. = FALSE)
+		stop(
+			'pinterval_ccp: calib_class must have the same length as calib',
+			call. = FALSE
+		)
 	}
 	if (length(calib_truth) != length(calib)) {
-		stop('pinterval_ccp: calib_truth must have the same length as calib', call. = FALSE)
+		stop(
+			'pinterval_ccp: calib_truth must have the same length as calib',
+			call. = FALSE
+		)
 	}
 
 	# Check setdiff warning AFTER calib_class and pred_class have been validated/parsed
@@ -260,8 +281,10 @@ pinterval_ccp = function(
 
 	if (distance_weighted_cp) {
 		validate_distance_inputs(
-			distance_features_calib, distance_features_pred,
-			length(calib), length(pred),
+			distance_features_calib,
+			distance_features_pred,
+			length(calib),
+			length(pred),
 			fn_name = "pinterval_ccp"
 		)
 		distance_features_calib <- as.matrix(distance_features_calib)
@@ -279,7 +302,10 @@ pinterval_ccp = function(
 	}
 
 	if (!optimize_n_clusters && is.null(n_clusters)) {
-		stop('pinterval_ccp: If optimize_n_clusters is FALSE, n_clusters must be provided', call. = FALSE)
+		stop(
+			'pinterval_ccp: If optimize_n_clusters is FALSE, n_clusters must be provided',
+			call. = FALSE
+		)
 	}
 
 	optimize_n_clusters_method <- match.arg(
@@ -288,8 +314,12 @@ pinterval_ccp = function(
 	)
 	cluster_method <- match.arg(cluster_method, c('kmeans', 'ks'))
 
-	if (!is.numeric(cluster_train_fraction) || length(cluster_train_fraction) != 1 ||
-			cluster_train_fraction <= 0 || cluster_train_fraction > 1) {
+	if (
+		!is.numeric(cluster_train_fraction) ||
+			length(cluster_train_fraction) != 1 ||
+			cluster_train_fraction <= 0 ||
+			cluster_train_fraction > 1
+	) {
 		stop(
 			"pinterval_ccp: 'cluster_train_fraction' must be a single numeric value in (0, 1].",
 			call. = FALSE

@@ -20,7 +20,7 @@ pinterval_bccp(
   distance_weighted_cp = FALSE,
   distance_features_calib = NULL,
   distance_features_pred = NULL,
-  normalize_distance = TRUE,
+  normalize_distance = "none",
   distance_type = c("mahalanobis", "euclidean"),
   weight_function = c("gaussian_kernel", "caucy_kernel", "logistic", "reciprocal_linear")
 )

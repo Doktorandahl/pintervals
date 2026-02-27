@@ -28,10 +28,10 @@ test_that("row_euclidean_distance: empty matrix returns empty vector", {
 
 test_that("row_euclidean_distance: errors on dimension mismatch", {
 	X <- matrix(1:6, nrow = 3, ncol = 2)
-	v <- c(1, 2, 3)  # 3 elements vs 2 columns
+	v <- c(1, 2, 3) # 3 elements vs 2 columns
 	expect_error(
 		row_euclidean_distance(X, v),
-		"length.*must match"
+		"length.*must match.*columns"
 	)
 })
 
@@ -93,7 +93,7 @@ test_that("row_mahalanobis_distance: errors on v length mismatch", {
 test_that("row_mahalanobis_distance: errors on S_inv dimension mismatch", {
 	X <- matrix(1:6, nrow = 3, ncol = 2)
 	v <- c(1, 2)
-	S_inv <- diag(3)  # 3x3 instead of 2x2
+	S_inv <- diag(3) # 3x3 instead of 2x2
 	expect_error(
 		row_mahalanobis_distance(X, v, S_inv),
 		"square matrix"

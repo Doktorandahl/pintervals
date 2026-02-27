@@ -35,8 +35,13 @@ test_that("ncs_compute: za_relative_error works", {
 test_that("ncs_compute: heterogeneous_error works with coefs", {
 	pred <- c(1, 2, 3)
 	truth <- c(1.1, 2.2, 2.7)
-	coefs <- c(0.1, 0.5)  # intercept + slope
-	result <- pintervals:::ncs_compute("heterogeneous_error", pred, truth, coefs = coefs)
+	coefs <- c(0.1, 0.5) # intercept + slope
+	result <- pintervals:::ncs_compute(
+		"heterogeneous_error",
+		pred,
+		truth,
+		coefs = coefs
+	)
 	expected <- abs(pred - truth) / (coefs[1] + coefs[2] * pred)
 	expect_equal(result, expected)
 })
@@ -50,7 +55,12 @@ test_that("ncs_compute: unknown type errors", {
 
 test_that("ncs_compute: heterogeneous_error requires coefs", {
 	expect_error(
-		pintervals:::ncs_compute("heterogeneous_error", c(1, 2), c(1, 2), coefs = NULL),
+		pintervals:::ncs_compute(
+			"heterogeneous_error",
+			c(1, 2),
+			c(1, 2),
+			coefs = NULL
+		),
 		"coefs.*provided"
 	)
 })
@@ -134,7 +144,10 @@ test_that("validate_distance_inputs: errors on wrong type", {
 test_that("validate_distance_inputs: errors on wrong nrow", {
 	expect_error(
 		pintervals:::validate_distance_inputs(
-			matrix(1:6, 3, 2), matrix(1:4, 2, 2), 2, 2
+			matrix(1:6, 3, 2),
+			matrix(1:4, 2, 2),
+			2,
+			2
 		),
 		"rows.*match"
 	)
@@ -143,7 +156,10 @@ test_that("validate_distance_inputs: errors on wrong nrow", {
 test_that("validate_distance_inputs: errors on mismatched ncol", {
 	expect_error(
 		pintervals:::validate_distance_inputs(
-			matrix(1:6, 2, 3), matrix(1:4, 2, 2), 2, 2
+			matrix(1:6, 2, 3),
+			matrix(1:4, 2, 2),
+			2,
+			2
 		),
 		"same number of columns"
 	)
@@ -193,7 +209,7 @@ test_that("bin_chopper: return_breaks works", {
 	x <- rnorm(100)
 	brks <- pintervals:::bin_chopper(x, nbins = 4, return_breaks = TRUE)
 	expect_true(is.numeric(brks))
-	expect_equal(length(brks), 5)  # nbins + 1 breaks
+	expect_equal(length(brks), 5) # nbins + 1 breaks
 	expect_equal(brks[1], -Inf)
 	expect_equal(brks[length(brks)], Inf)
 })

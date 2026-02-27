@@ -19,6 +19,7 @@ Imports:
     purrr,
     Rcpp,
     stats,
+    testthat,
     tibble
 RoxygenNote: 7.3.3
 Depends: 
@@ -26,5 +27,7 @@ Depends:
 LinkingTo: 
     Rcpp
 Suggests:
-    R.rsp
-VignetteBuilder: R.rsp
+    knitr,
+    R.rsp,
+    rmarkdown
+VignetteBuilder: R.rsp, knitr
