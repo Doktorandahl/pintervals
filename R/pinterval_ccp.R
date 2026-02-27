@@ -204,7 +204,7 @@ pinterval_ccp = function(
 		)
 	}
 
-	if (is.vector(calib) && is.vector(calib_class)) {
+	if (is.vector(calib) && is.null(calib_class)) {
 		stop(
 			'pinterval_ccp: If calib is a vector, calib_class must be provided',
 			call. = FALSE
