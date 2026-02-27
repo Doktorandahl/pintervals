@@ -2,7 +2,7 @@ Package: pintervals
 Type: Package
 Title: Model Agnostic Prediction Intervals
 Version: 1.1.0
-Description: Provides tools for estimating model-agnostic prediction intervals using conformal   prediction, bootstrapping, and parametric prediction intervals. The package is designed for ease of use, offering intuitive functions for both binned and full conformal prediction methods, as well as parametric interval estimation with diagnostic checks. Currently only working for continuous predictions. For details on the conformal and bin-conditional conformal prediction methods, see Randahl, Williams, and Hegre (2024) <DOI:10.48550/arXiv.2410.14507>.
+Description: Provides tools for estimating model-agnostic prediction intervals using conformal   prediction, bootstrapping, and parametric prediction intervals. The package is designed for ease of use, offering intuitive functions for both binned and full conformal prediction methods, as well as parametric interval estimation with diagnostic checks. Currently only working for continuous predictions. For details on the conformal and bin-conditional conformal prediction methods, see Randahl, Williams, and Hegre (2026) <DOI:10.1017/pan.2025.10010>.
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true

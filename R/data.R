@@ -1,4 +1,4 @@
-#' Election-year democracy indicators from V-Dem (1946–2024)
+#' Election-Year Democracy Indicators from V-Dem (1946–2024)
 #'
 #' A sample of election years from the V-Dem dataset covering 2,680 country-years between 1946 and 2024. Includes a range of democracy indices and related variables measured during years in which national elections were held.
 #'
@@ -30,7 +30,7 @@
 #' @source Data derived from the Varieties of Democracy (V-Dem) dataset, version 15, filtered to election years between 1946 and 2024. <https://www.v-dem.net/data/the-v-dem-dataset/>
 "elections"
 
-#' U.S. county-level turnout and demographic context (MIT Election Lab 2018 Election Analysis Dataset + additions)
+#' U.S. County-Level Turnout and Demographic Context (MIT Election Lab 2018 Election Analysis Dataset + Additions)
 #'
 #' @description
 #' A county-level dataset (U.S.) with voter turnout and sociodemographic covariates.
