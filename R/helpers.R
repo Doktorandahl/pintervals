@@ -149,10 +149,10 @@ resolve_weight_function <- function(weight_function) {
 	)
 	switch(
 		weight_function,
-		'gaussian_kernel' = function(d) exp(-d^2),
-		'caucy_kernel' = function(d) 1 / (1 + d^2),
-		'logistic' = function(d) 1 / (1 + exp(d)),
-		'reciprocal_linear' = function(d) 1 / (1 + d)
+		'gaussian_kernel' = gauss_kern,
+		'caucy_kernel' = cauchy_kern,
+		'logistic' = logistic_kern,
+		'reciprocal_linear' = reciprocal_linear_kern
 	)
 }
 
@@ -211,7 +211,7 @@ cauchy_kern <- function(d) {
 #' @return a numeric vector of logistic kernel values
 #' @keywords internal
 logistic_kern <- function(d) {
-	return(1 / (1 + exp(d)))
+	return(plogis(d, lower.tail = FALSE))
 }
 
 #' Reciprocal Linear Kernel Function
