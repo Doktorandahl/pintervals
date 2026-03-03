@@ -3,7 +3,7 @@
 \docType{data}
 \name{elections}
 \alias{elections}
-\title{Election-year democracy indicators from V-Dem (1946–2024)}
+\title{Election-Year Democracy Indicators from V-Dem (1946–2024)}
 \format{
 ## ´elections´ A tibble with 2,680 rows and 21 variables:
 \describe{

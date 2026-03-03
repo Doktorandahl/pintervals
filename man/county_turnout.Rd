@@ -3,7 +3,7 @@
 \docType{data}
 \name{county_turnout}
 \alias{county_turnout}
-\title{U.S. county-level turnout and demographic context (MIT Election Lab 2018 Election Analysis Dataset + additions)}
+\title{U.S. County-Level Turnout and Demographic Context (MIT Election Lab 2018 Election Analysis Dataset + Additions)}
 \format{
 A tibble with 3,107 rows and 22 variables:
 \describe{
