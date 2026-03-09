@@ -101,7 +101,7 @@ pinterval_bccp = function(
 			call. = FALSE
 		)
 	}
-	if (any(is.na(pred))) {
+	if (anyNA(pred)) {
 		warning('pinterval_bccp: pred contains NA values', call. = FALSE)
 	}
 
@@ -231,15 +231,15 @@ pinterval_bccp = function(
 			call. = FALSE
 		)
 	}
-	if (any(is.na(calib))) {
+	if (anyNA(calib)) {
 		warning('pinterval_bccp: calib contains NA values', call. = FALSE)
 	}
-	if (any(is.na(calib_truth))) {
+	if (anyNA(calib_truth)) {
 		warning('pinterval_bccp: calib_truth contains NA values', call. = FALSE)
 	}
 
 	if (ncs_type == 'heterogeneous_error') {
-		coefs <- stats::coef(stats::lm(abs(calib - calib_truth) ~ calib))
+		coefs <- lm.fit(cbind(1, calib), abs(calib - calib_truth))$coefficients
 	} else {
 		coefs <- NULL
 	}

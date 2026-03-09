@@ -78,19 +78,19 @@
 #' library(foreach)
 #' library(pintervals)
 #'
-#' dat <- county_turnout  # replace with your object name
+#' data("county_turnout", package = "pintervals")
 #'
 #' # Choose predictors: all numeric covariates except turnout + geographic/id vars
-#' dat2 <- dat \code{|>}
-#'  select(-c(state, county, fips, division, region, geo_group, longitude, latitude))
+#' model_data <- county_turnout \code{%>%}
+#' select(-c(state, county, fips, division, region, geo_group, longitude, latitude))
 #'
 #' set.seed(101010) # The meaning of life in binary
 #'
-#' pred_loo <- foreach(.i = seq_len(nrow(dat)),
+#' pred_loo <- foreach(.i = seq_len(nrow(county_turnout)),
 #'                     .final = unlist) %do% \{
 #'
-#' train <- dat2[-.i, , drop = FALSE]
-#'   test  <- dat2[ .i, , drop = FALSE]
+#' train <- model_data[-.i, , drop = FALSE]
+#' test  <- model_data[ .i, , drop = FALSE]
 #'
 #'   fit <- ranger(
 #'     formula = turnout ~ .,
@@ -102,7 +102,7 @@
 #' \}
 #'
 #'
-#' dat <- dat \code{|>} mutate(predicted_turnout = pred_loo)
+#' county_turnout <- county_turnout \code{%>%} mutate(predicted_turnout = pred_loo)
 #'
 #'
 #' @source

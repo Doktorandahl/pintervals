@@ -113,7 +113,7 @@ pinterval_mondrian = function(
 		)
 	}
 
-	if (any(is.na(pred))) {
+	if (anyNA(pred)) {
 		warning(
 			'pinterval_mondrian: pred contains NA values',
 			call. = FALSE
@@ -154,7 +154,7 @@ pinterval_mondrian = function(
 		)
 	}
 
-	if (any(is.na(calib))) {
+	if (anyNA(calib)) {
 		warning(
 			'pinterval_mondrian: calib contains NA values',
 			call. = FALSE
@@ -242,7 +242,7 @@ pinterval_mondrian = function(
 	}
 
 	if (ncs_type == 'heterogeneous_error') {
-		coefs <- stats::coef(stats::lm(abs(calib - calib_truth) ~ calib))
+		coefs <- lm.fit(cbind(1, calib), abs(calib - calib_truth))$coefficients
 	} else {
 		coefs <- NULL
 	}

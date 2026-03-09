@@ -130,7 +130,7 @@ pinterval_ccp = function(
 
 	min_class_size <- max(10, ceiling(1 / alpha))
 
-	if (any(is.na(n_clusters)) || any(n_clusters <= 0)) {
+	if (anyNA(n_clusters) || any(n_clusters <= 0)) {
 		stop(
 			'pinterval_ccp: n_clusters be a single positive numeric value or a vector of positive numeric values to optimize over',
 			call. = FALSE
@@ -165,7 +165,7 @@ pinterval_ccp = function(
 	}
 
 	# Check for NAs in pred
-	if (any(is.na(pred))) {
+	if (anyNA(pred)) {
 		warning('pinterval_ccp: pred contains NA values', call. = FALSE)
 	}
 
@@ -248,10 +248,10 @@ pinterval_ccp = function(
 	}
 
 	# Check for NAs in calib and calib_truth
-	if (any(is.na(calib))) {
+	if (anyNA(calib)) {
 		warning('pinterval_ccp: calib contains NA values', call. = FALSE)
 	}
-	if (any(is.na(calib_truth))) {
+	if (anyNA(calib_truth)) {
 		warning('pinterval_ccp: calib_truth contains NA values', call. = FALSE)
 	}
 
@@ -278,7 +278,7 @@ pinterval_ccp = function(
 	}
 
 	if (ncs_type == 'heterogeneous_error') {
-		coefs <- stats::coef(stats::lm(abs(calib - calib_truth) ~ calib))
+		coefs <- lm.fit(cbind(1, calib), abs(calib - calib_truth))$coefficients
 	} else {
 		coefs <- NULL
 	}
@@ -488,7 +488,7 @@ pinterval_ccp = function(
 	pred_clusters <- class_to_clusters(pred_class, calib_cluster_vec)
 
 	cluster_labels <- sort(unique(pred_clusters))
-	if (any(is.na(pred_clusters))) {
+	if (anyNA(pred_clusters)) {
 		cluster_labels <- c(cluster_labels, NA)
 	}
 

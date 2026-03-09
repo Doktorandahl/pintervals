@@ -104,7 +104,7 @@ pinterval_parametric <- function(
 		)
 	}
 
-	if (any(is.na(pred))) {
+	if (anyNA(pred)) {
 		warning(
 			'pinterval_parametric: pred contains NA values. Prediction intervals cannot be computed for NA predictions and will be returned as NA.',
 			call. = FALSE

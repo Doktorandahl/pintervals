@@ -84,7 +84,7 @@ pinterval_bootstrap <- function(
 		)
 	}
 
-	if (any(is.na(pred))) {
+	if (anyNA(pred)) {
 		warning('pinterval_bootstrap: pred contains NA values', call. = FALSE)
 	}
 
@@ -154,7 +154,7 @@ pinterval_bootstrap <- function(
 		)
 	}
 
-	if (any(is.na(calib))) {
+	if (anyNA(calib)) {
 		warning('pinterval_bootstrap: calib contains NA values', call. = FALSE)
 	}
 

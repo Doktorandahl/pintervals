@@ -134,7 +134,7 @@ pinterval_conformal <- function(
 		)
 	}
 
-	if (any(is.na(pred))) {
+	if (anyNA(pred)) {
 		warning(
 			"pinterval_conformal: 'pred' contains NA values. Corresponding intervals will be NA.",
 			call. = FALSE
@@ -257,7 +257,7 @@ pinterval_conformal <- function(
 		)
 	}
 
-	if (any(is.na(calib)) || any(is.na(calib_truth))) {
+	if (anyNA(calib) || anyNA(calib_truth)) {
 		warning(
 			"pinterval_conformal: 'calib' or 'calib_truth' contains NA values. This may affect interval estimation.",
 			call. = FALSE
@@ -265,7 +265,7 @@ pinterval_conformal <- function(
 	}
 
 	if (ncs_type == 'heterogeneous_error') {
-		coefs <- stats::coef(stats::lm(abs(calib - calib_truth) ~ calib))
+		coefs <- lm.fit(cbind(1, calib), abs(calib - calib_truth))$coefficients
 	} else {
 		coefs <- NULL
 	}
