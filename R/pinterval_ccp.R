@@ -519,14 +519,16 @@ pinterval_ccp = function(
 				res$indices <- which(is.na(pred_clusters))
 			} else {
 				res <- suppressWarnings(pinterval_conformal(
-					pred = na.omit(pred[pred_clusters == cluster_labels[i]]),
+					pred = as.numeric(na.omit(pred[pred_clusters == cluster_labels[i]])),
 					lower_bound = lower_bound,
 					upper_bound = upper_bound,
 					ncs_type = ncs_type,
-					calib = na.omit(calib[calib_clusters == cluster_labels[i]]),
-					calib_truth = na.omit(calib_truth[
+					calib = as.numeric(na.omit(calib[
 						calib_clusters == cluster_labels[i]
-					]),
+					])),
+					calib_truth = as.numeric(na.omit(calib_truth[
+						calib_clusters == cluster_labels[i]
+					])),
 					distance_weighted_cp = distance_weighted_cp,
 					distance_features_calib = distance_features_calib[
 						calib_clusters == cluster_labels[i],
