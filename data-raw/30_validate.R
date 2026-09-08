@@ -18,11 +18,23 @@ hard <- function(cond, msg) if (!isTRUE(cond)) stop("VALIDATION FAILURE: ", msg,
 cat("\n=== county_turnout_panel validation ===\n\n")
 
 ## 1. shape / schema -------------------------------------------------------------
-expected_cols <- c("state", "county", "fips", "election_year", "turnout",
+expected_cols <- c("state", "county", "fips", "election_year",
+  "turnout", "total_votes", "cvap", "votes_dem", "votes_rep", "votes_other",
+  "dem_share", "rep_share", "other_share",
+  "turnout_county_mean", "turnout_electorate",
+  "dem_share_county_mean", "dem_share_electorate",
+  "rep_share_county_mean", "rep_share_electorate",
+  "other_share_county_mean", "other_share_electorate",
   "total_population", "nonwhite_pct", "foreignborn_pct", "female_pct",
   "age29andunder_pct", "age65andolder_pct", "median_hh_inc", "clf_unemploy_pct",
   "lesscollege_pct", "lesshs_pct", "rural_pct", "ruralurban_cc",
   "division", "region", "geo_group", "longitude", "latitude")
+outcome_cols  <- c("turnout", "total_votes", "cvap", "votes_dem", "votes_rep",
+  "votes_other", "dem_share", "rep_share", "other_share",
+  "turnout_county_mean", "turnout_electorate",
+  "dem_share_county_mean", "dem_share_electorate",
+  "rep_share_county_mean", "rep_share_electorate",
+  "other_share_county_mean", "other_share_electorate")
 hard(identical(names(p), expected_cols), "column set / order does not match the spec")
 ok("schema: %d columns in expected order", ncol(p))
 hard(is.character(p$fips) && all(grepl("^[0-9]{5}$", p$fips)), "fips must be 5-char strings")
@@ -67,6 +79,60 @@ hard(all(p$turnout[!is.na(p$turnout)] > 0.05), "turnout has implausibly low valu
 hard(n_na <= 14, "more NA turnout than the documented 14")
 ok("turnout: <= 1 for every non-NA row; NA only for the documented cases")
 
+## 4b. votes by party, vote shares, per-election aggregates -----------------
+# total_votes / votes_* are NA on exactly the NA-turnout rows (no MEDSL match);
+# cvap comes from the ACS spine and is always present.
+for (cc in c("total_votes", "votes_dem", "votes_rep", "votes_other")) {
+  hard(identical(which(is.na(p[[cc]])), which(is.na(p$turnout))),
+       sprintf("%s NA pattern differs from turnout", cc))
+  hard(all(p[[cc]][!is.na(p[[cc]])] >= 0), sprintf("negative %s", cc))
+}
+hard(!anyNA(p$cvap) && all(p$cvap > 0), "cvap should be present and positive for every row")
+hard(all(p$total_votes[!is.na(p$turnout)] > 0), "non-positive total_votes where turnout is defined")
+hard(is.integer(p$total_votes) && is.integer(p$cvap) && is.integer(p$votes_dem),
+     "vote counts should be stored as integers")
+
+# party votes reconcile to total_votes. 2008-2020 are exact; 2024 has 15 tiny
+# counties (DC + Vermont towns) where upstream MEDSL sub-totals disagree by a
+# few hundred ballots -- allow a small tolerance, but nothing large.
+psum <- with(p, votes_dem + votes_rep + votes_other)
+resid <- (psum - p$total_votes)[!is.na(p$turnout)]
+cat(sprintf("\n  party votes vs total_votes: max |resid| = %d, rows over 50 = %d\n",
+            max(abs(resid)), sum(abs(resid) > 50)))
+hard(max(abs(resid)) < 3000 && sum(abs(resid) > 50) <= 15,
+     "party votes do not reconcile to total_votes within the documented tolerance")
+
+# vote shares in [0, 1], computed from the integer counts, ~sum to 1
+for (cc in c("dem_share", "rep_share", "other_share")) {
+  v <- p[[cc]][!is.na(p[[cc]])]
+  hard(all(v >= 0 & v <= 1), sprintf("%s outside [0, 1]", cc))
+}
+ssum <- with(p, dem_share + rep_share + other_share)[!is.na(p$turnout)]
+hard(all(abs(ssum - 1) < 0.02), "dem/rep/other shares do not sum to ~1")
+ok("votes by party: reconcile to total_votes; shares in [0, 1] and sum to ~1")
+
+# per-election aggregates: constant within a wave, plausible ranges
+agg_cols <- c("turnout_county_mean", "turnout_electorate",
+              "dem_share_county_mean", "dem_share_electorate",
+              "rep_share_county_mean", "rep_share_electorate",
+              "other_share_county_mean", "other_share_electorate")
+for (cc in agg_cols) {
+  n_distinct_per_wave <- tapply(p[[cc]], p$election_year, function(x) length(unique(x)))
+  hard(all(n_distinct_per_wave == 1), sprintf("%s is not constant within an election year", cc))
+  hard(!anyNA(p[[cc]]), sprintf("%s has NA", cc))
+}
+agg <- unique(p[c("election_year", agg_cols)])
+agg <- agg[order(agg$election_year), ]
+cat("\n  per-election aggregates:\n"); print(agg, row.names = FALSE)
+hard(all(agg$turnout_electorate > 0.5 & agg$turnout_electorate < 0.75),
+     "turnout_electorate outside a plausible 0.5-0.75 band")
+hard(all(agg$turnout_county_mean > 0.5 & agg$turnout_county_mean < 0.85),
+     "turnout_county_mean outside a plausible band")
+hard(all(abs(agg$dem_share_electorate + agg$rep_share_electorate +
+             agg$other_share_electorate - 1) < 0.005),
+     "electorate vote shares do not sum to ~1")
+ok("per-election aggregates: constant within wave, in plausible ranges")
+
 ## 5. covariate plausibility ------------------------------------------------
 pct_cols <- c("nonwhite_pct", "foreignborn_pct", "female_pct", "age29andunder_pct",
               "age65andolder_pct", "clf_unemploy_pct", "lesscollege_pct",
@@ -86,7 +152,7 @@ hard(all(p$latitude > 15 & p$latitude < 72), "latitude out of range")
 ok("population, income, RUCC codes, coordinates: all in range")
 
 ## 6. bounded missingness in covariates ------------------------------------
-covar_na <- vapply(p[setdiff(expected_cols, c("turnout"))], function(x) sum(is.na(x)), integer(1))
+covar_na <- vapply(p[setdiff(expected_cols, outcome_cols)], function(x) sum(is.na(x)), integer(1))
 covar_na <- covar_na[covar_na > 0]
 if (length(covar_na)) {
   cat("\n  covariate NA counts:\n")

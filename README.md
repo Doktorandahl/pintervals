@@ -77,7 +77,7 @@ vignette("pintervals", package = "pintervals")
 | dataset | description |
 |:--------|:------------|
 | `county_turnout` | U.S. county-level turnout + demographics for the **2016** election, with a leave-one-out random-forest `predicted_turnout`. Used in the vignette and the quick example above. |
-| `county_turnout_panel` | A tidy **five-wave county panel** (2008, 2012, 2016, 2020, 2024) of presidential turnout (votes / Citizen Voting-Age Population) and ACS demographic context. `county_turnout` is superseded by this but retained. |
+| `county_turnout_panel` | A tidy **five-wave county panel** (2008, 2012, 2016, 2020, 2024) of presidential turnout (votes / Citizen Voting-Age Population), votes and vote shares by party, per-election turnout/vote-share aggregates, and ACS demographic context. `county_turnout` is superseded by this but retained. |
 | `elections` | Election-year V-Dem democracy indicators, 1946–2024. |
 
 ### Regenerating `county_turnout_panel`

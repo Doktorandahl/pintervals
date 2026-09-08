@@ -3,7 +3,8 @@
 # ---------------------------------------------------------------------------
 # Consumes only files under data-raw/cache/ (populated by 01-06_fetch_*.R).
 # Produces, in the calling environment:
-#   turnout_src   fips_raw, election_year, total_votes            (MEDSL)
+#   turnout_src   fips_raw, election_year, total_votes,
+#                 votes_dem, votes_rep, votes_other                (MEDSL)
 #   cvap_src      fips, election_year, cvap                       (CVAP special tab)
 #   acs_src       fips, election_year, <12 covariates>            (ACS 5-year)
 #   rucc_src      fips, election_year, ruralurban_cc              (USDA ERS)
@@ -21,24 +22,57 @@ library(stringr)
 target_years <- vintages$election_year
 
 ## ==========================================================================
-## 1. MEDSL -> turnout numerator
+## 1. MEDSL -> turnout numerator + votes by party (Dem / Rep / other)
 ## ==========================================================================
 medsl_raw <- readr::read_tsv(cache_path("medsl", "countypres_2000-2024.tab"),
                              show_col_types = FALSE, guess_max = 1e6)
 
-turnout_src <- medsl_raw |>
-  filter(year %in% target_years, office == "US PRESIDENT") |>
-  # totalvotes is the county-wide presidential ballot count, repeated on every
-  # candidate/mode row; it is unique within county-year (verified in build).
+medsl_pres <- medsl_raw |> filter(year %in% target_years, office == "US PRESIDENT")
+
+# total_votes: the county-wide presidential ballot count, repeated on every
+# candidate/mode row; it is unique within county-year (verified in build).
+tot_src <- medsl_pres |>
   group_by(election_year = as.integer(year), state, county_name, county_fips) |>
-  summarise(total_votes = dplyr::first(totalvotes), .groups = "drop") |>
-  mutate(
-    fips_raw = dplyr::case_when(
-      is.na(county_fips)            ~ NA_character_,
-      county_fips == 2938000        ~ "2938000",             # Kansas City, MO (own unit)
-      TRUE                          ~ str_pad(county_fips, 5, "left", "0")
-    )
-  )
+  summarise(total_votes = dplyr::first(totalvotes), .groups = "drop")
+
+# votes by party. Complications handled here:
+#   * MEDSL only breaks 2008-2016 into DEMOCRAT / REPUBLICAN / OTHER; 2020 adds
+#     GREEN + LIBERTARIAN, 2024 adds LIBERTARIAN. Everything that is not
+#     DEMOCRAT/REPUBLICAN is folded into a single "other" group so the panel is
+#     consistent across all five waves.
+#   * some 2020/2024 counties report by voting mode with no "TOTAL" row -> sum
+#     the mode rows; where a "TOTAL" row exists it already is the sum -> use it.
+#   * 2024 carries junk `party == NA` rows ("TOTAL VOTES CAST", "UNDERVOTES",
+#     "OVERVOTES", "SPOILED") that would double-count -> dropped.
+party_by_cand <- medsl_pres |>
+  filter(!is.na(party), !is.na(county_fips)) |>
+  mutate(mode = dplyr::coalesce(mode, "TOTAL"),
+         candidatevotes = dplyr::coalesce(candidatevotes, 0)) |>
+  group_by(election_year = as.integer(year), county_fips, party, candidate) |>
+  summarise(votes = if (any(mode == "TOTAL")) sum(candidatevotes[mode == "TOTAL"])
+                    else sum(candidatevotes),
+            .groups = "drop")
+
+party_wide <- party_by_cand |>
+  mutate(pg = dplyr::case_when(party == "DEMOCRAT"   ~ "dem",
+                               party == "REPUBLICAN" ~ "rep",
+                               TRUE                  ~ "other")) |>
+  group_by(election_year, county_fips) |>
+  summarise(votes_dem   = sum(votes[pg == "dem"]),
+            votes_rep   = sum(votes[pg == "rep"]),
+            votes_other = sum(votes[pg == "other"]),
+            .groups = "drop")
+
+turnout_src <- tot_src |>
+  left_join(party_wide, by = c("election_year", "county_fips")) |>
+  mutate(votes_dem   = dplyr::coalesce(votes_dem, 0),
+         votes_rep   = dplyr::coalesce(votes_rep, 0),
+         votes_other = dplyr::coalesce(votes_other, 0),
+         fips_raw = dplyr::case_when(
+           is.na(county_fips)     ~ NA_character_,
+           county_fips == 2938000 ~ "2938000",               # Kansas City, MO (own unit)
+           TRUE                   ~ str_pad(county_fips, 5, "left", "0")
+         ))
 
 # rows deliberately not carried into the county panel (documented in codebook):
 #   * county_fips == NA : state-level write-in / UOCAVA / "Federal Precinct" buckets
@@ -52,7 +86,8 @@ turnout_drop_note <- turnout_src |>
 
 turnout_src <- turnout_src |>
   filter(!is.na(fips_raw), state != "ALASKA") |>
-  select(fips_raw, election_year, medsl_state = state, medsl_county = county_name, total_votes)
+  select(fips_raw, election_year, medsl_state = state, medsl_county = county_name,
+         total_votes, votes_dem, votes_rep, votes_other)
 
 ## ==========================================================================
 ## 2. CVAP -> turnout denominator

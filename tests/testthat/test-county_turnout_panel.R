@@ -9,7 +9,13 @@ test_that("schema matches the documented column set and order", {
   expect_s3_class(p, "tbl_df")
   expect_identical(
     names(p),
-    c("state", "county", "fips", "election_year", "turnout",
+    c("state", "county", "fips", "election_year",
+      "turnout", "total_votes", "cvap", "votes_dem", "votes_rep", "votes_other",
+      "dem_share", "rep_share", "other_share",
+      "turnout_county_mean", "turnout_electorate",
+      "dem_share_county_mean", "dem_share_electorate",
+      "rep_share_county_mean", "rep_share_electorate",
+      "other_share_county_mean", "other_share_electorate",
       "total_population", "nonwhite_pct", "foreignborn_pct", "female_pct",
       "age29andunder_pct", "age65andolder_pct", "median_hh_inc",
       "clf_unemploy_pct", "lesscollege_pct", "lesshs_pct", "rural_pct",
@@ -50,6 +56,51 @@ test_that("turnout NA is limited to the documented cases", {
   na_rows <- p[is.na(p$turnout), ]
   expect_lte(nrow(na_rows), 14L)
   expect_true(all(na_rows$county == "Kalawao" | na_rows$state == "Connecticut"))
+})
+
+test_that("turnout is reproducible from total_votes and cvap", {
+  expect_type(p$total_votes, "integer")
+  expect_type(p$cvap, "integer")
+  ok <- !is.na(p$turnout)
+  expect_equal(round(p$total_votes[ok] / p$cvap[ok], 6), p$turnout[ok])
+  expect_identical(which(is.na(p$total_votes)), which(is.na(p$turnout)))
+  expect_false(anyNA(p$cvap))
+  expect_true(all(p$cvap > 0))
+})
+
+test_that("votes by party reconcile to total_votes and shares sum to ~1", {
+  for (cc in c("votes_dem", "votes_rep", "votes_other")) {
+    expect_type(p[[cc]], "integer")
+    expect_true(all(p[[cc]][!is.na(p[[cc]])] >= 0), info = cc)
+    expect_identical(which(is.na(p[[cc]])), which(is.na(p$turnout)), info = cc)
+  }
+  ok <- !is.na(p$turnout)
+  resid <- (p$votes_dem + p$votes_rep + p$votes_other - p$total_votes)[ok]
+  # exact for 2008-2020; <= 13 tiny 2024 counties differ, none by much
+  expect_lt(max(abs(resid)), 3000)
+  expect_lte(sum(abs(resid) > 50), 15L)
+  for (cc in c("dem_share", "rep_share", "other_share")) {
+    v <- p[[cc]][!is.na(p[[cc]])]
+    expect_true(all(v >= 0 & v <= 1), info = cc)
+  }
+  ssum <- (p$dem_share + p$rep_share + p$other_share)[ok]
+  expect_true(all(abs(ssum - 1) < 0.02))
+})
+
+test_that("per-election aggregates are constant within a wave and plausible", {
+  agg_cols <- c("turnout_county_mean", "turnout_electorate",
+                "dem_share_county_mean", "dem_share_electorate",
+                "rep_share_county_mean", "rep_share_electorate",
+                "other_share_county_mean", "other_share_electorate")
+  for (cc in agg_cols) {
+    expect_false(anyNA(p[[cc]]), info = cc)
+    per_wave <- tapply(p[[cc]], p$election_year, function(x) length(unique(x)))
+    expect_true(all(per_wave == 1), info = cc)
+  }
+  agg <- unique(p[c("election_year", agg_cols)])
+  expect_true(all(agg$turnout_electorate > 0.5 & agg$turnout_electorate < 0.75))
+  expect_true(all(abs(agg$dem_share_electorate + agg$rep_share_electorate +
+                      agg$other_share_electorate - 1) < 0.005))
 })
 
 test_that("percentage covariates lie in [0, 100]", {

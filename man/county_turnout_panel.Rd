@@ -5,13 +5,29 @@
 \alias{county_turnout_panel}
 \title{U.S. County-Level Presidential Turnout and Demographic Context, 2008-2024 Panel}
 \format{
-A tibble with 15,543 rows and 22 variables:
+A tibble with 15,543 rows and 38 variables:
 \describe{
   \item{state}{State name (or "District of Columbia").}
   \item{county}{County / county-equivalent name (trailing " County"/" Parish" removed). Not unique on its own; pair with \code{fips}.}
   \item{fips}{5-character county FIPS code, stored as a character string with leading zeros (e.g. \code{"01001"}). (In \code{county_turnout} this column is numeric.)}
   \item{election_year}{Presidential election year: 2008, 2012, 2016, 2020 or 2024. Panel key together with \code{fips}.}
-  \item{turnout}{Turnout rate = total presidential ballots cast (MEDSL) / Citizen Voting-Age Population (CVAP special tabulation), using the same definition as \code{county_turnout$turnout}. Always \eqn{\le 1} where present: 25 micro-county-years whose recorded ballots exceeded the noisy 5-year ACS CVAP estimate (turnout > 1) have been \strong{dropped} from the panel. \code{NA} for 14 rows (Kalawao Co., HI in every wave; the 9 Connecticut planning regions in 2024) - these are \strong{retained}.}
+  \item{turnout}{Turnout rate = \code{total_votes / cvap}, using the same definition as \code{county_turnout$turnout}. Always \eqn{\le 1} where present: 25 micro-county-years whose recorded ballots exceeded the noisy 5-year ACS CVAP estimate (turnout > 1) have been \strong{dropped} from the panel. \code{NA} for 14 rows (Kalawao Co., HI in every wave; the 9 Connecticut planning regions in 2024) - these are \strong{retained}.}
+  \item{total_votes}{Total presidential ballots cast (MEDSL), integer. Turnout numerator. \code{NA} on the 14 rows with no MEDSL match.}
+  \item{cvap}{Citizen Voting-Age Population (U.S. Census Bureau CVAP special tabulation, matched ACS 5-year window), integer. Turnout denominator.}
+  \item{votes_dem}{Presidential ballots for the Democratic candidate (MEDSL), integer.}
+  \item{votes_rep}{Presidential ballots for the Republican candidate (MEDSL), integer.}
+  \item{votes_other}{Presidential ballots for all other candidates combined - Libertarian, Green, other minor parties and recorded write-ins (MEDSL), integer. MEDSL only breaks out Libertarian/Green in some waves, so they are pooled here for a consistent panel.}
+  \item{dem_share}{\code{votes_dem / total_votes}, computed from the rounded integer counts.}
+  \item{rep_share}{\code{votes_rep / total_votes}.}
+  \item{other_share}{\code{votes_other / total_votes}. \code{dem_share + rep_share + other_share} is 1 up to rounding, except for 13 tiny 2024 counties (DC + Vermont towns) where upstream MEDSL sub-totals disagree by a few hundred ballots.}
+  \item{turnout_county_mean}{Per-election aggregate (constant within \code{election_year}): unweighted mean of county \code{turnout} across all counties with data for that wave (computed \emph{before} the turnout > 1 rows are dropped, so it reflects the full electorate).}
+  \item{turnout_electorate}{Per-election aggregate: the "true" electorate-wide turnout for the wave = \eqn{\sum \texttt{total\_votes} / \sum \texttt{cvap}} over all counties with data.}
+  \item{dem_share_county_mean}{Per-election aggregate: unweighted mean of county \code{dem_share}.}
+  \item{dem_share_electorate}{Per-election aggregate: electorate-wide Democratic share = \eqn{\sum \texttt{votes\_dem} / \sum \texttt{total\_votes}} (reproduces the national popular-vote share to a fraction of a point).}
+  \item{rep_share_county_mean}{Per-election aggregate: unweighted mean of county \code{rep_share}.}
+  \item{rep_share_electorate}{Per-election aggregate: electorate-wide Republican share.}
+  \item{other_share_county_mean}{Per-election aggregate: unweighted mean of county \code{other_share}.}
+  \item{other_share_electorate}{Per-election aggregate: electorate-wide other-candidate share.}
   \item{total_population}{Total resident population (ACS table B01003), integer.}
   \item{nonwhite_pct}{Percent not non-Hispanic White (from ACS B03002).}
   \item{foreignborn_pct}{Percent foreign-born (ACS B05002).}
@@ -33,7 +49,7 @@ A tibble with 15,543 rows and 22 variables:
 }
 \source{
 \itemize{
-  \item \strong{Turnout numerator}: MEDSL, "County Presidential Election Returns 2000-2024", Harvard Dataverse, \doi{10.7910/DVN/VOQCHQ}. License: \strong{CC0 1.0}.
+  \item \strong{Turnout numerator and votes by party}: MEDSL, "County Presidential Election Returns 2000-2024", Harvard Dataverse, \doi{10.7910/DVN/VOQCHQ}. License: \strong{CC0 1.0}.
   \item \strong{Turnout denominator}: U.S. Census Bureau, Citizen Voting-Age Population (CVAP) Special Tabulation from the ACS, \url{https://www.census.gov/programs-surveys/decennial-census/about/voting-rights/cvap.html}. \strong{Public domain} (U.S. Government work).
   \item \strong{Demographic covariates}: U.S. Census Bureau, American Community Survey 5-year estimates (detailed tables B01001, B01003, B03002, B05002, B15002/B15003, B19013, B23001/B23025), obtained directly from the Census Bureau API (\url{https://www.census.gov/data/developers/data-sets/acs-5year.html}). \strong{Public domain}. Deliberately not obtained via IPUMS NHGIS, to comply with NHGIS's non-redistribution terms.
   \item \strong{rural_pct}: U.S. Census Bureau, decennial census table P2 (Urban and Rural), 2010 and 2020, via the Census Bureau API. \strong{Public domain}.
@@ -62,6 +78,24 @@ Alaska by state-house district, not by borough, so no borough-level
 presidential returns exist (the original \code{county_turnout} also omits
 Alaska). Island territories are excluded (no presidential electors).
 
+\strong{Votes by party.} \code{votes_dem}, \code{votes_rep} and
+\code{votes_other} are the MEDSL county presidential returns collapsed to three
+groups. MEDSL breaks 2008-2016 into Democrat / Republican / Other only; 2020
+adds Green and Libertarian and 2024 adds Libertarian, all of which are folded
+into \code{votes_other} so the split is consistent across waves. Where a county
+reports by voting mode with no total row, the mode rows are summed;
+administrative "TOTAL VOTES CAST" / "UNDERVOTES" style rows carried in the 2024
+file are dropped. The three columns sum to \code{total_votes} exactly for
+2008-2020 and for all but 13 tiny 2024 counties.
+
+\strong{Per-election aggregates.} The eight \code{*_county_mean} /
+\code{*_electorate} columns are constant within an \code{election_year} and are
+computed over every county with data for that wave, \emph{before} the
+turnout > 1 rows are dropped. \code{*_county_mean} is the unweighted mean
+across counties; \code{*_electorate} is the pooled ratio
+(\eqn{\sum} numerator / \eqn{\sum} denominator) - the "true" per-election
+turnout and vote shares for the whole electorate.
+
 \strong{ACS covariates are pulled directly from the U.S. Census Bureau API,
 not via IPUMS NHGIS.} NHGIS's terms of use prohibit redistributing extracted
 data outside narrow journal exceptions, so ACS data obtained through NHGIS
@@ -79,7 +113,7 @@ changes in the window:
   \item \emph{Bedford (independent) city, VA (51515) -> Bedford County, VA (51019), 2013}: separate row in 2008/2012 (native); folded into 51019 for 2016; 51019 only thereafter.
   \item \emph{Valdez-Cordova Census Area, AK split (2019)} and \emph{Wade Hampton -> Kusilvak, AK (2015)}: Alaska is excluded, so these are noted only for completeness.
   \item \emph{Connecticut: 8 counties -> 9 planning regions (2022-vintage products)}: kept native per wave - the 2008-2020 waves use the 8 legacy counties (09001-09015), the 2024 wave uses the 9 planning regions (09110-09190). Connecticut is therefore not a consistent 5-wave panel: 2024 \code{turnout} and \code{rural_pct} are \code{NA} for the planning regions, and CT's 2020 \code{ruralurban_cc} is taken from RUCC 2013 (legacy counties).
-  \item \emph{Kansas City, MO} reports as its own unit (FIPS 2938000; mis-coded 36000 in the 2024 MEDSL file); its ballots are redistributed to Cass/Clay/Jackson/Platte counties by each county's share of the Kansas City place population from the nearest decennial census.
+  \item \emph{Kansas City, MO} reports as its own unit (FIPS 2938000; mis-coded 36000 in the 2024 MEDSL file); its ballots - total and by party - are redistributed to Cass/Clay/Jackson/Platte counties by each county's share of the Kansas City place population from the nearest decennial census.
 }
 Native geography per wave is 3114 / 3114 / 3113 / 3113 / 3114 county-equivalents
 for 2008 / 2012 / 2016 / 2020 / 2024 (the Bedford (2016) and Connecticut (2024)

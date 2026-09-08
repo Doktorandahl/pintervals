@@ -28,16 +28,16 @@ separated from transformation:
 | script | stage | needs key | network |
 |:-------|:------|:---------:|:--------|
 | `00_config.R` | election-year → vintage map; cache + API helpers | – | – |
-| `01_fetch_medsl.R` | MEDSL county presidential returns (Dataverse API) | no | yes |
+| `01_fetch_medsl.R` | MEDSL county presidential returns — total + by party (Dataverse API) | no | yes |
 | `02_fetch_cvap.R` | CVAP special tabulations (census.gov/rdo) | no | yes |
 | `03_fetch_acs.R` | ACS 5-year detailed tables (Census API) | **yes** | yes |
 | `04_fetch_rucc.R` | USDA ERS Rural-Urban Continuum Codes | no | yes |
 | `05_fetch_geo.R` | Census Gazetteer county centroids | no | yes |
 | `06_fetch_decennial.R` | decennial census urban/rural split (Census API) | **yes** | yes |
 | `07_fetch_kc_split.R` | Kansas City place-by-county population weights (Census API) | **yes** | yes |
-| `10_transform.R` | each raw source → one tidy county-year frame | – | – |
-| `20_assemble_panel.R` | joins + FIPS/geography harmonisation → the panel | – | – |
-| `30_validate.R` | schema / duplicates / turnout range / county counts | – | – |
+| `10_transform.R` | each raw source → one tidy county-year frame (incl. votes by party) | – | – |
+| `20_assemble_panel.R` | joins + FIPS/geography harmonisation + party-vote / per-election aggregates → the panel | – | – |
+| `30_validate.R` | schema / duplicates / turnout range / votes / shares / aggregates / county counts | – | – |
 | `county_turnout_panel.R` | orchestrator: runs all of the above, writes the `.rda` | **yes** | yes |
 
 Supporting files: `fips_crosswalk.csv` (documented geography changes with
@@ -127,6 +127,19 @@ takes a few minutes, a warm run (cache populated) about 15 seconds.
   the noisy 5-year ACS CVAP point estimate. **Dropped** from the panel in
   `20_assemble_panel.R` (6 / 3 / 4 / 6 / 6 rows per wave), recorded in
   `panel_build_notes$turnout_over_1_dropped`. Rows with `NA` turnout are kept.
+* **Votes by party.** `10_transform.R` collapses the MEDSL returns to
+  `votes_dem` / `votes_rep` / `votes_other` (Libertarian/Green pooled into
+  "other" — they are only separately reported from 2020 on). Mode-split counties
+  with no `TOTAL` row are summed across modes; the 2024 file's `party == NA`
+  administrative rows (`TOTAL VOTES CAST`, `UNDERVOTES`, …) are dropped. The
+  three columns reconcile to `total_votes` exactly for 2008–2020; for 2024, 13
+  small counties (DC + Vermont units) are off by ≤ ~2,500 ballots from upstream
+  MEDSL sub-total inconsistencies.
+* **Per-election aggregates** (`turnout_county_mean` / `turnout_electorate` and
+  the six `*_share_*` columns) are computed in `20_assemble_panel.R` over every
+  county with data for the wave, *before* the turnout > 1 drop, and attached as
+  columns constant within `election_year`. `panel_build_notes$election_aggregates`
+  holds the 5-row summary.
 
 ## `county_turnout` and `elections`
 

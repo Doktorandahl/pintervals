@@ -3,7 +3,14 @@
 `county_turnout_panel` is a tidy panel of U.S. county-level presidential-election
 voter turnout and sociodemographic context for the five presidential elections
 of **2008, 2012, 2016, 2020, and 2024**. There is one row per county
-(county-equivalent) per election year: 15,543 rows, 22 columns.
+(county-equivalent) per election year: 15,543 rows, 38 columns.
+
+The 38 columns are: 4 identifiers (`state`, `county`, `fips`, `election_year`);
+a turnout / vote block (`turnout`, `total_votes`, `cvap`, `votes_dem`,
+`votes_rep`, `votes_other`, `dem_share`, `rep_share`, `other_share`); 8
+per-election aggregates that are constant within a wave (`turnout_county_mean`,
+`turnout_electorate`, and `{dem,rep,other}_share_county_mean` / `_electorate`);
+and 17 demographic / geographic covariates.
 
 It generalises the single-election (2016) cross-section `county_turnout` to a
 five-wave panel and re-derives every covariate **directly from the U.S. Census
@@ -40,8 +47,115 @@ from the package root (needs `CENSUS_API_KEY`). See `data-raw/README.md`.
 
 ## Variables
 
-Listed alphabetically. Each entry gives a description, the year(s)/vintage the
-values come from, and the upstream source.
+The turnout / vote columns and the per-election aggregates are described first,
+as a group; the demographic and geographic covariates then follow
+alphabetically. Each entry gives a description, the year(s)/vintage the values
+come from, and the upstream source.
+
+### Turnout and votes (county level)
+
+**turnout** — see the dedicated entry in the alphabetical list below.
+
+**total_votes**
+
+Description: Total presidential ballots cast in the county (MEDSL `totalvotes`),
+stored as an integer. This is the numerator of `turnout`. For the four
+Kansas-City-area Missouri counties it includes the redistributed Kansas City
+ballots (see *Geographic harmonisation*), so it can be a rounded value.
+`NA` on the 14 rows with no MEDSL match (Kalawao Co., HI; the 9 Connecticut
+planning regions in 2024).
+
+Year(s): election-year returns (MEDSL).
+
+Source: [MEDSL, County Presidential Election Returns 2000–2024, `doi:10.7910/DVN/VOQCHQ`](https://doi.org/10.7910/DVN/VOQCHQ) (CC0 1.0).
+
+---
+
+**cvap**
+
+Description: Citizen Voting-Age Population — the "Total" line of the Census
+Bureau CVAP special tabulation (`cvap_est`) for the ACS 5-year window matched to
+the election, stored as an integer. This is the denominator of `turnout`.
+Present for every row (it comes from the ACS spine, not from MEDSL).
+
+Year(s): CVAP special tabulation matched to the election (see the vintage table
+above).
+
+Source: [U.S. Census Bureau, CVAP Special Tabulation from the ACS](https://www.census.gov/programs-surveys/decennial-census/about/voting-rights/cvap.html) (public domain).
+
+---
+
+**votes_dem**, **votes_rep**, **votes_other**
+
+Description: Presidential ballots for, respectively, the Democratic candidate,
+the Republican candidate, and **all other candidates combined**, from the MEDSL
+county returns; integers. MEDSL only breaks the returns into
+Democrat / Republican / Other for 2008–2016; 2020 additionally names Green and
+Libertarian and 2024 names Libertarian. To keep the split consistent across all
+five waves, everything that is not Democrat or Republican — Libertarian, Green,
+other minor parties, and recorded generic "other"/write-in lines — is pooled into
+`votes_other`. Cleaning rules applied when collapsing the raw file:
+
+* where a county reports by voting **mode** (early / absentee / election-day /…)
+  with no `TOTAL` row, the mode rows are summed; where a `TOTAL` row exists it is
+  used directly (it already is the sum).
+* the 2024 file carries administrative rows with no party
+  (`TOTAL VOTES CAST`, `UNDERVOTES`, `OVERVOTES`, `SPOILED`) — these are dropped.
+* Kansas City ballots are redistributed by party exactly as `total_votes` is.
+
+`votes_dem + votes_rep + votes_other` equals `total_votes` exactly for 2008–2020.
+For 2024 it matches for all but **13 small counties** (the District of Columbia
+and 12 Vermont towns/county-equivalents) where upstream MEDSL sub-totals
+disagree with the reported `totalvotes` by at most ~2,500 ballots.
+`NA` on the same 14 rows as `total_votes`.
+
+Year(s): election-year returns (MEDSL).
+
+Source: [MEDSL, County Presidential Election Returns 2000–2024](https://doi.org/10.7910/DVN/VOQCHQ) (CC0 1.0).
+
+---
+
+**dem_share**, **rep_share**, **other_share**
+
+Description: `votes_dem / total_votes`, `votes_rep / total_votes`,
+`votes_other / total_votes`, computed from the rounded integer counts and
+rounded to 6 decimals. The three sum to 1 up to rounding, except for the 13
+2024 counties noted under `votes_*`. `NA` on the 14 no-MEDSL-match rows.
+
+Year(s): election-year returns (MEDSL).
+
+Source: derived (MEDSL).
+
+---
+
+### Per-election aggregates (constant within `election_year`)
+
+These eight columns carry the **same value for every row of a given election
+year** — they are summary statistics attached to the panel for convenience. All
+are computed over **every county that has data for the wave, before the
+`turnout > 1` rows are dropped**, so they describe the full electorate.
+
+* **turnout_county_mean** — unweighted mean of county `turnout` for the wave
+  (the "county-wise" turnout). NA-turnout counties are skipped; the 25 counties
+  with `turnout > 1` *are* included in this mean.
+* **turnout_electorate** — the "true" electorate-wide turnout for the wave:
+  Σ`total_votes` ÷ Σ`cvap` over all counties with data.
+* **dem_share_county_mean**, **rep_share_county_mean**, **other_share_county_mean**
+  — unweighted means of the county `*_share` columns.
+* **dem_share_electorate**, **rep_share_electorate**, **other_share_electorate**
+  — electorate-wide vote shares: Σ`votes_party` ÷ Σ`total_votes` over all
+  counties with data. These reproduce the national two-party-plus-other popular
+  vote shares to a fraction of a percentage point
+  (e.g. 2020: D 0.513 / R 0.468; 2024: D 0.483 / R 0.499).
+
+Year(s): election-year (derived from `turnout` / `total_votes` / `cvap` /
+`votes_*`).
+
+Source: derived.
+
+---
+
+### Demographic and geographic covariates (alphabetical)
 
 ---
 
@@ -326,13 +440,16 @@ Source: [U.S. Census Bureau, ACS 5-year, detailed table B01003](https://api.cens
 
 **turnout**
 
-Description: Voter turnout rate for the presidential election = **total
-presidential ballots cast ÷ Citizen Voting-Age Population (CVAP)**.
+Description: Voter turnout rate for the presidential election =
+**`total_votes / cvap`** (total presidential ballots cast ÷ Citizen Voting-Age
+Population), rounded to 6 decimals. Both the numerator and the denominator ship
+as their own columns (`total_votes`, `cvap`), so `turnout` is fully reproducible
+from the data.
 
-* Numerator: MEDSL `totalvotes` (the county-wide presidential total, identical
-  across all candidate/mode rows for a county-year).
-* Denominator: the "Total" line of the Census Bureau CVAP special tabulation
-  (`cvap_est`) for the matched ACS 5-year window.
+* Numerator (`total_votes`): MEDSL `totalvotes` (the county-wide presidential
+  total, identical across all candidate/mode rows for a county-year).
+* Denominator (`cvap`): the "Total" line of the Census Bureau CVAP special
+  tabulation (`cvap_est`) for the matched ACS 5-year window.
 
 This is the **same definition** as `county_turnout$turnout` (whose own help page
 mis-describes the denominator as total population — corrected in `pintervals`
@@ -393,26 +510,34 @@ per wave, then the `turnout > 1` county-years dropped by
 
 * **`turnout` > 1** in 25 micro-county-years — **dropped** from the panel; see
   the `turnout` entry.
-* **`turnout` is `NA`** for 14 rows — Kalawao Co., HI and CT-2024 planning
-  regions; retained. See the `turnout` entry.
+* **`turnout` is `NA`** (and so are `total_votes`, `votes_*`, `*_share`) for 14
+  rows — Kalawao Co., HI and CT-2024 planning regions; retained. See the
+  `turnout` entry. `cvap` is never `NA`.
 * **`median_hh_inc` is `NA`** for 2 micro-county rows (Census-suppressed).
 * **`rural_pct` is `NA`** for the 9 CT-2024 planning regions.
+* **Party votes vs. `total_votes`**: `votes_dem + votes_rep + votes_other`
+  equals `total_votes` exactly for 2008–2020 and for all but 13 small 2024
+  counties (DC + 12 Vermont units), where upstream MEDSL sub-totals disagree by
+  at most ~2,500 ballots. `dem_share + rep_share + other_share` is likewise 1
+  up to rounding except on those 13 rows.
 * **Small-county ACS noise**: 5-year ACS estimates for counties with a few
   hundred residents (e.g. Loving Co., TX; Kalawao Co., HI) have very large
   margins of error. Extreme values such as `age65andolder_pct ≈ 82` (Loving Co.)
   are genuine point estimates, not errors.
-* **National CVAP turnout** implied by the panel (CVAP-weighted mean of
-  `turnout`, `turnout > 1` rows already removed): 2008 ≈ 0.62, 2012 ≈ 0.60,
-  2016 ≈ 0.61, 2020 ≈ 0.68, 2024 ≈ 0.64 — within ~1–2 points of published
-  national figures (the CVAP window is centred a year or two before each
-  election, slightly depressing the denominator).
+* **Per-election turnout** is available directly as the `turnout_electorate`
+  column (Σ`total_votes` ÷ Σ`cvap` over all counties with data, computed before
+  the `turnout > 1` drop): 2008 ≈ 0.624, 2012 ≈ 0.600, 2016 ≈ 0.608,
+  2020 ≈ 0.679, 2024 ≈ 0.644 — within ~1–2 points of published national figures
+  (the CVAP window is centred a year or two before each election, slightly
+  depressing the denominator). `turnout_county_mean` (the unweighted county-wise
+  mean) runs 1–2 points lower.
 
 ## Sources and licensing
 
 | source | used for | license |
 |:-------|:---------|:--------|
-| MEDSL, *County Presidential Election Returns 2000–2024*, Harvard Dataverse `doi:10.7910/DVN/VOQCHQ` (v20.0) | `turnout` numerator | **CC0 1.0** (verified via the Dataverse API) |
-| U.S. Census Bureau, CVAP Special Tabulation from the ACS (`census.gov/rdo`) | `turnout` denominator | U.S. Government work — **public domain** |
+| MEDSL, *County Presidential Election Returns 2000–2024*, Harvard Dataverse `doi:10.7910/DVN/VOQCHQ` (v20.0) | `total_votes`, `votes_dem`, `votes_rep`, `votes_other` | **CC0 1.0** (verified via the Dataverse API) |
+| U.S. Census Bureau, CVAP Special Tabulation from the ACS (`census.gov/rdo`) | `cvap` (turnout denominator) | U.S. Government work — **public domain** |
 | U.S. Census Bureau, ACS 5-year **detailed tables**, pulled **directly from the Census Bureau API** | all demographic covariates | U.S. Government work — **public domain** |
 | U.S. Census Bureau, decennial census table P2 (Census API) | `rural_pct` | U.S. Government work — **public domain** |
 | U.S. Census Bureau, Gazetteer Files | `longitude`, `latitude` | U.S. Government work — **public domain** |

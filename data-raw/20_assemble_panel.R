@@ -46,35 +46,46 @@ notes$excluded_geographies <- paste(
 )
 
 ## ==========================================================================
-## 2. Turnout numerator: MEDSL votes + Kansas City redistribution
+## 2. Turnout numerator + votes by party: MEDSL + Kansas City redistribution
 ## ==========================================================================
-kc_fips <- c("29037", "29047", "29095", "29165")           # Cass, Clay, Jackson, Platte
+kc_fips  <- c("29037", "29047", "29095", "29165")          # Cass, Clay, Jackson, Platte
+vote_cols <- c("total_votes", "votes_dem", "votes_rep", "votes_other")
 
 votes <- turnout_src |>
-  transmute(fips = fips_raw, election_year, total_votes)
+  transmute(fips = fips_raw, election_year, total_votes, votes_dem, votes_rep, votes_other)
 
 # Kansas City rows: FIPS 2938000 (<=2020) or 3600000 / mis-coded 36000 (2024).
+# The KC unit's ballots (total and by party) are redistributed to Cass / Clay /
+# Jackson / Platte by each county's share of the KC place population.
 kc_rows <- turnout_src |>
   filter(medsl_county == "KANSAS CITY") |>
-  transmute(election_year, kc_votes = total_votes)
+  transmute(election_year, total_votes, votes_dem, votes_rep, votes_other)
 notes$kansas_city <- turnout_src |>
   filter(medsl_county == "KANSAS CITY") |>
-  transmute(election_year, fips_in_medsl = fips_raw, kc_votes = total_votes)
+  transmute(election_year, fips_in_medsl = fips_raw,
+            total_votes, votes_dem, votes_rep, votes_other)
 
 kc_add <- purrr::map_dfr(seq_len(nrow(vintages)), function(i) {
   ey <- vintages$election_year[i]
   w  <- kc_split[[as.character(vintages$dec_vintage[i])]] |>
         filter(fips %in% kc_fips)
-  kv <- kc_rows$kc_votes[kc_rows$election_year == ey]
-  if (!length(kv)) return(tibble())
-  tibble(fips = w$fips, election_year = ey, kc_extra_votes = w$kc_weight * kv)
+  r  <- kc_rows[kc_rows$election_year == ey, ]
+  if (!nrow(r)) return(tibble())
+  tibble(fips = w$fips, election_year = ey,
+         kc_total = w$kc_weight * r$total_votes,
+         kc_dem   = w$kc_weight * r$votes_dem,
+         kc_rep   = w$kc_weight * r$votes_rep,
+         kc_other = w$kc_weight * r$votes_other)
 })
 
 votes <- votes |>
   filter(!fips %in% c("2938000", "3600000", "36000")) |>   # drop the KC unit itself
   left_join(kc_add, by = c("fips", "election_year")) |>
-  mutate(total_votes = total_votes + dplyr::coalesce(kc_extra_votes, 0)) |>
-  select(fips, election_year, total_votes)
+  mutate(total_votes = total_votes + dplyr::coalesce(kc_total, 0),
+         votes_dem   = votes_dem   + dplyr::coalesce(kc_dem,   0),
+         votes_rep   = votes_rep   + dplyr::coalesce(kc_rep,   0),
+         votes_other = votes_other + dplyr::coalesce(kc_other, 0)) |>
+  select(fips, election_year, dplyr::all_of(vote_cols))
 
 # FIPS remap of the numerator onto the spine vintage
 #   Shannon -> Oglala Lakota (46113 -> 46102) for waves whose spine uses 46102
@@ -86,12 +97,14 @@ votes <- votes |>
     TRUE ~ fips
   )) |>
   group_by(fips, election_year) |>
-  summarise(total_votes = sum(total_votes), .groups = "drop")
+  summarise(dplyr::across(dplyr::all_of(vote_cols), sum), .groups = "drop") |>
+  # round to whole ballots (only the KC-area counties carry fractions)
+  mutate(dplyr::across(dplyr::all_of(vote_cols), function(x) as.numeric(round(x))))
 
 ## ==========================================================================
 ## 3. Denominator: CVAP (already on the spine's ACS vintage)
 ## ==========================================================================
-den <- cvap_src |> select(fips, election_year, cvap)
+den <- cvap_src |> transmute(fips, election_year, cvap = round(cvap))
 
 ## ==========================================================================
 ## 4. Rural / urban continuum code (USDA ERS)
@@ -176,11 +189,18 @@ county_turnout_panel <- spine |>
   left_join(rucc,  by = c("fips", "election_year")) |>
   left_join(geo,   by = c("fips", "election_year")) |>
   left_join(geo_class, by = "state") |>
-  mutate(turnout = total_votes / cvap) |>
   transmute(
     state, county, fips,
     election_year = as.integer(election_year),
-    turnout          = round(turnout, 6),
+    turnout          = round(total_votes / cvap, 6),
+    total_votes      = as.integer(total_votes),
+    cvap             = as.integer(cvap),
+    votes_dem        = as.integer(votes_dem),
+    votes_rep        = as.integer(votes_rep),
+    votes_other      = as.integer(votes_other),
+    dem_share        = round(votes_dem   / total_votes, 6),
+    rep_share        = round(votes_rep   / total_votes, 6),
+    other_share      = round(votes_other / total_votes, 6),
     total_population = as.integer(round(total_population)),
     nonwhite_pct      = round(nonwhite_pct, 4),
     foreignborn_pct   = round(foreignborn_pct, 4),
@@ -202,12 +222,58 @@ county_turnout_panel <- spine |>
   arrange(election_year, fips)
 
 ## ==========================================================================
+## 8b. Per-election aggregates (added as columns, constant within a wave)
+## ==========================================================================
+# Computed over ALL counties with data for the wave -- i.e. before the
+# turnout > 1 rows are dropped below -- so the "electorate" figures are true
+# per-election totals.
+#   *_county_mean  : unweighted mean across counties (NA turnout / share skipped)
+#   *_electorate   : pooled ratio = sum(numerator) / sum(denominator) across the
+#                    wave's electorate (the "true" per-election rate)
+elec_agg <- county_turnout_panel |>
+  group_by(election_year) |>
+  summarise(
+    turnout_county_mean     = round(mean(turnout, na.rm = TRUE), 6),
+    turnout_electorate      = round(sum(total_votes[!is.na(turnout)]) /
+                                    sum(cvap[!is.na(turnout)]), 6),
+    dem_share_county_mean   = round(mean(dem_share,   na.rm = TRUE), 6),
+    rep_share_county_mean   = round(mean(rep_share,   na.rm = TRUE), 6),
+    other_share_county_mean = round(mean(other_share, na.rm = TRUE), 6),
+    dem_share_electorate    = round(sum(votes_dem[!is.na(total_votes)]) /
+                                    sum(total_votes[!is.na(total_votes)]), 6),
+    rep_share_electorate    = round(sum(votes_rep[!is.na(total_votes)]) /
+                                    sum(total_votes[!is.na(total_votes)]), 6),
+    other_share_electorate  = round(sum(votes_other[!is.na(total_votes)]) /
+                                    sum(total_votes[!is.na(total_votes)]), 6),
+    .groups = "drop"
+  )
+notes$election_aggregates <- elec_agg
+
+county_turnout_panel <- county_turnout_panel |>
+  left_join(elec_agg, by = "election_year") |>
+  select(
+    state, county, fips, election_year,
+    turnout, total_votes, cvap, votes_dem, votes_rep, votes_other,
+    dem_share, rep_share, other_share,
+    turnout_county_mean, turnout_electorate,
+    dem_share_county_mean, dem_share_electorate,
+    rep_share_county_mean, rep_share_electorate,
+    other_share_county_mean, other_share_electorate,
+    total_population, nonwhite_pct, foreignborn_pct, female_pct,
+    age29andunder_pct, age65andolder_pct, median_hh_inc, clf_unemploy_pct,
+    lesscollege_pct, lesshs_pct, rural_pct, ruralurban_cc,
+    division, region, geo_group, longitude, latitude
+  )
+
+## ==========================================================================
 ## 9. Drop implausible turnout (> 1); flag rows the joins could not complete
 ## ==========================================================================
 # turnout > 1 shows up only in micro-counties where recorded presidential
 # ballots exceed the noisy 5-year ACS CVAP estimate. These county-years are
 # removed from the shipped panel (rows with NA turnout are retained). The
-# dropped rows are recorded here, never discarded silently.
+# dropped rows are recorded here, never discarded silently. The per-election
+# aggregates above are computed *before* this step, so they still reflect the
+# full electorate.
 notes$turnout_over_1_dropped <- county_turnout_panel |>
   filter(!is.na(turnout), turnout > 1) |>
   select(election_year, fips, state, county, turnout) |>

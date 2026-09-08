@@ -1,4 +1,18 @@
 
+# pintervals 1.3.2
+
+* `county_turnout_panel` gains 16 columns (now 38 total):
+  * `total_votes` and `cvap` — the turnout numerator and denominator, so
+    `turnout` and every share is reproducible from the shipped data.
+  * `votes_dem`, `votes_rep`, `votes_other` and the matching `dem_share`,
+    `rep_share`, `other_share` — presidential votes and vote shares by party
+    (Libertarian/Green pooled into "other" for a consistent panel).
+  * eight per-election aggregates, constant within `election_year`:
+    `turnout_county_mean` / `turnout_electorate` and
+    `{dem,rep,other}_share_county_mean` / `_electorate` — the unweighted
+    county-wise mean and the pooled electorate-wide ("true") turnout and vote
+    shares for each election, computed over the full electorate.
+
 # pintervals 1.3.1
 
 * `county_turnout_panel` now excludes the 25 micro-county-years whose recorded
