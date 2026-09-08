@@ -72,6 +72,46 @@ For a full introduction to the package, the theory behind each method, and a wor
 vignette("pintervals", package = "pintervals")
 ```
 
+## Bundled data
+
+| dataset | description |
+|:--------|:------------|
+| `county_turnout` | U.S. county-level turnout + demographics for the **2016** election, with a leave-one-out random-forest `predicted_turnout`. Used in the vignette and the quick example above. |
+| `county_turnout_panel` | A tidy **five-wave county panel** (2008, 2012, 2016, 2020, 2024) of presidential turnout (votes / Citizen Voting-Age Population) and ACS demographic context. `county_turnout` is superseded by this but retained. |
+| `elections` | Election-year V-Dem democracy indicators, 1946–2024. |
+
+### Regenerating `county_turnout_panel`
+
+The panel is assembled entirely from public data by a reproducible pipeline in
+[`data-raw/`](data-raw). To rebuild it from scratch:
+
+```sh
+# 1. free Census Bureau API key -> https://api.census.gov/data/key_signup.html
+# 2. add to ~/.Renviron:  CENSUS_API_KEY=xxxx
+# 3. from the package root:
+Rscript data-raw/county_turnout_panel.R
+```
+
+Raw downloads (~260 MB) are cached under `data-raw/cache/`, so re-runs take
+seconds. A variable-by-variable codebook is installed with the package:
+
+```r
+file.show(system.file("extdata", "county_turnout_panel_codebook.md", package = "pintervals"))
+```
+
+**Upstream sources** (see [`data-raw/README.md`](data-raw/README.md) for full citations):
+
+* Vote totals — MIT Election Data and Science Lab, *County Presidential Election
+  Returns 2000–2024*, Harvard Dataverse, <https://doi.org/10.7910/DVN/VOQCHQ> (CC0 1.0).
+* Citizen Voting-Age Population — U.S. Census Bureau CVAP Special Tabulation from
+  the ACS (public domain).
+* Demographic covariates — U.S. Census Bureau, ACS 5-year detailed tables,
+  pulled **directly from the Census Bureau API** rather than IPUMS NHGIS, to
+  comply with NHGIS's non-redistribution terms (public domain).
+* Rurality — USDA Economic Research Service, Rural-Urban Continuum Codes (public
+  domain).
+* Coordinates — U.S. Census Bureau Gazetteer Files (public domain).
+
 ## Citation
 
 If you use **pintervals** in your research, please cite:

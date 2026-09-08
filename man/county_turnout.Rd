@@ -10,7 +10,7 @@ A tibble with 3,107 rows and 22 variables:
   \item{state}{State name.}
   \item{county}{County name.}
   \item{fips}{County FIPS code.}
-  \item{turnout}{Observed turnout (proportion). Calculated as total votes cast divided by total population (not voting-age population).}
+  \item{turnout}{Observed turnout (proportion). Total presidential votes cast divided by the county Citizen Voting-Age Population (CVAP) from the 2012--2016 ACS special tabulation. (Earlier versions of this help page described the denominator as total population; that was incorrect -- see NEWS for 1.3.0.)}
   \item{total_population}{Total county population.}
   \item{nonwhite_pct}{Percent non-white population.}
   \item{foreignborn_pct}{Percent foreign-born population.}
@@ -44,7 +44,15 @@ data(county_turnout)
 A county-level dataset (U.S.) with voter turnout and sociodemographic covariates.
 }
 \details{
-The dataset is based on the MIT Election Lab "2018 Election Analysis dataset" file, with four additions: (1) `turnout`, calculated as the number of votes cast divided by the total population, (2) `geo_group`, a coarse geographic grouping variable for the counties, (3) county centroid coordinates (`longitude`, `latitude`), and (4) `predicted_turnout`.
+\strong{Superseded.} This single-election (2016) cross-section is retained for
+backward compatibility and is still used by the package vignette and examples.
+For new work spanning multiple elections, prefer \code{\link{county_turnout_panel}},
+a five-wave (2008--2024) county panel whose covariates are pulled directly from
+the U.S. Census Bureau API. \code{county_turnout_panel$turnout} uses the same
+votes / Citizen Voting-Age Population definition as \code{county_turnout$turnout}
+and reproduces its 2016 values for all but a handful of counties (see NEWS 1.3.0).
+
+The dataset is based on the MIT Election Lab "2018 Election Analysis dataset" file, with four additions: (1) `turnout`, calculated as the number of presidential votes cast divided by the Citizen Voting-Age Population, (2) `geo_group`, a coarse geographic grouping variable for the counties, (3) county centroid coordinates (`longitude`, `latitude`), and (4) `predicted_turnout`.
 The variable `predicted_turnout` is generated using leave-one-out
 cross-validation (LOO-CV). For each county a random forest
 model is fit on the remaining counties with `turnout` as the outcome
@@ -60,19 +68,19 @@ library(ranger)
 library(foreach)
 library(pintervals)
 
-dat <- county_turnout  # replace with your object name
+data("county_turnout", package = "pintervals")
 
 # Choose predictors: all numeric covariates except turnout + geographic/id vars
-dat2 <- dat \code{|>}
- select(-c(state, county, fips, division, region, geo_group, longitude, latitude))
+model_data <- county_turnout \code{\%>\%}
+select(-c(state, county, fips, division, region, geo_group, longitude, latitude))
 
 set.seed(101010) # The meaning of life in binary
 
-pred_loo <- foreach(.i = seq_len(nrow(dat)),
-                    .final = unlist) %do% \{
+pred_loo <- foreach(.i = seq_len(nrow(county_turnout)),
+                    .final = unlist) \%do\% \{
 
-train <- dat2[-.i, , drop = FALSE]
-  test  <- dat2[ .i, , drop = FALSE]
+train <- model_data[-.i, , drop = FALSE]
+test  <- model_data[ .i, , drop = FALSE]
 
   fit <- ranger(
     formula = turnout ~ .,
@@ -84,6 +92,6 @@ train <- dat2[-.i, , drop = FALSE]
 \}
 
 
-dat <- dat \code{|>} mutate(predicted_turnout = pred_loo)
+county_turnout <- county_turnout \code{\%>\%} mutate(predicted_turnout = pred_loo)
 }
 \keyword{datasets}
