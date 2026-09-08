@@ -31,18 +31,19 @@ test_that("exactly the five presidential elections are present", {
 
 test_that("county counts per year match the investigated values", {
   tab <- as.integer(table(p$election_year))
-  # 2016 loses Bedford city VA (-> Bedford County); 2024 gains 1 (CT 8 counties
-  # -> 9 planning regions). See the codebook / R/data.R.
-  expect_identical(tab, c(3114L, 3114L, 3113L, 3113L, 3114L))
+  # native geography per wave is 3114 / 3114 / 3113 / 3113 / 3114 (2016 loses
+  # Bedford city VA -> Bedford County; 2024 gains 1 from CT 8 counties -> 9
+  # planning regions); then 6 / 3 / 4 / 6 / 6 turnout > 1 micro-county-years are
+  # dropped. See the codebook / R/data.R.
+  expect_identical(tab, c(3108L, 3111L, 3109L, 3107L, 3108L))
 })
 
-test_that("turnout: out-of-[0,1] values are flagged (retained), not silently dropped", {
-  bad <- p$turnout[!is.na(p$turnout) & (p$turnout < 0 | p$turnout > 1)]
-  # 25 documented micro-county over-1 values; assert they are still here and are
-  # plausible CVAP noise rather than gross errors.
-  expect_gt(length(bad), 0)
-  expect_true(all(bad > 1 & bad < 5))
+test_that("turnout: values > 1 are dropped, NA is retained", {
+  # micro-county county-years whose ballots exceed the noisy 5-year ACS CVAP
+  # estimate are removed in data-raw/20_assemble_panel.R.
+  expect_true(all(p$turnout[!is.na(p$turnout)] <= 1))
   expect_true(all(p$turnout[!is.na(p$turnout)] > 0.05))
+  expect_true(anyNA(p$turnout))
 })
 
 test_that("turnout NA is limited to the documented cases", {

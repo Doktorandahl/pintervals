@@ -3,7 +3,7 @@
 `county_turnout_panel` is a tidy panel of U.S. county-level presidential-election
 voter turnout and sociodemographic context for the five presidential elections
 of **2008, 2012, 2016, 2020, and 2024**. There is one row per county
-(county-equivalent) per election year: 15,568 rows, 22 columns.
+(county-equivalent) per election year: 15,543 rows, 22 columns.
 
 It generalises the single-election (2016) cross-section `county_turnout` to a
 five-wave panel and re-derives every covariate **directly from the U.S. Census
@@ -344,14 +344,17 @@ uses the corrected v20 returns), plus the four Kansas City-area Missouri countie
 (the panel redistributes the Kansas City vote to them; `county_turnout` does
 not).
 
-`NA` (14 rows): Kalawao County, HI (all 5 waves — no separate MEDSL returns) and
-the 9 Connecticut planning regions in 2024 (MEDSL still reports Connecticut on
-the 8 legacy counties, which do not match the 2020–2024 ACS/CVAP geography).
+`NA` (14 rows, **retained**): Kalawao County, HI (all 5 waves — no separate
+MEDSL returns) and the 9 Connecticut planning regions in 2024 (MEDSL still
+reports Connecticut on the 8 legacy counties, which do not match the 2020–2024
+ACS/CVAP geography).
 
-**Values > 1 (25 county-years) are retained, not dropped.** They occur only in
+**Values > 1 (25 county-years) are dropped.** They occurred only in
 micro-counties (e.g. Loving County, TX; Kenedy County, TX; Harding County, NM)
-where actual ballots exceed the noisy 5-year ACS CVAP estimate. Filter on
-`turnout <= 1` if your analysis requires a strict rate.
+where recorded ballots exceed the noisy 5-year ACS CVAP estimate. These
+county-years are removed from the panel by `data-raw/20_assemble_panel.R`
+(6 / 3 / 4 / 6 / 6 rows in 2008 / 2012 / 2016 / 2020 / 2024); every non-`NA`
+`turnout` in the shipped data is therefore `<= 1`.
 
 Year(s): election-year returns (MEDSL) ÷ matched CVAP window.
 
@@ -374,21 +377,24 @@ window are handled as follows; nothing is silently dropped.
 | **Connecticut: 8 counties → 9 COG-based planning regions**, 2022-vintage products | Kept native per wave: **2008–2020 waves use the 8 legacy counties (09001–09015); the 2024 wave uses the 9 planning regions (09110–09190).** Connecticut is therefore **not** a consistent 5-wave panel. Consequences: 2024 `turnout` is `NA` for the 9 planning regions (MEDSL still reports the 8 counties); 2024 `rural_pct` is `NA` (2020 census on legacy counties); 2020 `ruralurban_cc` comes from RUCC 2013. |
 | **Kansas City, MO** reports as its own unit (FIPS `2938000`; mis-coded `36000` in the 2024 MEDSL file — an upstream error) straddling Cass/Clay/Jackson/Platte counties, whose own rows exclude the Kansas City vote | Kansas City's presidential ballots are redistributed to the four counties in proportion to each county's share of the Kansas City *place* population from the nearest decennial census, then added to those counties' numerators. |
 
-Per-year county counts (investigate, do not assume constant):
+Per-year county counts (investigate, do not assume constant). Native geography
+per wave, then the `turnout > 1` county-years dropped by
+`data-raw/20_assemble_panel.R`:
 
-| year | counties | vs. previous |
-|-----:|---------:|:-------------|
-| 2008 | 3114 | — |
-| 2012 | 3114 | +0 |
-| 2016 | 3113 | −1 (Bedford city → Bedford County) |
-| 2020 | 3113 | +0 |
-| 2024 | 3114 | +1 (Connecticut 8 counties → 9 planning regions) |
+| year | native geo | − turnout > 1 | shipped rows |
+|-----:|-----------:|--------------:|-------------:|
+| 2008 | 3114 | 6 | 3108 |
+| 2012 | 3114 | 3 | 3111 |
+| 2016 | 3113 (−1: Bedford city → Bedford County) | 4 | 3109 |
+| 2020 | 3113 | 6 | 3107 |
+| 2024 | 3114 (+1: Connecticut 8 counties → 9 planning regions) | 6 | 3108 |
 
 ## Known data-quality flags
 
-* **`turnout` > 1** in 25 micro-county-years — retained; see the `turnout` entry.
+* **`turnout` > 1** in 25 micro-county-years — **dropped** from the panel; see
+  the `turnout` entry.
 * **`turnout` is `NA`** for 14 rows — Kalawao Co., HI and CT-2024 planning
-  regions; see the `turnout` entry.
+  regions; retained. See the `turnout` entry.
 * **`median_hh_inc` is `NA`** for 2 micro-county rows (Census-suppressed).
 * **`rural_pct` is `NA`** for the 9 CT-2024 planning regions.
 * **Small-county ACS noise**: 5-year ACS estimates for counties with a few
@@ -396,10 +402,10 @@ Per-year county counts (investigate, do not assume constant):
   margins of error. Extreme values such as `age65andolder_pct ≈ 82` (Loving Co.)
   are genuine point estimates, not errors.
 * **National CVAP turnout** implied by the panel (CVAP-weighted mean of
-  `pmin(turnout, 1)`): 2008 ≈ 0.62, 2012 ≈ 0.60, 2016 ≈ 0.61, 2020 ≈ 0.68,
-  2024 ≈ 0.64 — within ~1–2 points of published national figures (the CVAP
-  window is centred a year or two before each election, slightly depressing the
-  denominator).
+  `turnout`, `turnout > 1` rows already removed): 2008 ≈ 0.62, 2012 ≈ 0.60,
+  2016 ≈ 0.61, 2020 ≈ 0.68, 2024 ≈ 0.64 — within ~1–2 points of published
+  national figures (the CVAP window is centred a year or two before each
+  election, slightly depressing the denominator).
 
 ## Sources and licensing
 

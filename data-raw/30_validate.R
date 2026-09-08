@@ -1,9 +1,10 @@
 # ---------------------------------------------------------------------------
 # 30_validate.R -- Post-assembly validation report for county_turnout_panel
 # ---------------------------------------------------------------------------
-# Prints a human-readable report and stops on hard failures. Soft findings
-# (turnout outside [0, 1], NA outcomes) are reported, never dropped -- see the
-# build request. The same invariants are asserted against the shipped .rda in
+# Prints a human-readable report and stops on hard failures. County-years with
+# turnout > 1 are dropped in 20_assemble_panel.R; this script asserts none
+# remain. NA outcomes are retained and reported, never dropped. The same
+# invariants are asserted against the shipped .rda in
 # tests/testthat/test-county_turnout_panel.R.
 # ---------------------------------------------------------------------------
 
@@ -40,17 +41,18 @@ cat("\n  county rows per election year:\n")
 for (i in seq_len(nrow(cnt))) cat(sprintf("    %s : %d\n", cnt[i, 1], cnt[i, 2]))
 delta <- diff(cnt$n_counties)
 cat("\n  wave-to-wave change: ", paste(sprintf("%+d", delta), collapse = "  "), "\n")
-# Known drivers of the differences (all documented in the codebook):
-#  * 2016 loses 1 vs 2012: Bedford (ind.) city VA merged into Bedford County (51515 -> 51019, 2013)
-#  * 2020 == 2016
-#  * 2024 gains 1 vs 2020: Connecticut 8 legacy counties -> 9 planning regions (+1 unit),
-#                          minus 0 elsewhere; Valdez-Cordova split is in Alaska (excluded)
-expected_counts <- c(`2008` = 3114, `2012` = 3114, `2016` = 3113, `2020` = 3113, `2024` = 3114)
+# Drivers of the differences (all documented in the codebook):
+#  * native geography per wave: 3114 / 3114 / 3113 / 3113 / 3114 county-equivalents
+#    (2016 loses Bedford (ind.) city VA -> Bedford County; 2024 gains 1 from the
+#     Connecticut 8 legacy counties -> 9 planning regions change)
+#  * then the turnout > 1 micro-county-years dropped in 20_assemble_panel.R:
+#    6 / 3 / 4 / 6 / 6, leaving 3108 / 3111 / 3109 / 3107 / 3108
+expected_counts <- c(`2008` = 3108, `2012` = 3111, `2016` = 3109, `2020` = 3107, `2024` = 3108)
 hard(identical(as.integer(cnt$n_counties), unname(as.integer(expected_counts[as.character(cnt$election_year)]))),
      "per-year county counts differ from the investigated/expected values")
 ok("county counts: match the investigated expectations (see codebook)")
 
-## 4. turnout in [0, 1] -- flag, never drop ----------------------------------
+## 4. turnout in [0, 1] -- > 1 dropped upstream, NA retained ------------------
 n_na  <- sum(is.na(p$turnout))
 oob   <- p[!is.na(p$turnout) & (p$turnout < 0 | p$turnout > 1), ]
 cat("\n  turnout: ", n_na, " NA | ", nrow(oob), " outside [0, 1]\n")
@@ -59,16 +61,11 @@ if (n_na) {
   flag("turnout NA for %d rows (Kalawao Co. HI, all waves; Connecticut planning regions, 2024):", n_na)
   print(na_tbl, row.names = FALSE)
 }
-if (nrow(oob)) {
-  flag("turnout > 1 for %d micro-counties (votes exceed the noisy 5-year ACS CVAP estimate):", nrow(oob))
-  print(as.data.frame(oob[order(-oob$turnout), c("election_year", "state", "county", "turnout")]),
-        row.names = FALSE)
-}
-# hard ceiling: nothing absurd beyond the known micro-county noise
-hard(all(p$turnout[!is.na(p$turnout)] > 0.05) && max(p$turnout, na.rm = TRUE) < 5,
-     "turnout has values that cannot be micro-county CVAP noise")
+# turnout > 1 is dropped in 20_assemble_panel.R -- assert none slipped through
+hard(nrow(oob) == 0, sprintf("%d rows with turnout outside [0, 1] survived the drop", nrow(oob)))
+hard(all(p$turnout[!is.na(p$turnout)] > 0.05), "turnout has implausibly low values")
 hard(n_na <= 14, "more NA turnout than the documented 14")
-ok("turnout: all NA / out-of-range rows are the documented cases")
+ok("turnout: <= 1 for every non-NA row; NA only for the documented cases")
 
 ## 5. covariate plausibility ------------------------------------------------
 pct_cols <- c("nonwhite_pct", "foreignborn_pct", "female_pct", "age29andunder_pct",

@@ -123,8 +123,10 @@ takes a few minutes, a warm run (cache populated) about 15 seconds.
 * **Connecticut** switched from 8 counties to 9 planning regions across the
   window, and every source adopted the change on a different schedule. Kept
   native per wave; consequences documented in the codebook and the roxygen.
-* **Micro-county turnout > 1** — 25 county-years where actual ballots exceed the
-  5-year ACS CVAP point estimate. Retained and flagged, per the build request.
+* **Micro-county turnout > 1** — 25 county-years where recorded ballots exceed
+  the noisy 5-year ACS CVAP point estimate. **Dropped** from the panel in
+  `20_assemble_panel.R` (6 / 3 / 4 / 6 / 6 rows per wave), recorded in
+  `panel_build_notes$turnout_over_1_dropped`. Rows with `NA` turnout are kept.
 
 ## `county_turnout` and `elections`
 

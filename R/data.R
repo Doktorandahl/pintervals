@@ -133,13 +133,13 @@
 #' This is the multi-election generalisation of \code{\link{county_turnout}}; every covariate
 #' is re-derived directly from the U.S. Census Bureau API.
 #'
-#' @format A tibble with 15,568 rows and 22 variables:
+#' @format A tibble with 15,543 rows and 22 variables:
 #' \describe{
 #'   \item{state}{State name (or "District of Columbia").}
 #'   \item{county}{County / county-equivalent name (trailing " County"/" Parish" removed). Not unique on its own; pair with \code{fips}.}
 #'   \item{fips}{5-character county FIPS code, stored as a character string with leading zeros (e.g. \code{"01001"}). (In \code{county_turnout} this column is numeric.)}
 #'   \item{election_year}{Presidential election year: 2008, 2012, 2016, 2020 or 2024. Panel key together with \code{fips}.}
-#'   \item{turnout}{Turnout rate = total presidential ballots cast (MEDSL) / Citizen Voting-Age Population (CVAP special tabulation), using the same definition as \code{county_turnout$turnout}. \code{NA} for 14 rows (Kalawao Co., HI in every wave; the 9 Connecticut planning regions in 2024). 25 micro-county values exceed 1 and are \strong{retained, not dropped} (votes above the noisy 5-year ACS CVAP estimate) - filter on \code{turnout <= 1} for a strict rate.}
+#'   \item{turnout}{Turnout rate = total presidential ballots cast (MEDSL) / Citizen Voting-Age Population (CVAP special tabulation), using the same definition as \code{county_turnout$turnout}. Always \eqn{\le 1} where present: 25 micro-county-years whose recorded ballots exceeded the noisy 5-year ACS CVAP estimate (turnout > 1) have been \strong{dropped} from the panel. \code{NA} for 14 rows (Kalawao Co., HI in every wave; the 9 Connecticut planning regions in 2024) - these are \strong{retained}.}
 #'   \item{total_population}{Total resident population (ACS table B01003), integer.}
 #'   \item{nonwhite_pct}{Percent not non-Hispanic White (from ACS B03002).}
 #'   \item{foreignborn_pct}{Percent foreign-born (ACS B05002).}
@@ -188,9 +188,11 @@
 #'   \item \emph{Connecticut: 8 counties -> 9 planning regions (2022-vintage products)}: kept native per wave - the 2008-2020 waves use the 8 legacy counties (09001-09015), the 2024 wave uses the 9 planning regions (09110-09190). Connecticut is therefore not a consistent 5-wave panel: 2024 \code{turnout} and \code{rural_pct} are \code{NA} for the planning regions, and CT's 2020 \code{ruralurban_cc} is taken from RUCC 2013 (legacy counties).
 #'   \item \emph{Kansas City, MO} reports as its own unit (FIPS 2938000; mis-coded 36000 in the 2024 MEDSL file); its ballots are redistributed to Cass/Clay/Jackson/Platte counties by each county's share of the Kansas City place population from the nearest decennial census.
 #' }
-#' Per-year county counts are 3114 / 3114 / 3113 / 3113 / 3114 for
-#' 2008 / 2012 / 2016 / 2020 / 2024; the differences are the Bedford (2016) and
-#' Connecticut (2024) changes above.
+#' Native geography per wave is 3114 / 3114 / 3113 / 3113 / 3114 county-equivalents
+#' for 2008 / 2012 / 2016 / 2020 / 2024 (the Bedford (2016) and Connecticut (2024)
+#' changes above); after dropping the 6 / 3 / 4 / 6 / 6 county-years with
+#' turnout > 1, the shipped per-year row counts are
+#' 3108 / 3111 / 3109 / 3107 / 3108.
 #'
 #' \strong{Rurality-code vintage caveat.} USDA ERS revises the Rural-Urban
 #' Continuum roughly once per decade, so \code{ruralurban_cc} is shared by the

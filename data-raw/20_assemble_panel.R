@@ -9,8 +9,11 @@
 # ("native geography per wave"). Alaska and the island territories are
 # excluded (Alaska has no county/borough-level presidential returns; this
 # also matches the original `county_turnout`). Where another source uses a
-# different FIPS vintage than the spine, it is remapped; residual mismatches
-# are left as NA and recorded in `panel_build_notes`, never silently dropped.
+# different FIPS vintage than the spine, it is remapped; residual join
+# mismatches are left as NA and recorded in `panel_build_notes`, never silently
+# dropped. County-years whose computed turnout exceeds 1 (recorded ballots above
+# the noisy 5-year ACS CVAP estimate, a handful of micro-counties) ARE dropped
+# from the shipped panel and recorded in `panel_build_notes$turnout_over_1_dropped`.
 # ---------------------------------------------------------------------------
 
 if (!exists("acs_src"))  source(file.path("data-raw", "10_transform.R"))
@@ -199,8 +202,20 @@ county_turnout_panel <- spine |>
   arrange(election_year, fips)
 
 ## ==========================================================================
-## 9. Flag rows the joins could not complete (never dropped silently)
+## 9. Drop implausible turnout (> 1); flag rows the joins could not complete
 ## ==========================================================================
+# turnout > 1 shows up only in micro-counties where recorded presidential
+# ballots exceed the noisy 5-year ACS CVAP estimate. These county-years are
+# removed from the shipped panel (rows with NA turnout are retained). The
+# dropped rows are recorded here, never discarded silently.
+notes$turnout_over_1_dropped <- county_turnout_panel |>
+  filter(!is.na(turnout), turnout > 1) |>
+  select(election_year, fips, state, county, turnout) |>
+  arrange(dplyr::desc(turnout))
+
+county_turnout_panel <- county_turnout_panel |>
+  filter(is.na(turnout) | turnout <= 1)
+
 notes$missing_turnout <- county_turnout_panel |>
   filter(is.na(turnout)) |>
   select(election_year, fips, state, county)
@@ -216,5 +231,5 @@ panel_build_notes <- notes
 message(sprintf("assembled county_turnout_panel: %d rows, %d cols, years %s",
                 nrow(county_turnout_panel), ncol(county_turnout_panel),
                 paste(sort(unique(county_turnout_panel$election_year)), collapse = ", ")))
-message(sprintf("  NA turnout: %d | turnout outside [0,1]: %d",
-                nrow(notes$missing_turnout), nrow(notes$turnout_out_of_unit_interval)))
+message(sprintf("  NA turnout: %d (retained) | turnout > 1: %d (dropped)",
+                nrow(notes$missing_turnout), nrow(notes$turnout_over_1_dropped)))

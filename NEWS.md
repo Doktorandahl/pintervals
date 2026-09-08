@@ -1,4 +1,11 @@
 
+# pintervals 1.3.1
+
+* `county_turnout_panel` now excludes the 25 micro-county-years whose recorded
+  presidential ballots exceeded the noisy 5-year ACS CVAP estimate (turnout > 1),
+  leaving 15,543 rows. Rows with an unknown (`NA`) turnout are still retained.
+  The filtering is performed by the build pipeline in `data-raw/`.
+
 # pintervals 1.3.0
 
 * New dataset `county_turnout_panel`: a tidy five-wave county-level panel of
