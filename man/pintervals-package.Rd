@@ -11,7 +11,7 @@
 Provides tools for estimating model-agnostic prediction intervals using conformal prediction, bootstrapping, and parametric prediction intervals. The package is designed for ease of use, offering intuitive functions for both binned and full conformal prediction methods, as well as parametric interval estimation with diagnostic checks. Currently only working for continuous predictions. For details on the conformal and bin-conditional conformal prediction methods, see Randahl, Williams, and Hegre (2026) \doi{10.1017/pan.2025.10010}.
 }
 \author{
-\strong{Maintainer}: David Randahl \email{david.randahl@pcr.uu.se}
+\strong{Maintainer}: David Randahl \email{david.randahl@fhs.se}
 
 Other contributors:
 \itemize{

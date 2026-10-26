@@ -6,7 +6,8 @@
   method assumptions and coverage guarantees, and a new appendix evaluating the
   example with `interval_score()` and `interval_width()`. `ranger` added to
   Suggests.
-
+* Added `importFrom("stats", "lm.fit")` to the NAMESPACE
+* Updated maintainer email address
 
 # pintervals 1.3.2
 
