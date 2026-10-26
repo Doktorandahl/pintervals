@@ -1,3 +1,12 @@
+# pintervals 1.3.3
+
+* Vignette rewritten to match the updated manuscript: the worked example now
+  predicts relative Democratic vote share in the 2024 election from
+  `county_turnout_panel` (random forest via `ranger`), adds a summary table of
+  method assumptions and coverage guarantees, and a new appendix evaluating the
+  example with `interval_score()` and `interval_width()`. `ranger` added to
+  Suggests.
+
 
 # pintervals 1.3.2
 
