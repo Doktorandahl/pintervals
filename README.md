@@ -3,7 +3,7 @@
 <!-- badges: start -->
 
 [![CRAN status](https://www.r-pkg.org/badges/version/pintervals)](https://CRAN.R-project.org/package=pintervals)
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE.md)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 <!-- badges: end -->
 
@@ -86,4 +86,4 @@ vignette("pintervals", package = "pintervals")
 
 If you use **pintervals** in your research, please cite:
 
-> Randahl, D., Hjort, A., & Williams, J. P. (2026). pintervals: an R package for model-agnostic prediction intervals. arXiv preprint arXiv:2601.03994.GPL (>= 3).
+> Randahl, D., Hjort, A., & Williams, J. P. (2026). pintervals: an R package for model-agnostic prediction intervals. arXiv preprint arXiv:2601.03994.

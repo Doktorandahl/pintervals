@@ -7,13 +7,12 @@ turnout and ACS demographic context. Rebuilds `data/county_turnout_panel.rda`.
 
 ### How to regenerate from scratch
 
-1. Get a free Census Bureau API key: <https://api.census.gov/data/key_signup.html>
+1. Get a free Census Bureau API key: [https://api.census.gov/data/key_signup.html](https://api.census.gov/data/key_signup.html)
 2. Add it to `~/.Renviron` (then restart R):
 
    ```
    CENSUS_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
    ```
-
 3. From the package root:
 
    ```sh
@@ -25,20 +24,20 @@ The run is **idempotent**: every raw download is cached under
 cache sub-directory to force that source to re-download. Fetching is fully
 separated from transformation:
 
-| script | stage | needs key | network |
-|:-------|:------|:---------:|:--------|
-| `00_config.R` | election-year → vintage map; cache + API helpers | – | – |
-| `01_fetch_medsl.R` | MEDSL county presidential returns — total + by party (Dataverse API) | no | yes |
-| `02_fetch_cvap.R` | CVAP special tabulations (census.gov/rdo) | no | yes |
-| `03_fetch_acs.R` | ACS 5-year detailed tables (Census API) | **yes** | yes |
-| `04_fetch_rucc.R` | USDA ERS Rural-Urban Continuum Codes | no | yes |
-| `05_fetch_geo.R` | Census Gazetteer county centroids | no | yes |
-| `06_fetch_decennial.R` | decennial census urban/rural split (Census API) | **yes** | yes |
-| `07_fetch_kc_split.R` | Kansas City place-by-county population weights (Census API) | **yes** | yes |
-| `10_transform.R` | each raw source → one tidy county-year frame (incl. votes by party) | – | – |
-| `20_assemble_panel.R` | joins + FIPS/geography harmonisation + party-vote / per-election aggregates → the panel | – | – |
-| `30_validate.R` | schema / duplicates / turnout range / votes / shares / aggregates / county counts | – | – |
-| `county_turnout_panel.R` | orchestrator: runs all of the above, writes the `.rda` | **yes** | yes |
+| script                     | stage                                                                                    |   needs key   | network |
+| :------------------------- | :--------------------------------------------------------------------------------------- | :-----------: | :------ |
+| `00_config.R`            | election-year → vintage map; cache + API helpers                                        |      –      | –      |
+| `01_fetch_medsl.R`       | MEDSL county presidential returns — total + by party (Dataverse API)                    |      no      | yes     |
+| `02_fetch_cvap.R`        | CVAP special tabulations (census.gov/rdo)                                                |      no      | yes     |
+| `03_fetch_acs.R`         | ACS 5-year detailed tables (Census API)                                                  | **yes** | yes     |
+| `04_fetch_rucc.R`        | USDA ERS Rural-Urban Continuum Codes                                                     |      no      | yes     |
+| `05_fetch_geo.R`         | Census Gazetteer county centroids                                                        |      no      | yes     |
+| `06_fetch_decennial.R`   | decennial census urban/rural split (Census API)                                          | **yes** | yes     |
+| `07_fetch_kc_split.R`    | Kansas City place-by-county population weights (Census API)                              | **yes** | yes     |
+| `10_transform.R`         | each raw source → one tidy county-year frame (incl. votes by party)                     |      –      | –      |
+| `20_assemble_panel.R`    | joins + FIPS/geography harmonisation + party-vote / per-election aggregates → the panel |      –      | –      |
+| `30_validate.R`          | schema / duplicates / turnout range / votes / shares / aggregates / county counts        |      –      | –      |
+| `county_turnout_panel.R` | orchestrator: runs all of the above, writes the `.rda`                                 | **yes** | yes     |
 
 Supporting files: `fips_crosswalk.csv` (documented geography changes with
 sources), `acs_variables_resolved.csv` (written by `03`; every ACS table pulled,
@@ -52,49 +51,43 @@ takes a few minutes, a warm run (cache populated) about 15 seconds.
 * **MEDSL vote returns** —
   MIT Election Data and Science Lab, 2024,
   *County Presidential Election Returns 2000–2024*,
-  <https://doi.org/10.7910/DVN/VOQCHQ>, Harvard Dataverse, V20. **License: CC0 1.0.**
+  [https://doi.org/10.7910/DVN/VOQCHQ](https://doi.org/10.7910/DVN/VOQCHQ), Harvard Dataverse, V20. **License: CC0 1.0.**
   Downloaded via the Dataverse data-access API. The dataset content is CC0, but
   Harvard Dataverse attaches a *required* download guestbook (name / email /
   institution / position); `01_fetch_medsl.R` satisfies it with a guestbook
   response POST (no account or token needed — edit `gb_response` in that script
   to record your own details).
-
 * **CVAP (turnout denominator)** —
   U.S. Census Bureau, *Citizen Voting-Age Population (CVAP) Special Tabulation
   From the American Community Survey*, 2006–2010, 2008–2012, 2012–2016,
   2016–2020 and 2020–2024 5-year files,
-  <https://www.census.gov/programs-surveys/decennial-census/about/voting-rights/cvap.html>.
+  [https://www.census.gov/programs-surveys/decennial-census/about/voting-rights/cvap.html](https://www.census.gov/programs-surveys/decennial-census/about/voting-rights/cvap.html).
   U.S. Government work — public domain.
-
 * **ACS demographic covariates** —
   U.S. Census Bureau, *American Community Survey 5-Year Estimates*, Detailed
   Tables (B01001, B01003, B03002, B05002, B15002, B15003, B19013, B23001,
   B23025), obtained directly from the Census Bureau API,
-  <https://www.census.gov/data/developers/data-sets/acs-5year.html>.
+  [https://www.census.gov/data/developers/data-sets/acs-5year.html](https://www.census.gov/data/developers/data-sets/acs-5year.html).
   U.S. Government work — public domain. **Not** sourced via IPUMS NHGIS (see
   below).
-
 * **rural_pct** —
   U.S. Census Bureau, 2010 Census Summary File 1 table P2 and 2020 Census
   Demographic and Housing Characteristics File table P2 ("Urban and Rural"), via
   the Census Bureau API. U.S. Government work — public domain.
-
 * **Rural-Urban Continuum Codes** —
   U.S. Department of Agriculture, Economic Research Service, *Rural-Urban
   Continuum Codes*, 2003, 2013 and 2023 releases,
-  <https://www.ers.usda.gov/data-products/rural-urban-continuum-codes/>.
+  [https://www.ers.usda.gov/data-products/rural-urban-continuum-codes/](https://www.ers.usda.gov/data-products/rural-urban-continuum-codes/).
   U.S. Government work — public domain.
-
 * **County centroids** —
   U.S. Census Bureau, *Gazetteer Files* (county records, 2012 / 2013 / 2016 /
   2020 / 2024),
-  <https://www.census.gov/geographies/reference-files/time-series/geo/gazetteer-files.html>.
+  [https://www.census.gov/geographies/reference-files/time-series/geo/gazetteer-files.html](https://www.census.gov/geographies/reference-files/time-series/geo/gazetteer-files.html).
   U.S. Government work — public domain.
-
 * **County boundary-change documentation** (for `fips_crosswalk.csv`) —
   U.S. Census Bureau, *Substantial Changes to Counties and County Equivalent
   Entities: 1970–Present*,
-  <https://www.census.gov/programs-surveys/geography/technical-documentation/county-changes.html>;
+  [https://www.census.gov/programs-surveys/geography/technical-documentation/county-changes.html](https://www.census.gov/programs-surveys/geography/technical-documentation/county-changes.html);
   and *Change to County Equivalents in the State of Connecticut*, 87 FR 34235
   (2022-06-06).
 
