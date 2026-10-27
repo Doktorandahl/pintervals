@@ -7,6 +7,7 @@
 #' @importFrom foreach %do%
 #' @importFrom Rcpp sourceCpp
 #' @importFrom stats cov
+#' @importFrom stats lm.fit
 #' @importFrom stats na.omit
 #' @useDynLib pintervals, .registration = TRUE
 ## usethis namespace: end
