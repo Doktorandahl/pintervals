@@ -86,4 +86,4 @@ vignette("pintervals", package = "pintervals")
 
 If you use **pintervals** in your research, please cite:
 
-> Randahl, D., Hjort, A., & Williams, J. P. (2026). pintervals: an R package for model-agnostic prediction intervals. arXiv preprint arXiv:2601.03994.GPL (>= 3). See [LICENSE.md](LICENSE.md) for details.
+> Randahl, D., Hjort, A., & Williams, J. P. (2026). pintervals: an R package for model-agnostic prediction intervals. arXiv preprint arXiv:2601.03994.GPL (>= 3).
